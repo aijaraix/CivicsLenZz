@@ -1,0 +1,6 @@
+{
+  "name": "CivicsLens",
+  "description": "AI-powered civic transparency, accountability, and public intelligence platform tracking public officials, promises, legislation, and spending.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
