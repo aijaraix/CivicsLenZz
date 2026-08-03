@@ -1,0 +1,9 @@
+{
+  "id": "hermes-1",
+  "name": "Node Hermes-1: Seat & GIS Boundary Matrix Engine (Address-to-Seat GIS Engine)",
+  "source": "US Census TIGER/Line GIS & State Redistricting Seat Registry",
+  "status": "Running",
+  "lastRun": "Active - 514,042 National Seats Mapped to Address Boundaries",
+  "recordsExtracted": 514042,
+  "health": 100
+}

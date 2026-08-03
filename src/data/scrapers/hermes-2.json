@@ -1,0 +1,9 @@
+{
+  "id": "hermes-2",
+  "name": "Node Hermes-2: State Legislative Network (50-State Roll Calls & Bills)",
+  "source": "OpenStates API & State Assembly Roll Call Registers",
+  "status": "Running",
+  "lastRun": "Active - Florida (100%), Georgia (100%), California (92%), Texas (88%)",
+  "recordsExtracted": 32450,
+  "health": 99.2
+}

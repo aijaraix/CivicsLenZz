@@ -1,0 +1,47 @@
+{
+  "officialId": "fl-gov-desantis",
+  "cycle": "2022-2026",
+  "totalRaised": 142500000,
+  "totalSpent": 124000000,
+  "cashOnHand": 18500000,
+  "topDonors": [
+    {
+      "name": "Empower Florida PAC",
+      "type": "PAC",
+      "amount": 12400000
+    },
+    {
+      "name": "Associated Industries of Florida PAC",
+      "type": "PAC",
+      "amount": 4800000
+    },
+    {
+      "name": "Citadel LLC Associates",
+      "type": "Corporate",
+      "amount": 2500000
+    },
+    {
+      "name": "Individual Small-Donor Base (<$100)",
+      "type": "Individual",
+      "amount": 18400000
+    }
+  ],
+  "industries": [
+    {
+      "name": "Real Estate & Land Development",
+      "amount": 28400000
+    },
+    {
+      "name": "Energy, Utilities & Infrastructure",
+      "amount": 15600000
+    },
+    {
+      "name": "Healthcare & Pharmaceuticals",
+      "amount": 11200000
+    },
+    {
+      "name": "Defense Policy & Law Enforcement PACs",
+      "amount": 8900000
+    }
+  ]
+}

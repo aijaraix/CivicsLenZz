@@ -1,0 +1,9 @@
+{
+  "id": "hermes-6",
+  "name": "Node Hermes-6: Official Portrait & Campaign URL Validator",
+  "source": "Verified Official Portrait Archive, Wikimedia Commons & Campaign Index",
+  "status": "Running",
+  "lastRun": "Active - Headshots & Campaign URLs Verified (514,042 Officials)",
+  "recordsExtracted": 514042,
+  "health": 100
+}

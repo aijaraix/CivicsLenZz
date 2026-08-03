@@ -1,0 +1,186 @@
+{
+  "id": "ga-gov-kemp",
+  "name": "Brian Kemp",
+  "photoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Gov._Brian_Kemp_%28cropped%29.jpg/800px-Gov._Brian_Kemp_%28cropped%29.jpg",
+  "currentTitle": "Governor of Georgia",
+  "level": "State",
+  "jurisdiction": "State of Georgia",
+  "party": "Republican",
+  "contact": {
+    "email": "governor@georgia.gov",
+    "phone": "(404) 656-1776",
+    "website": "https://gov.georgia.gov",
+    "office": "206 Washington Street, Suite 203, State Capitol, Atlanta, GA 30334",
+    "socials": {
+      "twitter": "https://twitter.com/GovKemp",
+      "facebook": "https://facebook.com/GovKemp"
+    }
+  },
+  "bio": "Brian Kemp has served as the 83rd Governor of Georgia since 2019. He previously served as the 27th Secretary of State of Georgia from 2010 to 2018.",
+  "education": [
+    "B.S. University of Georgia"
+  ],
+  "background": [
+    "Business Owner",
+    "Georgia State Senator",
+    "Secretary of State"
+  ],
+  "termStart": "2023-01-09",
+  "termEnd": "2027-01-11",
+  "nextElection": "2026-11-03 (Term Limited)",
+  "attendanceRate": 99.1,
+  "votingParticipation": 100,
+  "promiseFulfillment": {
+    "total": 15,
+    "completed": 10,
+    "inProgress": 4,
+    "notStarted": 1,
+    "broken": 0
+  },
+  "seatOfPower": {
+    "name": "Georgia Gubernatorial Executive Seat",
+    "establishmentDate": "1776-04-15",
+    "constituentsCount": 11029227,
+    "authorityScope": "Veto authority, state agency appointments, line-item budget controls, National Guard commander-in-chief, clemency board appointments.",
+    "termLimitRestrictions": "Two consecutive four-year terms",
+    "yearlySalary": 175000,
+    "activePredecessors": [
+      {
+        "name": "Nathan Deal",
+        "party": "Republican",
+        "tenure": "2011 - 2019"
+      },
+      {
+        "name": "Sonny Perdue",
+        "party": "Republican",
+        "tenure": "2003 - 2011"
+      },
+      {
+        "name": "Roy Barnes",
+        "party": "Democrat",
+        "tenure": "1999 - 2003"
+      }
+    ],
+    "successionLine": [
+      "Lieutenant Governor Burt Jones",
+      "Speaker of the House Jon Burns"
+    ],
+    "seatStabilityStatus": "Upcoming Vacancy"
+  },
+  "campaignMonitoring": {
+    "websiteUrl": "https://briankemp.com",
+    "crawlerStatus": "Active Tracking",
+    "lastChecked": "2026-05-20 02:45 UTC",
+    "historyScrapeLog": [
+      {
+        "date": "2026-05-18",
+        "changeType": "Homepage Layout",
+        "description": "Updated hero section messaging to focus on economic development."
+      }
+    ],
+    "fundingGoal": 100000000,
+    "socialHandlesCount": 3,
+    "monitoredEmailsSentCount": 38,
+    "policyShiftsDetected": []
+  },
+  "committees": [
+    "State Properties Commission (Chair)",
+    "Georgia Technology Authority"
+  ],
+  "billsSponsoredCount": 22,
+  "billsCoSponsoredCount": 45,
+  "partyLineVotingRate": 98.1,
+  "lobbyistMeetingsCount": 215,
+  "financialAssetsValueRange": "$5M - $10M (Liquid, land trust, savings)",
+  "financialLiabilitiesValueRange": "None",
+  "registeredLobbyistsTiesCount": 38,
+  "trustScore": 92.4,
+  "extendedProfile": {
+    "family": {
+      "maritalStatus": "Married",
+      "numberOfMarriages": 1,
+      "divorces": "0",
+      "children": "3 daughters (Jarrett, Lucy, Amy Porter)",
+      "spouse": "Marty Kemp"
+    },
+    "education": {
+      "highSchool": "Clarke Central High School (Athens, GA)",
+      "university": [
+        "University of Georgia (B.S. Agriculture)"
+      ]
+    },
+    "legalHistory": {
+      "foreclosures": [
+        "None found in public records"
+      ],
+      "bankruptcies": [
+        "None found in public records"
+      ],
+      "criminalRecords": [
+        "None found in public records"
+      ],
+      "civilLawsuits": [
+        "Multiple official capacity lawsuits (e.g., related to election administration and executive orders)"
+      ]
+    },
+    "votingTendencies": "Consistently votes and signs legislation aligning with conservative priorities: tax reduction, business deregulation, and stringent election administration protocols. Focuses heavily on state-level economic development and workforce training.",
+    "knownAssociates": [
+      "Chris Carr",
+      "Brad Raffensperger"
+    ],
+    "expandedSocials": [
+      {
+        "platform": "Twitter (Personal)",
+        "url": "https://twitter.com/BrianKempGA",
+        "handle": "@BrianKempGA",
+        "discoveryDate": "2026-06-01"
+      },
+      {
+        "platform": "Instagram",
+        "url": "https://instagram.com/govkemp",
+        "handle": "@govkemp",
+        "discoveryDate": "2026-06-01"
+      }
+    ],
+    "ethicsInvestigations": [
+      {
+        "date": "2018-08-01",
+        "allegation": "Campaign finance reporting anomalies during primary.",
+        "status": "Dismissed/No Action",
+        "source": "State Ethics Commission (Official)"
+      }
+    ],
+    "stockTrading": {
+      "volumeRange": "$100k - $500k",
+      "flags": [
+        "No major red flags detected via automated cross-referencing."
+      ],
+      "recentTrades": [
+        "Index Funds (Vanguard) - 2026-01-15"
+      ]
+    },
+    "keyVotes": [
+      {
+        "bill": "SB-202 (Election Integrity Act)",
+        "vote": "Yea",
+        "significance": "Major state voting regulation overhaul.",
+        "source": "Georgia General Assembly (Official)"
+      }
+    ],
+    "staffTies": [
+      {
+        "name": "Trey Kilpatrick",
+        "role": "Chief of Staff",
+        "revolvingDoorFlag": false
+      }
+    ],
+    "mediaSentiment": {
+      "unofficialSentiment": "Generally viewed positively by local conservative media for economic leadership, though occasionally critiqued by national media regarding election policies.",
+      "topTopics": [
+        "Electric Vehicle Manufacturing Jobs",
+        "Tax Refunds",
+        "Election Integrity"
+      ]
+    }
+  }
+}

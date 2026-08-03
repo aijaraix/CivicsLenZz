@@ -1,0 +1,9 @@
+{
+  "id": "hermes-4",
+  "name": "Node Hermes-4: County & Municipal Board Aggregator",
+  "source": "Local City Council & County Commission Agendas & Minutes",
+  "status": "Running",
+  "lastRun": "Active - Parsing 3,142 County Commissions",
+  "recordsExtracted": 125300,
+  "health": 98.6
+}

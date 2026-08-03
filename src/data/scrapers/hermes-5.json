@@ -1,0 +1,9 @@
+{
+  "id": "hermes-5",
+  "name": "Node Hermes-5: Extended Legal Records & Public Dockets Crawler",
+  "source": "Public Records, LexisNexis & State Administrative Dockets",
+  "status": "Running",
+  "lastRun": "Active - 514,042 Dockets Cross-Referenced",
+  "recordsExtracted": 514042,
+  "health": 99.8
+}

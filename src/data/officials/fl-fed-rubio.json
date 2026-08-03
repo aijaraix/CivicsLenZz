@@ -1,0 +1,142 @@
+{
+  "id": "fl-fed-rubio",
+  "name": "Marco Rubio",
+  "photoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Senator_Rubio_official_portrait.jpg/800px-Senator_Rubio_official_portrait.jpg",
+  "currentTitle": "U.S. Senator for Florida",
+  "level": "Federal",
+  "jurisdiction": "United States (Florida)",
+  "party": "Republican",
+  "contact": {
+    "email": "senator@rubio.senate.gov",
+    "phone": "(202) 224-3041",
+    "website": "https://www.rubio.senate.gov",
+    "office": "284 Russell Senate Office Building, Washington, DC 20510",
+    "socials": {
+      "twitter": "https://twitter.com/marcorubio"
+    }
+  },
+  "bio": "Marco Rubio is the senior United States Senator from Florida, in office since 2011. He previously served as Speaker of the Florida House of Representatives from 2006 to 2008.",
+  "education": [
+    "B.S. University of Florida",
+    "J.D. University of Miami Law School"
+  ],
+  "background": [
+    "City Commissioner (West Miami)",
+    "Florida House Representative",
+    "Attorney"
+  ],
+  "termStart": "2023-01-03",
+  "termEnd": "2029-01-03",
+  "nextElection": "2028-11-07",
+  "attendanceRate": 93.7,
+  "votingParticipation": 94.2,
+  "promiseFulfillment": {
+    "total": 8,
+    "completed": 4,
+    "inProgress": 2,
+    "notStarted": 1,
+    "broken": 1
+  },
+  "seatOfPower": {
+    "name": "United States Senate - Class III Seat for Florida",
+    "establishmentDate": "1845-07-01",
+    "constituentsCount": 22244823,
+    "authorityScope": "Federal high chamber power, judicial/treaty confirmations, legislative bills sponsorship, appropriations oversight.",
+    "termLimitRestrictions": "None",
+    "yearlySalary": 174000,
+    "activePredecessors": [
+      {
+        "name": "George LeMieux",
+        "party": "Republican",
+        "tenure": "2009 - 2011"
+      },
+      {
+        "name": "Mel Martinez",
+        "party": "Republican",
+        "tenure": "2005 - 2009"
+      },
+      {
+        "name": "Bob Graham",
+        "party": "Democrat",
+        "tenure": "1987 - 2005"
+      }
+    ],
+    "successionLine": [
+      "Vacated seats require Governor-appointed interim replacement until next general election."
+    ],
+    "seatStabilityStatus": "Stable"
+  },
+  "campaignMonitoring": {
+    "websiteUrl": "https://marcorubio.com",
+    "crawlerStatus": "Active Tracking",
+    "lastChecked": "2026-05-20 03:00 UTC",
+    "historyScrapeLog": [
+      {
+        "date": "2026-05-17",
+        "changeType": "Inbound Contribution",
+        "description": "Reported new national PAC fundraising event."
+      },
+      {
+        "date": "2026-05-09",
+        "changeType": "Campaign Platform",
+        "description": "Expanded policy remarks emphasizing family support credits."
+      }
+    ],
+    "fundingGoal": 45000000,
+    "socialHandlesCount": 4,
+    "monitoredEmailsSentCount": 88,
+    "policyShiftsDetected": [
+      {
+        "date": "2026-05-09",
+        "category": "Family Policy",
+        "originalText": "Expand credit deductions for modern multi-child households.",
+        "revisedText": "Enforce direct $4,000 credit adjustments with complete step-phase safeguards."
+      }
+    ]
+  },
+  "committees": [
+    "Senate Select Committee on Intelligence (Vice Chair)",
+    "Senate Committee on Foreign Relations",
+    "Special Committee on Aging"
+  ],
+  "billsSponsoredCount": 247,
+  "billsCoSponsoredCount": 1104,
+  "partyLineVotingRate": 91.8,
+  "lobbyistMeetingsCount": 451,
+  "financialAssetsValueRange": "$1.5M - $4.0M (Mutual funds, real estate holdings)",
+  "financialLiabilitiesValueRange": "$500k - $1M (Home mortgages)",
+  "registeredLobbyistsTiesCount": 62,
+  "trustScore": 92.5,
+  "extendedProfile": {
+    "family": {
+      "maritalStatus": "Married",
+      "numberOfMarriages": 1,
+      "divorces": "0",
+      "children": "4 children (Amanda, Daniella, Anthony, Dominick)",
+      "spouse": "Jeanette Dousdebes Rubio"
+    },
+    "education": {
+      "highSchool": "South Miami High School (Miami, FL)",
+      "university": [
+        "Tarkio College",
+        "Santa Fe Community College",
+        "University of Florida (B.A. Political Science)",
+        "University of Miami (J.D.)"
+      ]
+    },
+    "legalHistory": {
+      "foreclosures": [
+        "None found in public records"
+      ],
+      "bankruptcies": [
+        "None found in public records"
+      ],
+      "criminalRecords": [
+        "None found in public records"
+      ],
+      "civilLawsuits": [
+        "None found in public records"
+      ]
+    }
+  }
+}

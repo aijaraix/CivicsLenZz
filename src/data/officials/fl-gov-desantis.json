@@ -1,0 +1,169 @@
+{
+  "id": "fl-gov-desantis",
+  "name": "Ron DeSantis",
+  "photoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4b/Gov._Ron_DeSantis_Official_Portrait_%28cropped%29.jpg/800px-Gov._Ron_DeSantis_Official_Portrait_%28cropped%29.jpg",
+  "currentTitle": "Governor of Florida",
+  "level": "State",
+  "jurisdiction": "State of Florida",
+  "party": "Republican",
+  "contact": {
+    "email": "governorron.desantis@eog.myflorida.com",
+    "phone": "(850) 717-9337",
+    "website": "https://www.myflorida.com",
+    "office": "The Capitol, 400 S. Monroe St., Tallahassee, FL 32399",
+    "socials": {
+      "twitter": "https://twitter.com/GovRonDeSantis",
+      "facebook": "https://facebook.com/GovRonDeSantis"
+    }
+  },
+  "bio": "Ron DeSantis has served as the 46th Governor of Florida since 2019. Previously, he served as a U.S. Representative representing Florida's 6th Congressional District from 2013 to 2018.",
+  "education": [
+    "B.A. Yale University",
+    "J.D. Harvard Law School"
+  ],
+  "background": [
+    "U.S. Navy JAG Officer",
+    "Federal Prosecutor",
+    "U.S. Representative"
+  ],
+  "termStart": "2023-01-03",
+  "termEnd": "2027-01-05",
+  "nextElection": "2026-11-03 (Term Limited)",
+  "attendanceRate": 98.4,
+  "votingParticipation": 100,
+  "promiseFulfillment": {
+    "total": 12,
+    "completed": 7,
+    "inProgress": 3,
+    "notStarted": 1,
+    "broken": 1
+  },
+  "seatOfPower": {
+    "name": "Florida Gubernatorial Executive Seat",
+    "establishmentDate": "1845-06-25",
+    "constituentsCount": 22244823,
+    "authorityScope": "Veto authority, state agency appointments, line-item budget controls, National Guard commander-in-chief, clemency operations.",
+    "termLimitRestrictions": "Two consecutive four-year terms",
+    "yearlySalary": 134181,
+    "activePredecessors": [
+      {
+        "name": "Rick Scott",
+        "party": "Republican",
+        "tenure": "2011 - 2019"
+      },
+      {
+        "name": "Charlie Crist",
+        "party": "Republican/Independent",
+        "tenure": "2007 - 2011"
+      },
+      {
+        "name": "Jeb Bush",
+        "party": "Republican",
+        "tenure": "1999 - 2007"
+      }
+    ],
+    "successionLine": [
+      "Lieutenant Governor Jeanette Nuñez",
+      "Attorney General Ashley Moody",
+      "Chief Financial Officer Jimmy Patronis",
+      "Commissioner of Agriculture Wilton Simpson"
+    ],
+    "seatStabilityStatus": "Upcoming Vacancy"
+  },
+  "campaignMonitoring": {
+    "websiteUrl": "https://rondesantis.com",
+    "crawlerStatus": "Active Tracking",
+    "lastChecked": "2026-05-20 02:45 UTC",
+    "historyScrapeLog": [
+      {
+        "date": "2026-05-18",
+        "changeType": "Homepage Layout",
+        "description": "Updated hero section messaging to focus on tax-relief and education legacy."
+      },
+      {
+        "date": "2026-05-12",
+        "changeType": "Policy Stance Update",
+        "description": "Refined tax policy text supporting expansion of standard deduction."
+      },
+      {
+        "date": "2026-04-20",
+        "changeType": "Ad Campaign Launched",
+        "description": "Added custom embedded YouTube media files tracking statewide accomplishments."
+      }
+    ],
+    "fundingGoal": 150000000,
+    "socialHandlesCount": 3,
+    "monitoredEmailsSentCount": 42,
+    "policyShiftsDetected": [
+      {
+        "date": "2026-05-12",
+        "category": "Taxation",
+        "originalText": "Ensure property tax surges remain strictly capped by state law.",
+        "revisedText": "Implement direct relief and zero assessment surges for homeowners across the state."
+      }
+    ]
+  },
+  "committees": [
+    "Florida Cabinet (Chair)",
+    "State Board of Education (Chair)",
+    "Armory Board"
+  ],
+  "billsSponsoredCount": 15,
+  "billsCoSponsoredCount": 38,
+  "partyLineVotingRate": 97.4,
+  "lobbyistMeetingsCount": 322,
+  "financialAssetsValueRange": "$10M - $25M (Liquid, land trust, savings, pensions)",
+  "financialLiabilitiesValueRange": "None",
+  "registeredLobbyistsTiesCount": 48,
+  "trustScore": 94.2,
+  "extendedProfile": {
+    "family": {
+      "maritalStatus": "Married",
+      "numberOfMarriages": 1,
+      "divorces": "0",
+      "children": "3 children (Madison, Mason, Mamie)",
+      "spouse": "Casey DeSantis"
+    },
+    "education": {
+      "highSchool": "Dunedin High School (Dunedin, FL)",
+      "university": [
+        "Yale University (B.A. History)",
+        "Harvard Law School (J.D.)"
+      ]
+    },
+    "legalHistory": {
+      "foreclosures": [
+        "None found in public records"
+      ],
+      "bankruptcies": [
+        "None found in public records"
+      ],
+      "criminalRecords": [
+        "None found in public records"
+      ],
+      "civilLawsuits": [
+        "Multiple official capacity lawsuits typical for a sitting governor (e.g., redistricting, education policies, executive suspensions)"
+      ]
+    },
+    "votingTendencies": "Strong focus on conservative social policies, education reform, environmental conservation (Everglades restoration), and fiscal conservatism. Exhibits high willingness to utilize executive authority.",
+    "knownAssociates": [
+      "Jeanette Nuñez",
+      "Ashley Moody",
+      "Jimmy Patronis"
+    ],
+    "expandedSocials": [
+      {
+        "platform": "Twitter (Personal/Campaign)",
+        "url": "https://twitter.com/RonDeSantis",
+        "handle": "@RonDeSantis",
+        "discoveryDate": "2026-06-01"
+      },
+      {
+        "platform": "Instagram",
+        "url": "https://instagram.com/flgovrondesantis",
+        "handle": "@flgovrondesantis",
+        "discoveryDate": "2026-06-01"
+      }
+    ]
+  }
+}

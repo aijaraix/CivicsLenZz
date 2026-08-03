@@ -1,0 +1,138 @@
+{
+  "id": "fl-county-cava",
+  "name": "Daniella Levine Cava",
+  "photoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/a/aa/Daniella_Levine_Cava_headshot.jpg/800px-Daniella_Levine_Cava_headshot.jpg",
+  "currentTitle": "Mayor of Miami-Dade County",
+  "level": "County",
+  "jurisdiction": "Miami-Dade County",
+  "party": "Nonpartisan",
+  "contact": {
+    "email": "mayor@miamidade.gov",
+    "phone": "(305) 375-5071",
+    "website": "https://www.miamidade.gov/global/government/mayor",
+    "office": "111 NW 1st Street, Suite 2910, Miami, FL 33128"
+  },
+  "bio": "Daniella Levine Cava has served as Mayor of Miami-Dade County since 2020. She has been an advocate for environmental resiliency, small business relief, and transit modernization.",
+  "education": [
+    "B.A. Yale University",
+    "M.S.W. Columbia University School of Social Work",
+    "J.D. Columbia Law School"
+  ],
+  "background": [
+    "Public Interest Attorney",
+    "Guardian Ad Litem Director",
+    "County Commissioner"
+  ],
+  "termStart": "2024-11-20",
+  "termEnd": "2028-11-21",
+  "nextElection": "2028-08-15 (Primary/General)",
+  "attendanceRate": 99.1,
+  "votingParticipation": 98.7,
+  "promiseFulfillment": {
+    "total": 10,
+    "completed": 5,
+    "inProgress": 4,
+    "notStarted": 1,
+    "broken": 0
+  },
+  "seatOfPower": {
+    "name": "Miami-Dade County Strong Mayor Executive Seat",
+    "establishmentDate": "1957-07-21",
+    "constituentsCount": 2701767,
+    "authorityScope": "Direct administrative control of 28,000 county employees, management of $10B+ budget, appointments of key directors (Port, Aviation, Transit, Police).",
+    "termLimitRestrictions": "Two consecutive four-year terms",
+    "yearlySalary": 250000,
+    "activePredecessors": [
+      {
+        "name": "Carlos A. Giménez",
+        "party": "Republican (Nonpartisan seat)",
+        "tenure": "2011 - 2020"
+      },
+      {
+        "name": "Carlos Alvarez",
+        "party": "Nonpartisan",
+        "tenure": "2004 - 2011"
+      },
+      {
+        "name": "Alex Penelas",
+        "party": "Democrat (Nonpartisan seat)",
+        "tenure": "1996 - 2004"
+      }
+    ],
+    "successionLine": [
+      "Chief Operations Officer Jimmy Morales",
+      "Board of County Commissioners Chairman"
+    ],
+    "seatStabilityStatus": "Stable"
+  },
+  "campaignMonitoring": {
+    "websiteUrl": "https://daniella.vote",
+    "crawlerStatus": "Active Tracking",
+    "lastChecked": "2026-05-20 01:30 UTC",
+    "historyScrapeLog": [
+      {
+        "date": "2026-05-15",
+        "changeType": "Environmental Platform",
+        "description": "Added updated metrics on electric-bus procurements and water restoration milestones."
+      },
+      {
+        "date": "2026-04-22",
+        "changeType": "Fundraising Statement",
+        "description": "Published quarterly grassroots small-donor thank-you message."
+      }
+    ],
+    "fundingGoal": 8000000,
+    "socialHandlesCount": 3,
+    "monitoredEmailsSentCount": 35,
+    "policyShiftsDetected": [
+      {
+        "date": "2026-05-15",
+        "category": "Transit",
+        "originalText": "Purchase clean fuel alternatives over the upcoming decade.",
+        "revisedText": "Enforce a complete 100% Zero-Emission transit mandate by the year 2030."
+      }
+    ]
+  },
+  "committees": [
+    "Miami-Dade Transportation Planning Organization (Board)",
+    "South Florida Regional Planning Council"
+  ],
+  "billsSponsoredCount": 42,
+  "billsCoSponsoredCount": 95,
+  "partyLineVotingRate": 100,
+  "lobbyistMeetingsCount": 184,
+  "financialAssetsValueRange": "$2.0M - $6.5M (Private trusts, family enterprises, mutual funds)",
+  "financialLiabilitiesValueRange": "None",
+  "registeredLobbyistsTiesCount": 33,
+  "trustScore": 97.8,
+  "extendedProfile": {
+    "family": {
+      "maritalStatus": "Married",
+      "numberOfMarriages": 1,
+      "divorces": "0",
+      "children": "2 children (Eliza, Edward)",
+      "spouse": "Dr. Robert Cava"
+    },
+    "education": {
+      "highSchool": "Private High School (New York, NY)",
+      "university": [
+        "Yale University (B.A. Psychology)",
+        "Columbia University (J.D. and M.S.W.)"
+      ]
+    },
+    "legalHistory": {
+      "foreclosures": [
+        "None found in public records"
+      ],
+      "bankruptcies": [
+        "None found in public records"
+      ],
+      "criminalRecords": [
+        "None found in public records"
+      ],
+      "civilLawsuits": [
+        "None found in public records"
+      ]
+    }
+  }
+}

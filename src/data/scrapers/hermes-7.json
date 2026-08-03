@@ -1,0 +1,9 @@
+{
+  "id": "hermes-7",
+  "name": "Node Hermes-7: Seat Matrix & Redistricting Monitor",
+  "source": "Census Redistricting Data & State Boundary Revisions",
+  "status": "Running",
+  "lastRun": "Active - Scanning for Boundary Revisions & Seat Additions",
+  "recordsExtracted": 514042,
+  "health": 100
+}

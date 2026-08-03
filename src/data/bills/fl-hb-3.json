@@ -1,0 +1,24 @@
+{
+  "id": "fl-hb-3",
+  "number": "CS/CS/HB 3",
+  "title": "Online Safety for Minors",
+  "summary": "Prohibits minors under 14 from establishing social media accounts on highly addictive platforms; requires platforms to deploy age verification protocols and delete accounts of unverified minors.",
+  "fullTextSimulated": "An act relating to online safety for minors; creating s. 501.1735, F.S.; prohibiting social platforms with interactive features from onboarding minors ... enforcing secure independent age verification databases ... outlining penalties of up to $50k per violation.",
+  "status": "Signed Into Law",
+  "sponsors": [
+    "Representative Tyler Sirois"
+  ],
+  "coSponsors": [
+    "Representative Fiona McFarland"
+  ],
+  "votes": [
+    {
+      "officialName": "Ron DeSantis",
+      "position": "Yes",
+      "date": "2024-03-25"
+    }
+  ],
+  "fiscalImpact": "Requires Florida Department of Legal Affairs to enforce legal compliance frameworks; litigation offset reserve is set at $5.0M.",
+  "affectedParties": "Florida families, teenagers under 16, social network platforms, age verification providers.",
+  "lastUpdated": "2024-03-26"
+}

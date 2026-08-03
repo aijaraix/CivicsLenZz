@@ -1,0 +1,29 @@
+{
+  "id": "fl-sb-256",
+  "number": "CS/SB 256",
+  "title": "Employee Organizations (Public Sector Unions)",
+  "summary": "Renews requirements for public employee organizations representing teachers, municipal staff, and utility workers. Demands that representational groups maintain a 60% active dues-paying membership ratio to maintain certification, prohibits automatic paycheck deductions, and requires audits.",
+  "fullTextSimulated": "A bill to be entitled An act relating to employee organizations; amending s. 447.301, F.S.; prohibiting employee organizations from using paycheck payroll deductions ... requiring annual financial audits and establishing a 60 percent active registry threshold as a condition of continue representational certification ...",
+  "status": "Signed Into Law",
+  "sponsors": [
+    "Senator Blaise Ingoglia"
+  ],
+  "coSponsors": [
+    "Senator Debbie Mayfield"
+  ],
+  "votes": [
+    {
+      "officialName": "Ron DeSantis",
+      "position": "Yes",
+      "date": "2023-05-09"
+    },
+    {
+      "officialName": "Marco Rubio",
+      "position": "Yes",
+      "date": "2023-05-09"
+    }
+  ],
+  "fiscalImpact": "Directs Florida PERC (Public Employees Relations Commission) to spend an estimated $1.2M in annual oversight operations; adds administrative compliance costs to school districts.",
+  "affectedParties": "Public school teachers, police (exempted), municipal waste workers, firefighters (exempted), local utility workers.",
+  "lastUpdated": "2023-05-10"
+}

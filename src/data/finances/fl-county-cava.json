@@ -1,0 +1,38 @@
+{
+  "officialId": "fl-county-cava",
+  "cycle": "2024-2028",
+  "totalRaised": 6200000,
+  "totalSpent": 4800000,
+  "cashOnHand": 1400000,
+  "topDonors": [
+    {
+      "name": "South Florida Clean Water PAC",
+      "type": "PAC",
+      "amount": 850000
+    },
+    {
+      "name": "Miami-Dade Affordable Housing Trust",
+      "type": "PAC",
+      "amount": 420000
+    },
+    {
+      "name": "Individual Small-Donor Base (<$250",
+      "type": "Individual",
+      "amount": 2400000
+    }
+  ],
+  "industries": [
+    {
+      "name": "Tourism, Hotels & Hospitality Complexes",
+      "amount": 1200000
+    },
+    {
+      "name": "Municipal Land Development & Housing",
+      "amount": 950000
+    },
+    {
+      "name": "Coastal Engineering & Port Associations",
+      "amount": 620000
+    }
+  ]
+}

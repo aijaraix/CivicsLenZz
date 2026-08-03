@@ -1,0 +1,118 @@
+{
+  "id": "fl-sd-oc-thompson",
+  "name": "Dr. Maria Thompson",
+  "photoUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Profile_avatar_placeholder_large.png/800px-Profile_avatar_placeholder_large.png",
+  "currentTitle": "Orange County School Board Member (District 4)",
+  "level": "Special District",
+  "jurisdiction": "Orange County School District",
+  "party": "Nonpartisan",
+  "contact": {
+    "email": "maria.thompson@ocps.net",
+    "phone": "(407) 317-3236",
+    "website": "https://www.ocps.net"
+  },
+  "bio": "Dr. Maria Thompson is an educator and school administrator who focuses on local curriculum standards, early childhood development, and high-contrast educational spending audits.",
+  "education": [
+    "B.S. Florida State University",
+    "Ed.D. University of Central Florida"
+  ],
+  "background": [
+    "High School Principal",
+    "PTA Director",
+    "Academic Researcher"
+  ],
+  "termStart": "2022-11-22",
+  "termEnd": "2026-11-17",
+  "nextElection": "2026-08-18 (Primary/General)",
+  "attendanceRate": 97.5,
+  "votingParticipation": 96.8,
+  "promiseFulfillment": {
+    "total": 5,
+    "completed": 3,
+    "inProgress": 1,
+    "notStarted": 1,
+    "broken": 0
+  },
+  "seatOfPower": {
+    "name": "Orange County School Board Seat - District 4",
+    "establishmentDate": "1969-12-01",
+    "constituentsCount": 206000,
+    "authorityScope": "Monitors local public school curriculum standards, acts on local educational audits, controls a portion of the $2.7B district budget, oversees principal staff.",
+    "termLimitRestrictions": "None",
+    "yearlySalary": 45722,
+    "activePredecessors": [
+      {
+        "name": "John Doe",
+        "party": "Nonpartisan",
+        "tenure": "2014 - 2022"
+      },
+      {
+        "name": "Jane Smith",
+        "party": "Nonpartisan",
+        "tenure": "2008 - 2014"
+      }
+    ],
+    "successionLine": [
+      "Vacant board seats are filled by Special Election inside Orange County District 4."
+    ],
+    "seatStabilityStatus": "Contested"
+  },
+  "campaignMonitoring": {
+    "websiteUrl": "https://mariathompsonforschoolboard.com",
+    "crawlerStatus": "Active Tracking",
+    "lastChecked": "2026-05-19 22:15 UTC",
+    "historyScrapeLog": [
+      {
+        "date": "2026-05-10",
+        "changeType": "Parent Advisory Announcement",
+        "description": "Created school reading circle dockets and posted town-hall photos."
+      }
+    ],
+    "fundingGoal": 95000,
+    "socialHandlesCount": 2,
+    "monitoredEmailsSentCount": 12,
+    "policyShiftsDetected": []
+  },
+  "committees": [
+    "Orange County School Board Policy Committee",
+    "OCPS Audit Advisory Committee"
+  ],
+  "billsSponsoredCount": 18,
+  "billsCoSponsoredCount": 34,
+  "partyLineVotingRate": 100,
+  "lobbyistMeetingsCount": 24,
+  "financialAssetsValueRange": "$200k - $500k (Teacher retirement pension, local bonds)",
+  "financialLiabilitiesValueRange": "$100k - $250k (Residential mortgage)",
+  "registeredLobbyistsTiesCount": 4,
+  "trustScore": 96.1,
+  "extendedProfile": {
+    "family": {
+      "maritalStatus": "Divorced",
+      "numberOfMarriages": 2,
+      "divorces": "1",
+      "children": "1 son",
+      "spouse": "None"
+    },
+    "education": {
+      "highSchool": "Winter Park High School (Winter Park, FL)",
+      "university": [
+        "Florida State University (B.S.)",
+        "University of Central Florida (Ed.D.)"
+      ]
+    },
+    "legalHistory": {
+      "foreclosures": [
+        "None found in public records"
+      ],
+      "bankruptcies": [
+        "None found in public records"
+      ],
+      "criminalRecords": [
+        "None found in public records"
+      ],
+      "civilLawsuits": [
+        "Divorce proceeding (2018)"
+      ]
+    }
+  }
+}

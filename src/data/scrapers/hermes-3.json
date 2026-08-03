@@ -1,0 +1,9 @@
+{
+  "id": "hermes-3",
+  "name": "Node Hermes-3: Campaign Finance & Ethics Audit Engine",
+  "source": "FEC & 50-State Election Ethics Filings (M3-FTP/XML)",
+  "status": "Running",
+  "lastRun": "Active - Live Stream Ingestion (485k transactions)",
+  "recordsExtracted": 485000,
+  "health": 100
+}
