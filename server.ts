@@ -12,6 +12,48 @@ async function startServer() {
     res.json({ status: "ok", app: "CivicLenZ", time: new Date().toISOString() });
   });
 
+
+  // Phase 2: Spatial API Endpoints (Simulated for 500k Architecture)
+  
+  // 1. Geocode & Point-in-Polygon Query (Find my exact representatives)
+  app.get("/api/officials/represent", (req, res) => {
+    const { lat, lng } = req.query;
+    // In production, this would query PostGIS:
+    // SELECT official.*, boundary.geojson FROM seats
+    // JOIN boundaries ON seats.boundary_id = boundaries.id
+    // JOIN officials ON seats.current_official_id = officials.id
+    // WHERE ST_Contains(boundaries.geom, ST_SetSRID(ST_MakePoint(lng, lat), 4326));
+    
+    // Simulate returning a subset of officials for a specific point
+    // This demonstrates the logic without needing a real PostGIS DB right now.
+    res.json({
+        status: 'success',
+        message: 'Point-in-polygon spatial query simulated.',
+        point: { lat, lng },
+        // We will just return a mock response that the frontend will use to filter the DB
+        officials: ['donald-trump', 'marco-rubio', 'ron-desantis', 'shevrin-jones', 'daniella-levine-cava'] 
+    });
+  });
+
+  // 2. Bounding Box Query (Dynamic Map Loading)
+  app.get("/api/map/boundaries", (req, res) => {
+    const { north, south, east, west, zoom } = req.query;
+    // In production, this would use PostGIS ST_MakeEnvelope and ST_Simplify:
+    // SELECT id, name, level, 
+    //   CASE WHEN zoom < 8 THEN ST_Simplify(geom, 0.1) ELSE geom END as geometry 
+    // FROM boundaries WHERE geom && ST_MakeEnvelope(west, south, east, north, 4326);
+    
+    // Simulate dynamic loading: only return data if they zoom in enough, 
+    // or return clustered points if zoomed out.
+    res.json({
+        status: 'success',
+        message: 'Bounding box query simulated.',
+        bounds: { north, south, east, west },
+        zoom,
+        note: "In production, this returns Vector Tiles or simplified GeoJSON within the bounds."
+    });
+  });
+
   // REST endpoint for AI actions - Replaced with Local Mock Engine to prevent API Rate Limit / Configuration Errors
   app.post("/api/gemini/action", async (req, res) => {
     const { action, payload } = req.body;

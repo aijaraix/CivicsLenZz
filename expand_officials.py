@@ -1,0 +1,26 @@
+import re
+
+with open("src/lib/demo-data.ts", "r") as f:
+    text = f.read()
+
+# Replace the demoOfficials array with a generated one
+new_officials = """export const demoOfficials: DemoOfficial[] = [
+  { slug: 'elena-morgan', name: 'Elena Morgan', title: 'U.S. Representative · FL-14', level: 'Federal', party: 'Example Party', district: 'Florida · District 14', color: '#1d4ed8', initials: 'EM', score: 82, promises: 24, bills: 28, votes: 824, detail: 'Representative example', office: '500 Civic Avenue, Tampa, FL 33602', phone: '(202) 555-0140', email: 'contact@example.civicslenz', nextElection: 'November 3, 2026' },
+  { slug: 'david-chen', name: 'David Chen', title: 'U.S. Senator · Florida', level: 'Federal', party: 'Example Party', district: 'Florida', color: '#0f766e', initials: 'DC', score: 76, promises: 18, bills: 31, votes: 762, detail: 'Representative example', office: '327 Hart Senate Office Building', phone: '(202) 555-0141', email: 'contact@example.civicslenz', nextElection: 'November 3, 2026' },
+  { slug: 'aisha-thompson', name: 'Aisha Thompson', title: 'State Senator · District 19', level: 'State', party: 'Example Party', district: 'Florida · District 19', color: '#9a3412', initials: 'AT', score: 88, promises: 15, bills: 42, votes: 312, detail: 'Representative example', office: '404 Capitol Building', phone: '(850) 555-0199', email: 'contact@example.civicslenz', nextElection: 'November 3, 2026' },
+  { slug: 'maria-salazar', name: 'María Elvira Salazar', title: 'U.S. Representative · FL-27', level: 'Federal', party: 'Republican', district: 'Florida · District 27', color: '#dc2626', initials: 'MS', score: 74, promises: 12, bills: 15, votes: 450, detail: 'Representative example', office: '2162 Rayburn House Office Building', phone: '(202) 225-3931', email: 'contact@example.civicslenz', nextElection: 'November 3, 2026' },
+  { slug: 'daniella-levine-cava', name: 'Daniella Levine Cava', title: 'Mayor of Miami-Dade County', level: 'Local', party: 'Democratic', district: 'Miami-Dade County', color: '#2563eb', initials: 'DLC', score: 85, promises: 30, bills: 0, votes: 0, detail: 'Representative example', office: '111 NW 1st St', phone: '(305) 375-5071', email: 'contact@example.civicslenz', nextElection: 'August 20, 2024' },
+  { slug: 'rick-scott', name: 'Rick Scott', title: 'U.S. Senator · Florida', level: 'Federal', party: 'Republican', district: 'Florida', color: '#dc2626', initials: 'RS', score: 68, promises: 22, bills: 45, votes: 910, detail: 'Representative example', office: '502 Hart Senate Office Building', phone: '(202) 224-5274', email: 'contact@example.civicslenz', nextElection: 'November 5, 2024' },
+  { slug: 'marco-rubio', name: 'Marco Rubio', title: 'U.S. Senator · Florida', level: 'Federal', party: 'Republican', district: 'Florida', color: '#dc2626', initials: 'MR', score: 71, promises: 25, bills: 60, votes: 980, detail: 'Representative example', office: '284 Russell Senate Office Building', phone: '(202) 224-3041', email: 'contact@example.civicslenz', nextElection: 'November 7, 2028' },
+  { slug: 'ron-desantis', name: 'Ron DeSantis', title: 'Governor of Florida', level: 'State', party: 'Republican', district: 'Florida', color: '#dc2626', initials: 'RD', score: 65, promises: 40, bills: 0, votes: 0, detail: 'Representative example', office: 'The Capitol, 400 S. Monroe St.', phone: '(850) 717-9337', email: 'contact@example.civicslenz', nextElection: 'November 3, 2026' },
+  { slug: 'ashley-moody', name: 'Ashley Moody', title: 'Attorney General · Florida', level: 'State', party: 'Republican', district: 'Florida', color: '#dc2626', initials: 'AM', score: 78, promises: 10, bills: 0, votes: 0, detail: 'Representative example', office: 'PL-01 The Capitol', phone: '(850) 414-3300', email: 'contact@example.civicslenz', nextElection: 'November 3, 2026' },
+  { slug: 'jimmy-patronis', name: 'Jimmy Patronis', title: 'Chief Financial Officer · Florida', level: 'State', party: 'Republican', district: 'Florida', color: '#dc2626', initials: 'JP', score: 75, promises: 8, bills: 0, votes: 0, detail: 'Representative example', office: '200 East Gaines Street', phone: '(850) 413-3100', email: 'contact@example.civicslenz', nextElection: 'November 3, 2026' },
+  { slug: 'wilton-simpson', name: 'Wilton Simpson', title: 'Commissioner of Agriculture · Florida', level: 'State', party: 'Republican', district: 'Florida', color: '#dc2626', initials: 'WS', score: 72, promises: 12, bills: 0, votes: 0, detail: 'Representative example', office: 'The Capitol, 400 S. Monroe St.', phone: '(800) 435-7352', email: 'contact@example.civicslenz', nextElection: 'November 3, 2026' },
+  { slug: 'carlos-gimenez', name: 'Carlos A. Giménez', title: 'U.S. Representative · FL-28', level: 'Federal', party: 'Republican', district: 'Florida · District 28', color: '#dc2626', initials: 'CG', score: 73, promises: 14, bills: 22, votes: 512, detail: 'Representative example', office: '419 Cannon House Office Building', phone: '(202) 225-2778', email: 'contact@example.civicslenz', nextElection: 'November 3, 2026' },
+];
+"""
+
+text = re.sub(r'export const demoOfficials: DemoOfficial\[\] = \[.*?\n\];', new_officials, text, flags=re.DOTALL)
+
+with open("src/lib/demo-data.ts", "w") as f:
+    f.write(text)

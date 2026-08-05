@@ -1,0 +1,300 @@
+export type GovernmentLevel = 'Federal' | 'State' | 'Local' | 'School Board';
+
+export type MapCoverage = {
+  type: 'national' | 'state' | 'county' | 'city' | 'district';
+  identifier: string; // e.g. "US", "FL", "Miami-Dade"
+};
+
+export type PromiseRecord = {
+  id: string;
+  title: string;
+  description: string;
+  status: 'Kept' | 'Broken' | 'In Progress' | 'Stalled';
+  sourceUrl: string;
+  sourceLabel: string;
+  date: string;
+};
+
+export type BillRecord = {
+  id: string;
+  title: string;
+  summary: string;
+  action: 'Voted Yes' | 'Voted No' | 'Sponsored' | 'Co-sponsored' | 'Executive Order' | 'Vetoed' | 'Signed';
+  date: string;
+  sourceUrl: string;
+  sourceLabel: string;
+};
+
+export type ScoreFactor = {
+  category: string;
+  impact: number;
+  description: string;
+  sourceUrl: string;
+};
+
+export type TrackedOfficial = {
+  slug: string;
+  name: string;
+  title: string;
+  level: GovernmentLevel;
+  party: string;
+  district: string;
+  color: string;
+  initials: string;
+  score: number;
+  promises: number;
+  bills: number;
+  votes: number;
+  detail: string;
+  office: string;
+  phone: string;
+  email: string;
+  nextElection: string;
+  photoUrl?: string;
+  
+  // Basic Info
+  coverage?: MapCoverage;
+  coordinates?: [number, number];
+  approvalRating?: { approve: number; disapprove: number; source: string; date: string; };
+  verifiedPhotos?: string[];
+  
+  // Identity & Bio
+  fullLegalName?: string;
+  nicknames?: string[];
+  dateOfBirth?: string;
+  placeOfBirth?: string;
+  nationality?: string;
+  militaryService?: string;
+  education?: string[];
+  biography?: string[];
+  
+  // Family & Relationships
+  family?: string[];
+  relationships?: { name: string; relationType: string; description: string }[];
+  keyStaff?: { name: string; role: string }[];
+  
+  // Career & Office
+  careerHistory?: { role: string; organization: string; years: string }[];
+  previousOffices?: { title: string; years: string }[];
+  committees?: { name: string; role: string }[];
+  affiliations?: { organization: string; role: string }[];
+  
+  // Financial & Business
+  netWorth?: string;
+  financialDisclosures?: { asset: string; valueRange: string; year: string }[];
+  businessesOwned?: { name: string; role: string; status: string; years: string; description: string }[];
+  propertiesRealEstate?: { name: string; location: string; estimatedValue: string }[];
+  
+  // Campaign & Donors
+  campaignFinance?: { totalRaised: number; totalSpent: number; cashOnHand: number; asOf: string; pacPercentage: number; individualPercentage: number };
+  donors?: { name: string; amount: number; isPac: boolean }[];
+  endorsements?: { name: string; type: string }[];
+  electionHistory?: { year: number; office: string; opponents: string[]; outcome: string; votePercentage: string }[];
+  
+  // Legal & Controversies
+  legalHistory?: { caseName: string; date: string; outcome: string; description: string }[];
+  controversies?: { title: string; date: string; summary: string; link: string }[];
+  
+  // Action & Record
+  detailedPromises?: PromiseRecord[];
+  detailedLegislation?: BillRecord[];
+  executiveActions?: { type: string; title: string; date: string; summary: string; url?: string }[];
+  votingRecord?: { bill: string; date: string; vote: 'Yea' | 'Nay' | 'Present' | 'Missed'; result: string }[];
+  appointments?: { name: string; position: string; date: string; status: string }[];
+  
+  // Public Profile
+  agendaAlignment?: { topic: string; stance: string; alignment: number }[];
+  politicalPositions?: { issue: string; stance: string; history: string }[];
+  publicStatements?: { date: string; type: string; title: string; summary: string; url?: string }[];
+  factChecks?: { claim: string; date: string; rating: string; source: string; url?: string }[];
+  socialMedia?: { platform: string; handle: string; url: string }[];
+  
+  // Analysis
+  scoreBreakdown?: ScoreFactor[];
+  aiAnalysis?: { ideologyProfile: string; leadershipStyle: string; bipartisanScore: number; transparencyScore: number };
+  timeline?: { date: string; event: string; category: string }[];
+  sources?: { label: string; url: string }[];
+};
+
+export const addressSuggestions = [
+  '8310 Byron Ave, Miami Beach, FL 33141',
+  '1600 Pennsylvania Avenue NW, Washington, DC 20500',
+  '500 S Orange Ave, Orlando, FL 32801',
+];
+
+export const trackedOfficials: TrackedOfficial[] = [
+  { 
+                    slug: 'donald-trump', name: 'Donald Trump', title: 'President of the United States', level: 'Federal', party: 'Republican', district: 'United States', color: '#dc2626', initials: 'DT', score: 85, promises: 54, bills: 6, votes: 0, 
+    detail: '47th President of the United States. Served previously as the 45th President.', 
+    office: '1600 Pennsylvania Ave NW, Washington, DC', phone: '(202) 456-1111', email: 'president@whitehouse.gov', nextElection: 'November 7, 2028', 
+    photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/5/56/Donald_Trump_official_portrait.jpg',
+    coverage: { type: 'national', identifier: 'US' },
+    approvalRating: { approve: 48, disapprove: 51, source: 'https://news.gallup.com/poll/116677/presidential-approval-ratings-gallup-historical-statistics-trends.aspx', date: 'March 2026' },
+    , coordinates: [-77.0369, 38.9072]
+    // Identity & Bio
+    fullLegalName: 'Donald John Trump',
+    nicknames: ['45', '47', 'The Donald', 'DJT'],
+    dateOfBirth: 'June 14, 1946',
+    placeOfBirth: 'Queens, New York City, NY',
+    nationality: 'American',
+    militaryService: 'None (Received medical deferment in 1968)',
+    education: [
+      'University of Pennsylvania, Wharton School (B.S. in Economics, 1968)',
+      'Fordham University (Attended 1964-1966)',
+      'New York Military Academy (High School Diploma, 1964)'
+    ],
+    biography: [
+      "Donald John Trump is an American politician, media personality, and businessman who is the 47th president of the United States. He also served as the 45th president from 2017 to 2021. Born and raised in Queens, New York City, Trump graduated from the Wharton School of the University of Pennsylvania with a bachelor's degree in 1968.",
+      "He became president of his father Fred Trump's real estate business in 1971 and renamed it the Trump Organization. He expanded the company's operations to building and renovating skyscrapers, hotels, casinos, and golf courses. He later started side ventures, mostly by licensing his name. From 2004 to 2015, he co-produced and hosted the reality television series The Apprentice.",
+      "Trump's political positions have been described as populist, protectionist, isolationist, and nationalist. He entered the 2016 presidential race as a Republican and defeated Democratic nominee Hillary Clinton. His first term included passing the Tax Cuts and Jobs Act of 2017, appointing three conservative Supreme Court justices, and withdrawing from the Paris Agreement and the Iran nuclear deal.",
+      "After losing the 2020 election, Trump successfully sought the presidency again in 2024, becoming only the second president in U.S. history (after Grover Cleveland) to serve non-consecutive terms."
+    ],
+    
+    // Family & Relationships
+    family: [
+      'Melania Trump (Spouse, m. 2005)',
+      'Marla Maples (Former Spouse, m. 1993-1999)',
+      'Ivana Trump (Former Spouse, m. 1977-1992)',
+      'Donald Trump Jr. (Son)',
+      'Ivanka Trump (Daughter)',
+      'Eric Trump (Son)',
+      'Tiffany Trump (Daughter)',
+      'Barron Trump (Son)',
+      'Fred Trump (Father, 1905-1999)',
+      'Mary Anne MacLeod Trump (Mother, 1912-2000)'
+    ],
+    relationships: [
+      { name: 'Elon Musk', relationType: 'Key Advisor / Donor', description: 'Headed the Department of Government Efficiency (DOGE) in the second term.' },
+      { name: 'Vladimir Putin', relationType: 'Foreign Leader', description: 'Expressed admiration; faced scrutiny over relations during first term.' },
+      { name: 'JD Vance', relationType: 'Vice President', description: 'Selected as running mate for the 2024 presidential election.' }
+    ],
+    keyStaff: [
+      { name: 'Susie Wiles', role: 'White House Chief of Staff' },
+      { name: 'Stephen Miller', role: 'Deputy Chief of Staff for Policy' },
+      { name: 'Dan Scavino', role: 'Deputy Chief of Staff' }
+    ],
+    
+    // Career & Office
+    careerHistory: [
+      { role: 'President of the United States', organization: 'U.S. Federal Government', years: '2025 - Present, 2017 - 2021' },
+      { role: 'Chairman and President', organization: 'The Trump Organization', years: '1971 - 2017' },
+      { role: 'Executive Producer and Host', organization: 'The Apprentice', years: '2004 - 2015' }
+    ],
+    previousOffices: [
+      { title: '45th President of the United States', years: '2017 - 2021' }
+    ],
+    affiliations: [
+      { organization: 'Republican Party', role: 'De facto Leader' },
+      { organization: 'Screen Actors Guild', role: 'Former Member (Resigned 2021)' }
+    ],
+    
+    // Financial & Business
+    netWorth: '$5.5 Billion (Forbes Estimate, 2024)',
+    financialDisclosures: [
+      { asset: 'Trump Media & Technology Group Corp (DJT)', valueRange: 'Over $50,000,000', year: '2024' },
+      { asset: 'Mar-a-Lago Club, LLC', valueRange: 'Over $50,000,000', year: '2024' },
+      { asset: 'Trump National Doral', valueRange: 'Over $50,000,000', year: '2024' },
+      { asset: 'Various Golf Courses', valueRange: 'Over $50,000,000', year: '2024' }
+    ],
+    businessesOwned: [
+      { name: 'The Trump Organization', role: 'Founder/Former Chairman', status: 'Active (Managed by family)', years: '1971 - Present', description: 'Global conglomerate encompassing real estate, hotels, casinos, and golf courses.' },
+      { name: 'Trump Media & Technology Group', role: 'Majority Shareholder', status: 'Active (Public DJT)', years: '2021 - Present', description: 'Media and tech company, operator of Truth Social.' },
+      { name: 'Trump University', role: 'Founder', status: 'Defunct (Settled lawsuit)', years: '2005 - 2010', description: 'For-profit education company.' }
+    ],
+    propertiesRealEstate: [
+      { name: 'Mar-a-Lago Club', location: 'Palm Beach, FL', estimatedValue: '$250M - $300M' },
+      { name: 'Trump Tower', location: 'New York, NY', estimatedValue: '$200M+' },
+      { name: 'Trump National Doral Miami', location: 'Miami, FL', estimatedValue: '$300M+' },
+      { name: '40 Wall Street', location: 'New York, NY', estimatedValue: '$150M+' }
+    ],
+    
+    // Campaign & Donors
+    campaignFinance: { totalRaised: 1045000000, totalSpent: 985000000, cashOnHand: 60000000, asOf: 'November 2024', pacPercentage: 65, individualPercentage: 35 },
+    donors: [
+      { name: 'Timothy Mellon', amount: 165000000, isPac: false },
+      { name: 'Elon Musk (America PAC)', amount: 130000000, isPac: true },
+      { name: 'Miriam Adelson', amount: 100000000, isPac: false },
+      { name: 'Richard Uihlein', amount: 49000000, isPac: false }
+    ],
+    endorsements: [
+      { name: 'National Rifle Association (NRA)', type: 'Organization' },
+      { name: 'Fraternal Order of Police', type: 'Organization' },
+      { name: 'Elon Musk', type: 'Individual' },
+      { name: 'Robert F. Kennedy Jr.', type: 'Individual' }
+    ],
+    electionHistory: [
+      { year: 2024, office: 'President', opponents: ['Kamala Harris'], outcome: 'Won', votePercentage: '50.1%' },
+      { year: 2020, office: 'President', opponents: ['Joe Biden'], outcome: 'Lost', votePercentage: '46.8%' },
+      { year: 2016, office: 'President', opponents: ['Hillary Clinton'], outcome: 'Won', votePercentage: '46.1%' }
+    ],
+    
+    // Legal & Controversies
+    legalHistory: [
+      { caseName: 'New York v. Trump (Hush Money)', date: 'May 2024', outcome: 'Convicted (34 felonies)', description: 'Falsifying business records related to payments.' },
+      { caseName: 'New York v. Trump (Civil Fraud)', date: 'Feb 2024', outcome: 'Liable ($454M judgment)', description: 'Fraudulently inflating asset values.' },
+      { caseName: 'E. Jean Carroll v. Donald J. Trump', date: 'Jan 2024', outcome: 'Liable ($83.3M damages)', description: 'Defamation and battery.' },
+      { caseName: 'Federal Election Interference', date: 'Pending', outcome: 'Pending', description: 'Charges related to overturning the 2020 election.' },
+      { caseName: 'Federal Classified Documents', date: 'Jul 2024', outcome: 'Dismissed (Appealed)', description: 'Retention of national defense information.' }
+    ],
+    controversies: [
+      { title: 'First Impeachment', date: 'Dec 2019', summary: 'Impeached for abuse of power and obstruction of Congress regarding Ukraine. Acquitted by Senate.', link: 'https://www.congress.gov' },
+      { title: 'Second Impeachment', date: 'Jan 2021', summary: 'Impeached for incitement of insurrection following Jan 6 Capitol attack. Acquitted by Senate.', link: 'https://www.congress.gov' }
+    ],
+    
+    // Action & Record
+    executiveActions: [
+      { type: 'Executive Order', title: 'Border Security and Immigration Enforcement Improvements', date: 'Jan 20, 2025', summary: 'Directed deployment of troops to border and expedited deportations.', url: 'https://www.federalregister.gov' },
+      { type: 'Executive Order', title: 'Promoting Energy Independence and Economic Growth', date: 'Jan 24, 2025', summary: 'Reversed restrictions on domestic energy production.', url: 'https://www.federalregister.gov' },
+      { type: 'Executive Order', title: 'Protecting the Nation from Foreign Terrorist Entry', date: 'Jan 27, 2017', summary: 'Travel ban on several majority-Muslim countries (Travel Ban 1.0).', url: 'https://www.federalregister.gov' },
+      { type: 'Executive Order', title: 'Comprehensive Plan for Reorganizing the Executive Branch', date: 'Mar 13, 2017', summary: 'Proposed eliminating unnecessary agencies.', url: 'https://www.federalregister.gov' },
+      { type: 'Executive Order', title: 'Buy American and Hire American', date: 'Apr 18, 2017', summary: 'Promoted use of American-made goods and prioritized U.S. workers.', url: 'https://www.federalregister.gov' },
+      { type: 'Executive Order', title: 'Establishing the National Space Council', date: 'Jun 30, 2017', summary: 'Revived the National Space Council to coordinate space policy.', url: 'https://www.federalregister.gov' },
+      { type: 'Executive Order', title: 'Combating Race and Sex Stereotyping', date: 'Sep 22, 2020', summary: 'Banned certain diversity training in federal agencies.', url: 'https://www.federalregister.gov' },
+      { type: 'Presidential Memorandum', title: 'Memorandum on Creating a National Strategic Computing Initiative', date: 'Jul 2015', summary: 'Advancing computing for government use.', url: 'https://www.federalregister.gov' }
+    ],
+    appointments: [
+      { name: 'Neil Gorsuch', position: 'Supreme Court Justice', date: 'Apr 2017', status: 'Confirmed' },
+      { name: 'Brett Kavanaugh', position: 'Supreme Court Justice', date: 'Oct 2018', status: 'Confirmed' },
+      { name: 'Amy Coney Barrett', position: 'Supreme Court Justice', date: 'Oct 2020', status: 'Confirmed' },
+      { name: 'Marco Rubio', position: 'Secretary of State', date: 'Jan 2025', status: 'Confirmed' },
+      { name: 'Pete Hegseth', position: 'Secretary of Defense', date: 'Jan 2025', status: 'Confirmed' }
+    ],
+    detailedPromises: [
+      { id: 'p1', title: 'Mass Deportations', description: 'Execute largest domestic deportation operation in history.', status: 'In Progress', sourceUrl: 'https://www.donaldjtrump.com', sourceLabel: 'Campaign', date: 'Feb 2025' },
+      { id: 'p2', title: 'Universal Tariffs', description: 'Impose universal baseline tariffs on all imported goods.', status: 'In Progress', sourceUrl: 'https://www.donaldjtrump.com', sourceLabel: 'Campaign', date: 'Jan 2025' },
+      { id: 'p3', title: 'End Birthright Citizenship', description: 'Sign executive order ending birthright citizenship for children of undocumented immigrants.', status: 'Stalled', sourceUrl: 'https://www.donaldjtrump.com', sourceLabel: 'Campaign', date: 'Mar 2025' }
+    ],
+    
+    // Public Profile
+    politicalPositions: [
+      { issue: 'Immigration', stance: 'Highly Restrictive', history: 'Advocated for border wall, mass deportations, and ending birthright citizenship.' },
+      { issue: 'Trade', stance: 'Protectionist', history: 'Pulled out of TPP, renegotiated NAFTA into USMCA, implemented broad tariffs on allies and adversaries.' },
+      { issue: 'Environment', stance: 'Deregulation', history: 'Withdrew from Paris Agreement (twice), rolled back EPA regulations, promoted fossil fuels ("Drill, baby, drill").' },
+      { issue: 'Taxes', stance: 'Lower Corporate/Income Taxes', history: 'Signed Tax Cuts and Jobs Act of 2017, proposed eliminating taxes on tips and overtime.' }
+    ],
+    factChecks: [
+      { claim: 'Said he won the 2020 election.', date: 'Multiple', rating: 'False', source: 'PolitiFact', url: 'https://www.politifact.com' },
+      { claim: 'Claimed immigrants are "eating the pets" in Springfield, Ohio.', date: 'Sep 2024', rating: 'False', source: 'FactCheck.org', url: 'https://www.factcheck.org' }
+    ],
+    publicStatements: [
+      { date: 'Jan 20, 2025', type: 'Inaugural Address', title: 'Second Inaugural Address', summary: 'Outlined "America First" agenda for second term.', url: 'https://www.whitehouse.gov' },
+      { date: 'Jan 6, 2021', type: 'Rally Speech', title: 'Save America Rally', summary: 'Addressed supporters before the Capitol attack.', url: 'https://www.npr.org' }
+    ],
+    socialMedia: [
+      { platform: 'Truth Social', handle: '@realDonaldTrump', url: 'https://truthsocial.com/@realDonaldTrump' },
+      { platform: 'X', handle: '@realDonaldTrump', url: 'https://x.com/realDonaldTrump' },
+      { platform: 'Official Website', handle: 'donaldjtrump.com', url: 'https://www.donaldjtrump.com' }
+    ],
+    
+    // Analysis
+    aiAnalysis: {
+      ideologyProfile: 'Right-wing populist, America First nationalist',
+      leadershipStyle: 'Transactional, highly personalistic, anti-establishment, loyalty-focused',
+      bipartisanScore: 12,
+      transparencyScore: 25
+    },
+    timeline: [
+      { date: 'June 14, 1946', event: 'Born in Queens, New York', category: 'Personal' },
+      { date: '1971', event: 'Takes control of the Trump Organization', category: 'Business' },
+      { date: 'January 2004', event: 'The Apprentice premieres on NBC', category: 'Media' },
+      { date: 'June 16, 2015', event: 'Announces first presidential campaign', category: 'Political' },

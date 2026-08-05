@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+</head>
+<body>
+  <div id="map" style="width: 100vw; height: 100vh;"></div>
+  <script>
+    const map = L.map('map', { preferCanvas: true }).setView([39.8, -98.5], 4);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+    for(let i=0; i<50000; i++) {
+      L.circleMarker([24 + Math.random()*25, -125 + Math.random()*60], { radius: 1, stroke: false, color: 'blue', fillOpacity: 0.5 }).addTo(map);
+    }
+  </script>
+</body>
+</html>
