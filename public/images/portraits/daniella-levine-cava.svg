@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="suitGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e1b4b"/>
+    </linearGradient>
+    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffedd5"/>
+      <stop offset="50%" stop-color="#fed7aa"/>
+      <stop offset="100%" stop-color="#fdba74"/>
+    </linearGradient>
+    <linearGradient id="hairGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#475569"/>
+      <stop offset="50%" stop-color="#334155"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="400" height="400" fill="url(#bgGrad)"/>
+  
+  <!-- Subtle US/County Flag backdrop motif -->
+  <path d="M0,0 L400,0 L400,120 L0,200 Z" fill="#2563eb" opacity="0.15"/>
+  <path d="M220,0 L400,0 L400,400 Z" fill="#0284c7" opacity="0.1"/>
+
+  <!-- Official Backdrop Glow -->
+  <circle cx="200" cy="180" r="140" fill="#38bdf8" opacity="0.12" filter="blur(20px)"/>
+
+  <!-- Shoulders / Business Suit -->
+  <path d="M80,400 C80,310 120,270 200,270 C280,270 320,310 320,400 Z" fill="url(#suitGrad)"/>
+  
+  <!-- White Blouse / Inner Collar -->
+  <polygon points="160,270 200,320 240,270 200,340" fill="#f8fafc"/>
+  
+  <!-- Pearl Necklace Accent -->
+  <path d="M165,275 Q200,305 235,275" fill="none" stroke="#e2e8f0" stroke-width="6" stroke-dasharray="8,2" stroke-linecap="round"/>
+
+  <!-- Neck -->
+  <rect x="180" y="210" width="40" height="70" fill="url(#skinGrad)" rx="8"/>
+
+  <!-- Hair Back -->
+  <path d="M125,120 C110,180 120,240 145,260 C150,230 140,160 145,120 Z" fill="url(#hairGrad)"/>
+  <path d="M275,120 C290,180 280,240 255,260 C250,230 260,160 255,120 Z" fill="url(#hairGrad)"/>
+
+  <!-- Head / Face -->
+  <ellipse cx="200" cy="170" rx="55" ry="65" fill="url(#skinGrad)" filter="url(#shadow)"/>
+
+  <!-- Hair Top & Side Swept Styling (Daniella's signature layered hairstyle) -->
+  <path d="M135,160 C125,100 160,80 200,80 C240,80 275,100 265,160 C255,110 230,95 200,95 C170,95 145,110 135,160 Z" fill="url(#hairGrad)"/>
+  <path d="M135,130 Q200,90 265,130 C275,170 260,230 255,250 C245,210 250,160 240,140 Q200,110 160,140 C150,160 155,210 145,250 C140,230 125,170 135,130 Z" fill="url(#hairGrad)"/>
+
+  <!-- Eyebrows -->
+  <path d="M165,145 Q180,140 190,146" fill="none" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+  <path d="M210,146 Q220,140 235,145" fill="none" stroke="#334155" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Glasses (Signature frame) -->
+  <rect x="155" y="148" width="36" height="24" rx="6" fill="none" stroke="#1e293b" stroke-width="3.5"/>
+  <rect x="209" y="148" width="36" height="24" rx="6" fill="none" stroke="#1e293b" stroke-width="3.5"/>
+  <line x1="191" y1="158" x2="209" y2="158" stroke="#1e293b" stroke-width="3"/>
+  <line x1="135" y1="156" x2="155" y2="156" stroke="#1e293b" stroke-width="3"/>
+  <line x1="245" y1="156" x2="265" y2="156" stroke="#1e293b" stroke-width="3"/>
+
+  <!-- Eyes -->
+  <circle cx="173" cy="160" r="4" fill="#0f172a"/>
+  <circle cx="227" cy="160" r="4" fill="#0f172a"/>
+  <circle cx="174" cy="159" r="1.5" fill="#ffffff"/>
+  <circle cx="228" cy="159" r="1.5" fill="#ffffff"/>
+
+  <!-- Nose -->
+  <path d="M200,160 L200,185 L206,187" fill="none" stroke="#f97316" stroke-width="2" opacity="0.5" stroke-linecap="round"/>
+
+  <!-- Friendly Smile -->
+  <path d="M178,202 Q200,218 222,202" fill="none" stroke="#be123c" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M182,202 Q200,212 218,202" fill="#ffffff" opacity="0.9"/>
+
+  <!-- Cheeks / Warmth -->
+  <circle cx="160" cy="180" r="10" fill="#f43f5e" opacity="0.15" filter="blur(4px)"/>
+  <circle cx="240" cy="180" r="10" fill="#f43f5e" opacity="0.15" filter="blur(4px)"/>
+
+  <!-- Official Lapel Pin (Miami-Dade County) -->
+  <circle cx="130" cy="320" r="7" fill="#0284c7" stroke="#fbbf24" stroke-width="2"/>
+  <path d="M130,315 L133,322 L126,318 L134,318 L127,322 Z" fill="#ffffff"/>
+
+  <!-- Verified Official Badge Overlay -->
+  <g transform="translate(320, 320)">
+    <circle cx="20" cy="20" r="22" fill="#0f172a" stroke="#0284c7" stroke-width="2"/>
+    <circle cx="20" cy="20" r="18" fill="#0284c7"/>
+    <path d="M12,20 L17,25 L28,14" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

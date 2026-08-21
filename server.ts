@@ -7,6 +7,43 @@ async function startServer() {
   app.use(express.json());
   const PORT = 3000;
 
+  // Image Proxy Endpoint to bypass browser CORS / Hotlink protection for official portraits
+  app.get("/api/image-proxy", async (req, res) => {
+    const imageUrl = req.query.url as string;
+    if (!imageUrl) {
+      return res.status(400).send("Missing image URL parameter");
+    }
+
+    try {
+      // Decode URL if needed
+      const targetUrl = decodeURIComponent(imageUrl);
+      
+      const response = await fetch(targetUrl, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+          "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+          "Referer": new URL(targetUrl).origin
+        }
+      });
+
+      if (!response.ok) {
+        return res.status(response.status).send(`Failed to fetch image from upstream: ${response.statusText}`);
+      }
+
+      const contentType = response.headers.get("content-type") || "image/jpeg";
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=86400"); // Cache 24 hours
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.send(buffer);
+    } catch (err: any) {
+      console.error("Image proxy error:", err);
+      res.status(500).send("Error fetching image");
+    }
+  });
+
   // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", app: "CivicLenZ", time: new Date().toISOString() });

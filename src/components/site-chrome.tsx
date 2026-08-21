@@ -2,19 +2,26 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from './icons';
 
-const mainLinks = [
-  { label: 'How It Works', href: '/how-it-works/' },
-  { label: 'Features', href: '/features/' },
-  { label: 'Coverage', href: '/coverage/' },
-  { label: 'About', href: '/about/' },
+const officialsLinks = [
+  { label: 'Find Officials', href: '/search/' },
+  { label: 'AI Monitor', href: '/monitor/' },
+  { label: 'Promises', href: '/promises/' },
   { label: 'Petitions', href: '/petitions/' },
+  { label: 'Coverage', href: '/coverage/' },
 ];
 
 export function Logo({ inverse = false, compact = false }: { inverse?: boolean; compact?: boolean }) {
   return (
     <span className={`logo-lockup ${inverse ? 'logo-lockup-inverse' : ''} ${compact ? 'logo-lockup-compact' : ''}`}>
       <img src="/brand/civicslenz-mark.svg" alt="" />
-      {!compact ? <span className="logo-name"><span>Civics</span><b>LenZ</b></span> : null}
+      {!compact ? (
+        <span className="logo-name flex flex-col leading-none">
+          <span className="flex items-center gap-1">
+            <span>Civics</span><b>LenZ</b>
+          </span>
+          <span className="text-[9px] text-indigo-400 font-mono tracking-wider font-semibold">ELECTED OFFICIALS</span>
+        </span>
+      ) : null}
     </span>
   );
 }
@@ -23,20 +30,47 @@ export function SiteHeader() {
   return (
     <header className="public-header">
       <div className="site-width public-header-inner">
-        <Link to="/" className="header-logo" aria-label="CivicLenZ home"><Logo /></Link>
-        <nav className="public-nav" aria-label="Primary navigation">
-          {mainLinks.map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
+        <Link to="/" className="header-logo" aria-label="CivicLenZ Officials Home"><Logo /></Link>
+        <nav className="public-nav" aria-label="Elected Officials navigation">
+          {officialsLinks.map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
         </nav>
         <div className="header-actions">
-          <Link className="header-login" to="/sign-in/">Log In</Link>
-          <Link className="btn btn-primary btn-small" to="/sign-up/">Sign Up</Link>
+          {/* Bridge Switcher Button to 2026 Candidate Engine */}
+          <Link
+            to="/elections"
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl transition shadow-sm flex items-center gap-1.5"
+          >
+            <span>🗳 Switch to Candidate Engine &rarr;</span>
+          </Link>
+
+          <Link className="header-login hidden sm:inline-block" to="/sign-in/">Log In</Link>
+
           <details className="public-menu">
             <summary aria-label="Open menu"><Icon name="menu" size={23} /></summary>
             <div className="public-menu-panel">
-              {mainLinks.map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
-              <Link to="/search/">Find my officials</Link>
-              <Link to="/sign-in/">Log In</Link>
-              <Link to="/sign-up/">Sign Up</Link>
+              <div className="menu-heading text-[10px] font-mono font-bold text-indigo-400 uppercase tracking-widest px-3 py-1 border-b border-slate-800 mb-1">
+                🏛 ELECTED OFFICIALS ENGINE
+              </div>
+              <Link to="/">Home (Officials)</Link>
+              <Link to="/search/">Find Officials & Representatives</Link>
+              <Link to="/monitor/">AI Accountability Monitor</Link>
+              <Link to="/promises/">Campaign Promises Tracker</Link>
+              <Link to="/petitions/">Citizen Petitions</Link>
+              <Link to="/coverage/">Coverage Transparency</Link>
+
+              <div className="pt-2 border-t border-slate-800 mt-2">
+                <Link
+                  to="/elections"
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-2 px-3 rounded-lg text-center block"
+                >
+                  🗳 Switch to 2026 Candidate Engine &rarr;
+                </Link>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800 mt-2 flex gap-2">
+                <Link to="/sign-in/" className="text-xs text-slate-300">Log In</Link>
+                <Link to="/sign-up/" className="text-xs text-amber-400 font-bold">Sign Up</Link>
+              </div>
             </div>
           </details>
         </div>
@@ -78,9 +112,46 @@ export function SiteFooter() {
 }
 
 export function MobileTabs({ pathname }: { pathname: string }) {
+  const isElectionsDomain = pathname.startsWith('/elections') || pathname.startsWith('/candidates') || pathname.startsWith('/admin/elections');
+
+  if (isElectionsDomain) {
+    const electionsTabs = [
+      ['Elections', '/elections', 'home'],
+      ['Candidates', '/elections/candidates', 'users'],
+      ['My Ballot', '/elections/my-ballot', 'check-circle'],
+      ['Map', '/elections/map', 'map'],
+      ['Swarm Admin', '/admin/elections', 'activity'],
+    ] as const;
+
+    const active = pathname.includes('/candidates')
+      ? 'Candidates'
+      : pathname.includes('/my-ballot') || pathname.includes('/elections/my')
+        ? 'My Ballot'
+        : pathname.includes('/map')
+          ? 'Map'
+          : pathname.includes('/admin')
+            ? 'Swarm Admin'
+            : 'Elections';
+
+    return (
+      <nav className="mobile-tabs bg-slate-900 border-t border-slate-800 text-slate-300" aria-label="Elections application navigation">
+        {electionsTabs.map(([label, href, icon]) => (
+          <Link key={label} to={href} className={label === active ? 'active text-amber-400 font-bold' : 'hover:text-white'}>
+            <Icon name={icon} size={19} />
+            <span className="text-[10px] tracking-tight">{label}</span>
+          </Link>
+        ))}
+      </nav>
+    );
+  }
+
   const tabs = [
-    ['Home', '/', 'home'], ['Officials', '/search/', 'users'], ['Monitor', '/monitor/', 'watch'], ['Action', '/petitions/', 'edit'],
+    ['Home', '/', 'home'],
+    ['Officials', '/search/', 'users'],
+    ['Monitor', '/monitor/', 'watch'],
+    ['Action', '/petitions/', 'edit'],
   ] as const;
+
   const active = pathname.startsWith('/search') || pathname.startsWith('/officials') || pathname.startsWith('/watchlist')
     ? 'Officials'
     : pathname.startsWith('/monitor') || pathname.startsWith('/alerts') || pathname.startsWith('/promises')
@@ -88,5 +159,15 @@ export function MobileTabs({ pathname }: { pathname: string }) {
       : pathname.startsWith('/petitions') || pathname.startsWith('/contact-official')
         ? 'Action'
         : 'Home';
-  return <nav className="mobile-tabs" aria-label="Mobile application navigation">{tabs.map(([label, href, icon]) => <Link key={label} to={href} className={label === active ? 'active' : ''}><Icon name={icon} size={19} /><span>{label}</span></Link>)}</nav>;
+
+  return (
+    <nav className="mobile-tabs" aria-label="Mobile application navigation">
+      {tabs.map(([label, href, icon]) => (
+        <Link key={label} to={href} className={label === active ? 'active' : ''}>
+          <Icon name={icon} size={19} />
+          <span>{label}</span>
+        </Link>
+      ))}
+    </nav>
+  );
 }

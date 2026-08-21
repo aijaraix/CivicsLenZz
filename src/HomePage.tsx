@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import { AddressFinder } from './components/address-finder';
 import { Icon } from './components/icons';
 import { dataSources } from './lib/civic-database';
+import { HermesLiveDashboard } from './components/hermes-live-dashboard';
+import { CompletedOfficialsDirectory } from './components/completed-officials-directory';
+import { hermesOrchestratorV2 } from './lib/hermes-matrix-v2';
 
 import { useState, useEffect } from 'react';
 
@@ -61,73 +64,12 @@ function LogoMini() {
 
 
 export function HomePage() {
-
-  const [scrapers, setScrapers] = useState(initialScrapersList);
-  const [discoveries, setDiscoveries] = useState(initialRecentDiscoveries);
-  
-  const [liveTotalRecords, setLiveTotalRecords] = useState(() => {
-    const saved = localStorage.getItem('civiclenz_records');
-    return saved ? parseInt(saved, 10) : initialTotalRecords;
-  });
-  const [liveOfficials, setLiveOfficials] = useState(() => {
-    const saved = localStorage.getItem('civiclenz_officials');
-    return saved ? parseInt(saved, 10) : 94235;
-  });
-  const [livePromises, setLivePromises] = useState(() => {
-    const saved = localStorage.getItem('civiclenz_promises');
-    return saved ? parseInt(saved, 10) : 1243500;
-  });
-  const [liveGrants, setLiveGrants] = useState(() => {
-    const saved = localStorage.getItem('civiclenz_grants');
-    return saved ? parseFloat(saved) : 350.50;
-  });
-  const [liveAccuracy, setLiveAccuracy] = useState(99.42);
-
-  // Catch-up logic on mount
-  useEffect(() => {
-    const lastSavedStr = localStorage.getItem('civiclenz_last_saved');
-    if (lastSavedStr) {
-       const lastSaved = parseInt(lastSavedStr, 10);
-       const elapsed = Date.now() - lastSaved;
-       if (elapsed > 0) {
-           const missedTicks = Math.floor(elapsed / 1200);
-           if (missedTicks > 0) {
-               // Simulate the progress missed while offline
-               setLiveTotalRecords(prev => prev + Math.floor(missedTicks * 6.5));
-               setLiveOfficials(prev => prev + Math.floor(missedTicks * 0.2));
-               setLivePromises(prev => prev + missedTicks * 1);
-               setLiveGrants(prev => prev + missedTicks * 0.005);
-           }
-       }
-    }
-  }, []);
-
-  // Save periodically
-  useEffect(() => {
-    localStorage.setItem('civiclenz_records', liveTotalRecords.toString());
-    localStorage.setItem('civiclenz_officials', liveOfficials.toString());
-    localStorage.setItem('civiclenz_promises', livePromises.toString());
-    localStorage.setItem('civiclenz_grants', liveGrants.toString());
-    localStorage.setItem('civiclenz_last_saved', Date.now().toString());
-  }, [liveTotalRecords, liveOfficials, livePromises, liveGrants]);
+  const [discoveries] = useState(initialRecentDiscoveries);
+  const [hermesStats, setHermesStats] = useState(() => hermesOrchestratorV2.getAggregatedStats());
 
   useEffect(() => {
     const ticker = setInterval(() => {
-      const added = Math.floor(Math.random() * 12) + 1;
-      setLiveTotalRecords(prev => prev + added);
-      setLiveOfficials(prev => prev + (Math.random() > 0.8 ? 1 : 0));
-      setLivePromises(prev => prev + Math.floor(Math.random() * 3));
-      setLiveGrants(prev => prev + (Math.random() * 0.01));
-      setLiveAccuracy(prev => {
-         const variance = (Math.random() * 0.04) - 0.02;
-         const newAcc = prev + variance;
-         return newAcc > 99.99 ? 99.99 : (newAcc < 99.0 ? 99.0 : newAcc);
-      });
-      
-      setScrapers(prev => prev.map(s => {
-        return { ...s, recordsExtracted: s.recordsExtracted + Math.floor(Math.random() * 5) }
-      }));
-
+      setHermesStats(hermesOrchestratorV2.getAggregatedStats());
     }, 1200);
     return () => clearInterval(ticker);
   }, []);
@@ -142,6 +84,24 @@ export function HomePage() {
             <span className="landing-kicker">Civic intelligence for everyday people</span>
             <h1>See Clearly.<br /><em>Hold Accountable.</em></h1>
             <p>CivicLenZ gives you real-time insights into every elected official who represents you.</p>
+            
+            {/* Global Election Indicator Banner */}
+            <div className="my-4 bg-amber-500/20 border border-amber-400/40 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-left">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse shrink-0" />
+                <div>
+                  <span className="text-[10px] font-mono font-bold text-amber-300 uppercase tracking-widest block">2026 ELECTIONS ACTIVE</span>
+                  <span className="text-xs font-bold text-white">8 Races & 2 Ballot Questions on your local ballot</span>
+                </div>
+              </div>
+              <Link
+                to="/candidates/map"
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-4 py-2 rounded-xl transition shadow-md shrink-0 flex items-center gap-1"
+              >
+                Monitor Your Candidates →
+              </Link>
+            </div>
+
             <AddressFinder dark />
             <div className="hero-address-note"><Icon name="shield" size={15} /> Powered by your location. We never publish your private address.</div>
           </div>
@@ -158,10 +118,10 @@ export function HomePage() {
         <div className="site-width mt-12 mb-12">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="home-analytics-counters-grid" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px'}}>
               {[
-                { label: "Officials Verified & Tracked", target: liveOfficials, prefix: "", suffix: "", decimals: 0, change: `Out of 513,000 Total Seats`, color: "#102035" },
-                { label: "Public Promises Tracked", target: livePromises, prefix: "", suffix: "+ Actions", decimals: 0, change: "Mapped across federal & state levels", color: "#16a36a" },
-                { label: "Public Grants Indexed", target: liveGrants, prefix: "$", suffix: "B", decimals: 2, change: "USASpending & State Contract Feeds", color: "#2563eb" },
-                { label: "Ingestion Accuracy", target: liveAccuracy, prefix: "", suffix: "%", decimals: 2, change: "Cross-Validated Government Archives", color: "#6366f1" }
+                { label: "Officials Verified & Tracked", target: hermesStats.trackedOfficials, prefix: "", suffix: "", decimals: 0, change: `Out of 513,000 Total Seats`, color: "#102035" },
+                { label: "Public Promises Tracked", target: hermesStats.trackedPromises, prefix: "", suffix: "+ Actions", decimals: 0, change: "Mapped across federal & state levels", color: "#16a36a" },
+                { label: "Public Grants Indexed", target: hermesStats.liveGrants, prefix: "$", suffix: "B", decimals: 2, change: "USASpending & State Contract Feeds", color: "#2563eb" },
+                { label: "Ingestion Accuracy", target: hermesStats.overallAccuracy, prefix: "", suffix: "%", decimals: 2, change: "Cross-Validated Government Archives", color: "#6366f1" }
               ].map((stat, idx) => (
                 <div key={idx} className="bg-white border border-gray-200 rounded-xl p-5 shadow-xs flex flex-col justify-between min-h-[120px]" id={`stat-box-${idx}`} style={{background: '#fff', border: '1px solid #e4e8ee', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}}>
                   <p className="text-3xs font-mono text-slate-500 font-bold uppercase tracking-wider leading-relaxed" style={{fontSize: '11px', color: '#687586', letterSpacing: '0.05em', fontWeight: 700}}>{stat.label}</p>
@@ -255,90 +215,14 @@ export function HomePage() {
       </section>
 
       {/* HERMES COMPONENT */}
-      <section className="how-section hermes-section" style={{ backgroundColor: '#fff', padding: '60px 0', borderTop: '1px solid #e1e7ef' }}>
+      <section className="how-section hermes-section py-12 border-t border-slate-200 bg-slate-900">
         <div className="site-width">
-            {/* Live Node Data Pipelines Dashboard */}
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-sm" id="live-nodes-dashboard" style={{marginBottom: 30}}>
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-4 mb-6 gap-4">
-                <div>
-                  <h3 className="text-lg font-display font-semibold text-slate-900 tracking-tight flex items-center gap-2">
-                    <Icon name="file" size={20} className="text-blue-600" />
-                    Live Data Pipeline Status (Hermes Nodes 1-8)
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-1 font-sans">
-                    Real-time status of 8 active Hermes indexing nodes continuously harvesting public records. Ingested total: <strong className="text-emerald-700 font-mono font-bold">{liveTotalRecords.toLocaleString()}</strong> records.
-                  </p>
-                </div>
-                <Link to="/scrapers" className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition shrink-0 cursor-pointer">
-                  View Live Engine Terminal →
-                </Link>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px'}}>
-                {scrapers.map((scraper: any) => (
-                  <div key={scraper.id} className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between hover:border-blue-300 transition shadow-xs">
-                    <div>
-                      <div className="flex justify-between items-center mb-2.5">
-                        <span className="text-3xs font-mono font-bold uppercase tracking-widest text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">{scraper.id.toUpperCase()}</span>
-                        <span className="flex items-center gap-1.5 text-3xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded font-bold uppercase font-mono">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                          LIVE RUNNING
-                        </span>
-                      </div>
-                      <h4 className="text-xs font-bold text-slate-900 leading-snug mb-1 font-sans">{scraper.name}</h4>
-                      <p className="text-3xs text-slate-500 font-mono line-clamp-1" title={scraper.source}>Src: {scraper.source}</p>
-                    </div>
-                    
-                    <div className="mt-4 pt-3 border-t border-slate-200 flex justify-between items-center text-xs">
-                      <div>
-                        <p className="text-4xs font-mono text-slate-400 uppercase font-bold" style={{fontSize:'10px'}}>Records Extracted</p>
-                        <p className="font-mono text-slate-900 font-bold text-sm text-emerald-700">{scraper.recordsExtracted.toLocaleString()}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-4xs font-mono text-slate-400 uppercase font-bold" style={{fontSize:'10px'}}>Pipeline Status</p>
-                        <p className="font-mono text-emerald-700 font-bold text-3xs" style={{fontSize:'12px'}}>100% ACTIVE</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Live Official Discovery Feed */}
-            {discoveries.length > 0 && (
-              <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8" id="live-discovery-feed">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4 mb-5">
-                  <div>
-                    <h3 className="text-lg font-display font-semibold text-slate-900 tracking-tight flex items-center gap-2">
-                      <Icon name="users" size={20} className="text-emerald-600" />
-                      Live Verified Officials Feed
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1">Real-time log of newly verified officials identified by active Hermes nodes.</p>
-                  </div>
-                  <Link to="/search" className="text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-lg transition shrink-0 cursor-pointer border border-emerald-200">
-                    Search Directory →
-                  </Link>
-                </div>
-                <div className="space-y-3" style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-                  {discoveries.map((disc: any) => (
-                    <div key={disc.id} className="flex items-start gap-4 p-4 rounded-xl border border-slate-100 bg-slate-50 hover:border-emerald-200 transition" style={{display: 'flex', gap: '16px', padding: '16px', border: '1px solid #e1e7ef', borderRadius: '12px', background: '#f7f8fa'}}>
-                      <div className="bg-emerald-100 text-emerald-700 font-mono text-3xs font-bold px-2 py-1 rounded" style={{fontSize: '11px', background: '#d1fae5', color: '#047857', padding: '4px 8px', borderRadius: '4px'}}>
-                        {disc.time}
-                      </div>
-                      <div className="flex-1" style={{flex: 1}}>
-                        <h4 className="text-sm font-bold text-slate-900 leading-snug" style={{margin:0}}>{disc.officialName}</h4>
-                        <p className="text-xs text-slate-600 mt-0.5 font-sans leading-relaxed" style={{margin:'4px 0 0 0', fontSize:'13px'}}>{disc.reason}</p>
-                      </div>
-                      <span className="text-xs font-semibold text-emerald-700 flex items-center gap-1" style={{color: '#047857'}}>
-                        <Icon name="check" size={14} />
-                        {disc.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+          <HermesLiveDashboard />
         </div>
       </section>
+
+      {/* COMPLETED OFFICIALS DIRECTORY SECTION (AT BOTTOM OF RESEARCH AGENTS) */}
+      <CompletedOfficialsDirectory />
       
       <section className="closing-cta">
         <div className="site-width closing-cta-inner">

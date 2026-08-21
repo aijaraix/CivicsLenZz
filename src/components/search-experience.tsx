@@ -1,12 +1,14 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Icon } from './icons';
 import { MapVisual } from './map-visual';
 import { trackedOfficials, GovernmentLevel, addressSuggestions } from '../lib/civic-database';
+import { OfficialAvatar } from './official-avatar';
 
 const filters: Array<'All' | GovernmentLevel> = ['All', 'Federal', 'State', 'Local', 'School Board'];
 
 export function SearchExperience() {
+  const navigate = useNavigate();
   const [params] = useSearchParams();
   const incomingAddress = params.get('address') ?? '';
   const [search, setSearch] = useState(incomingAddress || '');
@@ -33,7 +35,7 @@ export function SearchExperience() {
   
   const [liveOfficials, setLiveOfficials] = useState(() => {
     const saved = localStorage.getItem('civiclenz_officials');
-    return saved ? parseInt(saved, 10) : 94235;
+    return saved ? parseInt(saved, 10) : 94264;
   });
 
   useEffect(() => {
@@ -165,6 +167,30 @@ export function SearchExperience() {
         
         {/* Header Section */}
         <div className="mb-8">
+           <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-4 sm:p-5 rounded-2xl mb-6 shadow-md border border-indigo-500/30 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+             <div className="flex items-center gap-3">
+               <span className="p-2 bg-indigo-800/80 rounded-xl text-indigo-200 border border-indigo-500/30">
+                 <Icon name="users" size={20} />
+               </span>
+               <div>
+                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-widest block">
+                   CURRENT ELECTED OFFICIALS DIRECTORY
+                 </span>
+                 <p className="text-xs text-slate-200 font-medium">
+                   You are viewing active officeholders, voting records, and current representation.
+                 </p>
+               </div>
+             </div>
+
+             <Link
+               to="/elections/candidates"
+               className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm shrink-0"
+             >
+               <Icon name="check-circle" size={15} />
+               <span>Switch to 2026 Candidate Pipeline & Search &rarr;</span>
+             </Link>
+           </div>
+
            <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight mb-4">
              {search.trim() ? "Your Elected Officials" : "Elected Officials Directory"}
            </h1>
@@ -281,10 +307,45 @@ export function SearchExperience() {
                          {official.party === 'Democratic' && <div className="absolute top-0 right-0 w-16 h-16 bg-blue-500 blur-3xl opacity-20 rounded-full"></div>}
                       </div>
                       <div className="px-4 pb-4 relative flex-1 flex flex-col items-center text-center -mt-10">
-                        <img src={official.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(official.name)}&background=random&size=128`} alt={official.name} className="w-16 h-16 object-cover rounded-full border-4 border-white shadow-sm mb-2 bg-white" />
+                        <div className="mb-2">
+                          <OfficialAvatar official={official} size="lg" />
+                        </div>
+                        
+                        {/* Upcoming Election / On the Ballot Badge */}
+                        <div className="mb-2">
+                          <span
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              navigate('/elections/my');
+                            }}
+                            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1 cursor-pointer"
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-950 animate-pulse" />
+                            On the Ballot 2026
+                          </span>
+                        </div>
+
                         <span className="text-3xs font-mono font-bold text-slate-500 uppercase tracking-widest mb-1">{official.level}</span>
                         <h2 className="text-base font-bold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">{official.name}</h2>
                         <p className="text-xs text-slate-600 mb-3 line-clamp-2">{official.title}</p>
+                        
+                        {/* Official Feedback Button */}
+                        <div className="w-full bg-slate-50 p-1.5 rounded-xl border border-slate-100 flex gap-1 mb-3" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); alert(`Thank you for rating ${official.name}!`); }}
+                            className="flex-1 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 transition"
+                          >
+                            👍 Like
+                          </button>
+                          <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); alert(`Thank you for rating ${official.name}!`); }}
+                            className="flex-1 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 transition"
+                          >
+                            👎 Dislike
+                          </button>
+                        </div>
+
                         <div className="mt-auto pt-3 w-full flex items-center justify-between border-t border-slate-100">
                           <span className={`text-xs font-bold px-2 py-1 rounded ${official.party === 'Republican' ? 'bg-red-50 text-red-700' : official.party === 'Democratic' ? 'bg-blue-50 text-blue-700' : 'bg-slate-50 text-slate-700'}`}>{official.party}</span>
                           <span className="text-xs font-semibold text-blue-600 flex items-center gap-1">View Profile <Icon name="arrow-right" size={12} /></span>

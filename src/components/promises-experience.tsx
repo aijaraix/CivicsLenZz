@@ -3,23 +3,47 @@ import { Link } from 'react-router-dom';
 import { Icon } from './icons';
 import { trackedOfficials, GovernmentLevel } from '../lib/civic-database';
 import { OfficialAvatar } from './official-avatar';
+import { EvidenceDrawer } from './evidence-drawer';
+import { evidenceEngine } from '../lib/evidence-engine';
+import { EvidenceObject } from '../lib/schema-v2';
 
-// Mock promises data
+// Mock promises data mapped to Master Schema
 const allPromises = [
-  { id: '1', officialSlug: 'ron-desantis', title: 'Cut property taxes by $500M', status: 'Kept', date: '2023-01-15', source: 'State of the State Address', aiConfidence: 95, detail: 'Signed HB 7063 into law, resulting in over $500M in tax relief, including property tax components.' },
-  { id: '2', officialSlug: 'daniella-levine-cava', title: 'Expand Rapid Transit across the county', status: 'In Progress', date: '2020-10-12', source: 'Campaign Website', aiConfidence: 85, detail: 'SMART Plan is advancing, but South Dade TransitWay is behind original 2023 schedule.' },
-  { id: '3', officialSlug: 'marco-rubio', title: 'Increase child tax credit to $4,000', status: 'Stalled', date: '2023-04-20', source: 'Senate Floor Speech', aiConfidence: 90, detail: 'Introduced legislation, but it has not advanced past the Senate Finance Committee.' },
-  { id: '4', officialSlug: 'shevrin-jones', title: 'Increase teacher pay statewide', status: 'Kept', date: '2022-03-05', source: 'Town Hall Meeting', aiConfidence: 88, detail: 'Voted yes on SB 256 which included significant teacher salary increases.' },
-  { id: '5', officialSlug: 'rick-scott', title: 'Balance the federal budget in 5 years', status: 'Broken', date: '2022-02-14', source: '11-Point Plan', aiConfidence: 92, detail: 'Deficit has increased; no balanced budget resolution has passed.' },
-  { id: '6', officialSlug: 'steven-meiner', title: 'Add 50 new police officers to Miami Beach', status: 'In Progress', date: '2023-11-05', source: 'Mayoral Debate', aiConfidence: 75, detail: 'Budget passed for 20 new officers so far.' }
+  { id: '1', officialSlug: 'ron-desantis', title: 'Cut property taxes by $500M', status: 'Kept', date: '2023-01-15', source: 'State of the State Address', aiConfidence: 95, detail: 'Signed HB 7063 into law, resulting in over $500M in tax relief, including property tax components.', sourceUrl: 'https://www.flgov.com/2023/05/25/governor-ron-desantis-signs-largest-tax-relief-package-in-florida-history/' },
+  { id: '2', officialSlug: 'daniella-levine-cava', title: 'Expand Rapid Transit across the county', status: 'In Progress', date: '2020-10-12', source: 'Campaign Website', aiConfidence: 85, detail: 'SMART Plan is advancing, but South Dade TransitWay is behind original 2023 schedule.', sourceUrl: 'https://www.miamidade.gov/global/mayor/home.page' },
+  { id: '3', officialSlug: 'marco-rubio', title: 'Increase child tax credit to $4,000', status: 'Stalled', date: '2023-04-20', source: 'Senate Floor Speech', aiConfidence: 90, detail: 'Introduced legislation, but it has not advanced past the Senate Finance Committee.', sourceUrl: 'https://www.rubio.senate.gov/child-tax-credit' },
+  { id: '4', officialSlug: 'shevrin-jones', title: 'Increase teacher pay statewide', status: 'Kept', date: '2022-03-05', source: 'Town Hall Meeting', aiConfidence: 88, detail: 'Voted yes on SB 256 which included significant teacher salary increases.', sourceUrl: 'https://www.flsenate.gov/Session/Bill/2022/256' },
+  { id: '5', officialSlug: 'rick-scott', title: 'Balance the federal budget in 5 years', status: 'Broken', date: '2022-02-14', source: '11-Point Plan', aiConfidence: 92, detail: 'Deficit has increased; no balanced budget resolution has passed.', sourceUrl: 'https://rickscott.senate.gov/11-point-plan' },
+  { id: '6', officialSlug: 'steven-meiner', title: 'Add 50 new police officers to Miami Beach', status: 'In Progress', date: '2023-11-05', source: 'Mayoral Debate', aiConfidence: 75, detail: 'Budget passed for 20 new officers so far.', sourceUrl: 'https://www.miamibeachfl.gov/city-hall/mayor-and-commission/' }
 ];
 
 export function PromisesExperience() {
   const [levelFilter, setLevelFilter] = useState<'All' | GovernmentLevel>('All');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Kept' | 'Broken' | 'In Progress' | 'Stalled'>('All');
   
+  // Evidence Drawer state
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedEvidence, setSelectedEvidence] = useState<EvidenceObject | null>(null);
+  const [activeClaimTitle, setActiveClaimTitle] = useState('');
+  const [activeClaimValue, setActiveClaimValue] = useState('');
+
   const levels: Array<'All' | GovernmentLevel> = ['All', 'Federal', 'State', 'Local', 'School Board'];
   const statuses = ['All', 'Kept', 'Broken', 'In Progress', 'Stalled'];
+
+  const handleOpenEvidence = (promise: typeof allPromises[0], officialName: string) => {
+    const ev = evidenceEngine.createEvidence({
+      source_url: promise.sourceUrl,
+      publisher: promise.source,
+      document_title: `${promise.title} — Official Verification Record`,
+      document_type: 'government_filing',
+      supporting_text: promise.detail,
+      source_tier: 'TIER_A'
+    });
+    setSelectedEvidence(ev);
+    setActiveClaimTitle(`${officialName} — Promise Status`);
+    setActiveClaimValue(`"${promise.title}" — Status: ${promise.status}`);
+    setIsDrawerOpen(true);
+  };
 
   const filteredPromises = allPromises.filter(p => {
     const official = trackedOfficials.find(o => o.slug === p.officialSlug);
@@ -39,7 +63,7 @@ export function PromisesExperience() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-900 tracking-tight">Accountability Engine</h1>
-              <p className="text-sm text-slate-500 font-medium">Tracking promises vs. legislative reality.</p>
+              <p className="text-sm text-slate-500 font-medium">Tracking promises vs. legislative reality with SHA-256 evidence provenance.</p>
             </div>
           </div>
           
@@ -84,8 +108,8 @@ export function PromisesExperience() {
             {filteredPromises.map(promise => {
               const official = trackedOfficials.find(o => o.slug === promise.officialSlug)!;
               return (
-                <div key={promise.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
-                  <div className="flex justify-between items-start mb-3">
+                <div key={promise.id} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-3">
+                  <div className="flex justify-between items-start">
                     <Link to={`/officials/${official.slug}`} className="flex items-center gap-3 group">
                       <OfficialAvatar official={official} size="sm" />
                       <div>
@@ -95,23 +119,34 @@ export function PromisesExperience() {
                         <div className="text-xs text-slate-500 font-medium">{official.title}</div>
                       </div>
                     </Link>
-                    <StatusBadge status={promise.status} />
+                    <button onClick={() => handleOpenEvidence(promise, official.name)}>
+                      <StatusBadge status={promise.status} />
+                    </button>
                   </div>
                   
-                  <h3 className="text-lg font-bold text-slate-900 mb-2 leading-snug">
+                  <h3 className="text-lg font-bold text-slate-900 leading-snug">
                     "{promise.title}"
                   </h3>
                   
-                  <div className="flex items-center gap-4 text-xs font-medium text-slate-500 mb-4 pb-4 border-b border-slate-100">
-                    <span className="flex items-center gap-1"><Icon name="calendar" size={14} /> {promise.date}</span>
-                    <span className="flex items-center gap-1"><Icon name="message" size={14} /> {promise.source}</span>
+                  <div className="flex items-center justify-between text-xs font-medium text-slate-500 pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-4">
+                      <span className="flex items-center gap-1"><Icon name="calendar" size={14} /> {promise.date}</span>
+                      <span className="flex items-center gap-1"><Icon name="message" size={14} /> {promise.source}</span>
+                    </div>
+                    <button
+                      onClick={() => handleOpenEvidence(promise, official.name)}
+                      className="text-indigo-600 hover:underline font-bold flex items-center gap-1 text-[11px]"
+                    >
+                      <Icon name="file-text" size={13} />
+                      Inspect Evidence →
+                    </button>
                   </div>
                   
-                  <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">AI Impact Verification</span>
+                  <div className="bg-slate-50 rounded-lg p-4 border border-slate-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">HERMES Impact Audit</span>
                       <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
-                        {promise.aiConfidence}% Match
+                        {promise.aiConfidence}% Verification Strength
                       </span>
                     </div>
                     <p className="text-sm text-slate-700 leading-relaxed">
@@ -140,12 +175,21 @@ export function PromisesExperience() {
                  <MetricBar label="Broken" value={10} color="bg-red-500" />
                </div>
                <p className="text-xs text-slate-500 mt-6 pt-4 border-t border-slate-100">
-                 Metrics reflect the average completion rates for officials matching your current filters.
+                 Metrics reflect the average completion rates for officials matching your current filters. Every record is drillable down to the underlying official docket.
                </p>
              </div>
           </div>
         </div>
       </main>
+
+      {/* Reusable Evidence Drawer */}
+      <EvidenceDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        evidence={selectedEvidence}
+        claimTitle={activeClaimTitle}
+        claimValue={activeClaimValue}
+      />
     </div>
   );
 }

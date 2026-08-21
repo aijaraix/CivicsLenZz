@@ -3,6 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import type { OfficialProfile } from '../lib/officials';
+import { OfficialAvatar } from './official-avatar';
 
 function displayInitials(name: string): string {
   return name
@@ -79,8 +80,17 @@ export function OfficialDirectory({ officials }: { officials: OfficialProfile[] 
         <div className="official-grid">
           {filtered.map((official) => (
             <article className="card official-card" key={official.officialId}>
-              <div className="official-card-top">
-                <div className="avatar" aria-hidden="true">{displayInitials(official.person.displayName)}</div>
+              <div className="official-card-top flex justify-center py-2">
+                <OfficialAvatar
+                  official={{
+                    name: official.person.displayName,
+                    initials: displayInitials(official.person.displayName),
+                    color: '#2563eb',
+                    slug: official.slug,
+                    photoUrl: (official as any).photoUrl
+                  }}
+                  size="xl"
+                />
               </div>
               <div className="official-card-body">
                 <div className="badges" style={{ justifyContent: 'flex-start' }}>

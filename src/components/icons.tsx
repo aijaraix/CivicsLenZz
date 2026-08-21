@@ -1,10 +1,10 @@
 import React from 'react';
 export type IconName =
   | 'home' | 'search' | 'users' | 'map' | 'star' | 'bell' | 'scale' | 'file' | 'news'
-  | 'chart' | 'user' | 'building' | 'heart' | 'settings' | 'help' | 'arrow-left'
+  | 'chart' | 'user' | 'building' | 'building-2' | 'landmark' | 'clock' | 'heart' | 'settings' | 'help' | 'arrow-left'
   | 'arrow-right' | 'chevron-right' | 'filter' | 'menu' | 'close' | 'plus' | 'message'
   | 'share' | 'shield' | 'target' | 'calendar' | 'watch' | 'logout' | 'flag' | 'phone'
-  | 'mail' | 'globe' | 'pin' | 'check' | 'alert' | 'sparkles' | 'edit' | 'lock' | 'chevron-up' | 'chevron-down' | 'check-circle' | 'external-link' | 'file-text' | 'book' | 'loader-2' | 'info' | 'alert-circle';
+  | 'mail' | 'globe' | 'pin' | 'check' | 'alert' | 'sparkles' | 'edit' | 'lock' | 'chevron-up' | 'chevron-down' | 'check-circle' | 'external-link' | 'file-text' | 'book' | 'loader-2' | 'info' | 'alert-circle' | 'activity';
 
 export function Icon({ name, size = 20, stroke = 1.9, className = '' }: { name: IconName; size?: number; stroke?: number; className?: string }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: stroke, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, className, 'aria-hidden': true };
@@ -21,6 +21,9 @@ export function Icon({ name, size = 20, stroke = 1.9, className = '' }: { name: 
     chart: <><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /></>,
     user: <><circle cx="12" cy="7" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></>,
     building: <><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-5h6v5M8 11h.01M12 11h.01M16 11h.01" /></>,
+    'building-2': <><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z" /><path d="M6 12H4a2 2 0 0 0-2 2v8h20v-8a2 2 0 0 0-2-2h-2M10 6h4M10 10h4M10 14h4M10 18h4" /></>,
+    landmark: <><line x1="3" y1="22" x2="21" y2="22" /><line x1="6" y1="18" x2="6" y2="11" /><line x1="10" y1="18" x2="10" y2="11" /><line x1="14" y1="18" x2="14" y2="11" /><line x1="18" y1="18" x2="18" y2="11" /><polygon points="12 2 20 7 4 7 12 2" strokeWidth="1.9" /><line x1="2" y1="18" x2="22" y2="18" /></>,
+    clock: <><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></>,
     heart: <><path d="M20.8 4.7a5.5 5.5 0 0 0-7.8 0L12 5.8l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.9-8.5a5.5 5.5 0 0 0-.1-7.8Z" /></>,
     settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2 2-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1 1.55V20h-2.8v-.09a1.7 1.7 0 0 0-1-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06-2-2 .06-.06A1.7 1.7 0 0 0 7.56 15a1.7 1.7 0 0 0-1.55-1H5.9v-2.8h.09a1.7 1.7 0 0 0 1.55-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06 2-2 .06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1-1.55V4.9h2.8v.09a1.7 1.7 0 0 0 1 1.55 1.7 1.7 0 0 0 1.88-.34l.06-.06 2 2-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.55 1h.09V14h-.09a1.7 1.7 0 0 0-1.55 1Z" /></>,
     help: <><circle cx="12" cy="12" r="9" /><path d="M9.5 9a2.7 2.7 0 1 1 4.4 2.1c-1.1.85-1.9 1.35-1.9 2.9M12 17.4h.01" /></>,
@@ -57,6 +60,7 @@ export function Icon({ name, size = 20, stroke = 1.9, className = '' }: { name: 
     'file-text': <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" /></>,
     'loader-2': <path d="M21 12a9 9 0 1 1-6.219-8.56" />,
     'book': <><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></>,
+    'activity': <path d="M22 12h-4l-3 9L9 3l-3 9H2" />,
   };
   return <svg {...common}>{paths[name]}</svg>;
 }
