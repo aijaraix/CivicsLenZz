@@ -8,6 +8,7 @@ import { SeatWatchMeta, seatLifecycleEngine } from './seat-lifecycle-engine';
 import { trackedOfficials } from './civic-database';
 import { getPreseededSouthFloridaOfficials, getExpandedSouthFloridaSeats, SouthFloridaSeedOfficial } from './south-florida-officials-data';
 import { verifyPhotoSource } from './photo-verifier';
+import { mainHermesPrime, floridaPrime, SeatController, DirectiveDownward, GovernmentLevelCategory } from './orchestration-hierarchy';
 
 export type ProfileResearchState =
   | 'DISCOVERED'
@@ -955,6 +956,54 @@ class HermesPrimeOrchestrator {
     } catch (e) {
       // Ignore parse error
     }
+  }
+
+  // =========================================================================
+  // STAGE 2 ORCHESTRATION HIERARCHY METHODS
+  // Main HERMES Prime -> Florida Prime -> Level Primes -> Seat Controller
+  // =========================================================================
+  public getHierarchyGlobalStatus() {
+    return mainHermesPrime.getGlobalStatusReport();
+  }
+
+  public issueHierarchyDirective(params: {
+    targetLevel?: GovernmentLevelCategory;
+    targetSeatUuid?: string;
+    priorityWeight: number;
+    allocatedWorkerBudget?: number;
+    lifecycleCommand?: 'ADVANCE_TO_SURGE' | 'NARROW_FIELD' | 'PROMOTE_WINNER' | 'SWITCH_TO_MONITORING';
+    notes?: string;
+  }) {
+    this.addLog('ACTION', `Issued Downward Directive from H0 Main Prime to ${params.targetLevel || params.targetSeatUuid || 'GLOBAL_FLORIDA'}`, 'H0_PRIME', 'SYSTEM', 'SOUTH_FLORIDA');
+    return mainHermesPrime.issueDirective(params);
+  }
+
+  public requestSeatAgentClone(seatUuid: string, baseAgentId: HermesWorkerId, candidateUuid: string, candidateName: string, purpose: string) {
+    const levelPrimes: GovernmentLevelCategory[] = ['FEDERAL_STATEWIDE', 'STATE_LEGISLATIVE', 'COUNTY', 'LOCAL_MUNICIPAL'];
+    for (const lvl of levelPrimes) {
+      const lvlPrime = floridaPrime.getLevelPrime(lvl);
+      const controller = lvlPrime.getSeatController(seatUuid);
+      if (controller) {
+        const clone = controller.requestAgentClone(baseAgentId, candidateUuid, candidateName, purpose);
+        this.addLog('ACTION', `Seat Controller [${seatUuid}] instantiated temporary agent clone ${clone.clone_id} for Primary Surge`, baseAgentId, candidateName, 'SOUTH_FLORIDA');
+        return clone;
+      }
+    }
+    return null;
+  }
+
+  public retireSeatAgentClones(seatUuid: string, candidateUuidFilter?: string) {
+    const levelPrimes: GovernmentLevelCategory[] = ['FEDERAL_STATEWIDE', 'STATE_LEGISLATIVE', 'COUNTY', 'LOCAL_MUNICIPAL'];
+    for (const lvl of levelPrimes) {
+      const lvlPrime = floridaPrime.getLevelPrime(lvl);
+      const controller = lvlPrime.getSeatController(seatUuid);
+      if (controller) {
+        const retired = controller.retireAgentClones(candidateUuidFilter);
+        this.addLog('SUCCESS', `Seat Controller [${seatUuid}] retired ${retired} temporary agent clones (field narrows)`, 'H0_PRIME', 'SYSTEM', 'SOUTH_FLORIDA');
+        return retired;
+      }
+    }
+    return 0;
   }
 }
 

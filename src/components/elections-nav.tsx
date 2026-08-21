@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Icon } from './icons';
+import { SystemZipExporter } from './system-zip-exporter';
 
 export function ElectionsSubNav() {
   const location = useLocation();
@@ -39,6 +40,8 @@ export function ElectionsSubNav() {
 
         {/* Header Actions & Burger Toggle */}
         <div className="flex items-center gap-3">
+          <SystemZipExporter variant="badge" buttonText="📦 Download .ZIP" />
+
           {/* Dual Cross-Bridge Link to Elected Officials Domain */}
           <div className="hidden sm:flex items-center gap-2">
             <span className="text-slate-400 text-[11px] hidden lg:inline">Monitoring officeholders?</span>

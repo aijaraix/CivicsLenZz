@@ -6,6 +6,7 @@ import { Icon } from './icons';
 import { hermesPrime, PersonResearchLock, PrimeLogMessage, RegionZone, RegionalCoverageSummary, SourceHealthItem, ForensicAuditReport } from '../lib/hermes-prime';
 import { DrillDownCategory, RecordDrillDownModal } from './record-drilldown-modal';
 import { ForensicAuditModal } from './forensic-audit-modal';
+import { SystemZipExporter } from './system-zip-exporter';
 
 interface HermesPrimeAdminProps {
   onClose?: () => void;
@@ -122,7 +123,9 @@ export function HermesPrimeAdmin({ onClose }: HermesPrimeAdminProps) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <SystemZipExporter buttonText="📦 Export Full System Zip Archive" />
+
           <button
             onClick={handleRunAudit}
             className="bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-2 cursor-pointer"

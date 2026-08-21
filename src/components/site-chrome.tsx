@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from './icons';
+import { SystemZipExporter } from './system-zip-exporter';
 
 const officialsLinks = [
   { label: 'Find Officials', href: '/search/' },
@@ -35,12 +36,15 @@ export function SiteHeader() {
           {officialsLinks.map((link) => <Link to={link.href} key={link.href}>{link.label}</Link>)}
         </nav>
         <div className="header-actions">
+          {/* Download System Archive ZIP Button */}
+          <SystemZipExporter variant="badge" buttonText="📦 Download .ZIP Data" />
+
           {/* Bridge Switcher Button to 2026 Candidate Engine */}
           <Link
             to="/elections"
             className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs px-3.5 py-1.5 rounded-xl transition shadow-sm flex items-center gap-1.5"
           >
-            <span>🗳 Switch to Candidate Engine &rarr;</span>
+            <span>🗳 Candidate Engine &rarr;</span>
           </Link>
 
           <Link className="header-login hidden sm:inline-block" to="/sign-in/">Log In</Link>
@@ -58,7 +62,9 @@ export function SiteHeader() {
               <Link to="/petitions/">Citizen Petitions</Link>
               <Link to="/coverage/">Coverage Transparency</Link>
 
-              <div className="pt-2 border-t border-slate-800 mt-2">
+              <div className="pt-2 border-t border-slate-800 mt-2 space-y-2">
+                <SystemZipExporter variant="menu" buttonText="📦 Download Complete System Archive (.ZIP)" />
+
                 <Link
                   to="/elections"
                   className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs py-2 px-3 rounded-lg text-center block"

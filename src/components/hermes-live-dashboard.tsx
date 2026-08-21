@@ -7,6 +7,7 @@ import { EvidenceDrawer } from './evidence-drawer';
 import { EvidenceObject } from '../lib/schema-v2';
 import { HermesPrimeAdmin } from './hermes-prime-admin';
 import { hermesPrime, ForensicAuditReport } from '../lib/hermes-prime';
+import { SystemZipExporter } from './system-zip-exporter';
 
 export function HermesLiveDashboard() {
   const [showPrimeModal, setShowPrimeModal] = useState(false);
@@ -131,6 +132,8 @@ export function HermesLiveDashboard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <SystemZipExporter buttonText="📦 Download System Archive (.ZIP)" />
+
           <button
             onClick={() => setShowPrimeModal(true)}
             className="bg-purple-900/80 hover:bg-purple-800 text-purple-200 border border-purple-500/60 font-bold text-xs px-4 py-2.5 rounded-xl transition flex items-center gap-2 shadow-lg cursor-pointer"
