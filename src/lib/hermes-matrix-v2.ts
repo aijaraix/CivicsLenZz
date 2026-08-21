@@ -22,13 +22,16 @@ export type HermesWorkerId =
   | 'H9' | 'H10' | 'H11' | 'H12' | 'H13' | 'H14' | 'H15' | 'H16'
   | 'H17' | 'H18' | 'H19' | 'H20' | 'H21' | 'H22' | 'H23' | 'H24'
   | 'H25' | 'H26' | 'H27' | 'H28' | 'H29' | 'H30' | 'H31' | 'H32'
-  | 'H33' | 'H34'
+  | 'H33' | 'H34' | 'H35' | 'H36' | 'H37' | 'H38' | 'H39' | 'H40'
+  | 'H41' | 'H42' | 'H43' | 'H44' | 'H45' | 'H46'
   | 'C1' | 'C2' | 'C3' | 'C4' | 'C5' | 'C6' | 'C7' | 'C8'
   | 'C9' | 'C10' | 'C11' | 'C12' | 'C13' | 'C14' | 'C15' | 'C16'
   | 'C17' | 'C18' | 'C19' | 'C20' | 'C21' | 'C22' | 'C23' | 'C24'
   | 'C25' | 'C26' | 'C27' | 'C28' | 'C29' | 'C30' | 'C31' | 'C32'
+  | 'C33' | 'C34' | 'C35' | 'C36'
   | 'E1' | 'E2' | 'E3' | 'E4' | 'E5' | 'E6' | 'E7' | 'E8'
-  | 'E9' | 'E10' | 'E11' | 'E12' | 'E13' | 'E14' | 'E15' | 'E16';
+  | 'E9' | 'E10' | 'E11' | 'E12' | 'E13' | 'E14' | 'E15' | 'E16'
+  | 'Q1' | 'Q2' | 'Q3' | 'Q4';
 
 export type HeartbeatCadence = 'HIGH_30S' | 'MEDIUM_60S' | 'LOW_120S';
 
@@ -376,12 +379,75 @@ class HermesOrchestratorV2 {
       createWorker('H32', 'Publication Gatekeeper', 'Gatekeeper', 'Enforces 10-stage publication pipeline (DISCOVERED -> VALIDATED -> PUBLISHED).', 'TIER_A', 'HIGH_30S', 24800, ['10_stage_publication_gate', 'production_release_vault'], [
         { timestamp: now, targetEntity: 'Candidate Public Profile', field: 'Stage 10 Publication Clearance', value: 'PUBLISHED - Passed All 10 Verification Stages', evidenceHash: 'sha256_h32_pub_pass', sourceUrl: 'https://civiclenz.org' }
       ], 12, 100),
-      createWorker('H33', 'Accomplishment & Legacy Harvester', 'Extraction', 'Parses campaign accomplishments pages, press releases, & legislative achievements.', 'TIER_A', 'HIGH_30S', 5980, ['accomplishments_harvester_v1', 'campaign_accomplishment_logs'], [
-        { timestamp: now, targetEntity: 'Daniella Levine Cava', field: 'Accomplishment Extraction', value: 'EXTRACTED - $85M HOMES Plan & Biscayne Bay Chief Bay Officer', evidenceHash: 'sha256_h33_cava_acc', sourceUrl: 'https://daniella.vote/accomplishments' }
-      ], 6, 250),
-      createWorker('H34', 'Judicial & Warrant Auditor', 'Extraction', 'Audits FDLE, NCIC, & court records for arrest warrants, incarcerations, & judicial filings.', 'TIER_A', 'HIGH_30S', 4410, ['fdle_arrest_warrant_registry', 'ncic_criminal_history_audit'], [
-        { timestamp: now, targetEntity: 'Daniella Levine Cava', field: 'Criminal Record & Warrant Audit', value: 'CERTIFIED CLEAN - Zero Arrest Warrants or Charges Found', evidenceHash: 'sha256_h34_cava_judicial', sourceUrl: 'https://www.fdle.state.fl.us' }
+      createWorker('H33', 'Vote Reconciliation Agent', 'Extraction', 'Collects roll-call votes, states authoritative total, and reconciles collected votes to legislative session total.', 'TIER_A', 'HIGH_30S', 18400, ['fl_senate_roll_calls', 'us_house_roll_calls'], [
+        { timestamp: now, targetEntity: 'Roll-Call Votes Ingestion', field: 'Roll-Call Vote Reconciliation', value: 'RECONCILED_MATCH - Ingested 1,240 / Authoritative Total 1,240 Session Votes', evidenceHash: 'sha256_h33_vote_rec', sourceUrl: 'https://flsenate.gov/session/votes' }
+      ], 10, 150),
+      createWorker('H34', 'Bill Sponsorship Agent', 'Extraction', 'Ingests prime-sponsored and co-sponsored legislation, enacting status, and reconciles session totals.', 'TIER_A', 'HIGH_30S', 14200, ['fl_house_bills_sponsorship', 'us_congress_bill_sponsorship'], [
+        { timestamp: now, targetEntity: 'Sponsored Legislation Ingestion', field: 'Bill Sponsorship Ledger', value: 'RECONCILED_MATCH - Ingested 42 Sponsored Bills / Authoritative Total 42', evidenceHash: 'sha256_h34_bill_spon', sourceUrl: 'https://flhouse.gov/bills' }
+      ], 10, 150),
+      createWorker('H35', 'Transaction-Level Campaign Finance Agent', 'Extraction', 'Ingests transaction-level itemized contributions (>= $100), donor employers, and expenditures.', 'TIER_A', 'HIGH_30S', 34200, ['fec_itemized_schedule_a', 'florida_doe_itemized_contributions'], [
+        { timestamp: now, targetEntity: 'Itemized Campaign Contribution', field: 'Transaction Record', value: 'INGESTED - $1,000 Donor Contribution with Employer & Occupation Verified', evidenceHash: 'sha256_h35_fin_item', sourceUrl: 'https://dos.elections.myflorida.com' }
+      ], 12, 100),
+      createWorker('H36', 'Campaign Finance Summary Agent', 'Extraction', 'Ingests total cycle receipts, expenditures, cash on hand, outstanding loans, and debts.', 'TIER_A', 'HIGH_30S', 12400, ['fec_summary_form_3p', 'florida_doe_campaign_summary'], [
+        { timestamp: now, targetEntity: 'Campaign Finance Summary', field: 'Authoritative Receipts & Spending', value: 'VERIFIED - Receipts: $4,520,000 / Spent: $3,100,000 / Cash: $1,420,000', evidenceHash: 'sha256_h36_fin_sum', sourceUrl: 'https://dos.elections.myflorida.com' }
+      ], 10, 150),
+      createWorker('H37', 'Promise & Commitment Extraction Agent', 'Extraction', 'Extracts explicit platform promises, pledge sign-ons, and policy commitments with verbatim quotes.', 'TIER_A', 'HIGH_30S', 8900, ['campaign_speech_promises_v2', 'signed_pledge_harvester'], [
+        { timestamp: now, targetEntity: 'Campaign Platform Promise', field: 'Verbatim Promise Quote', value: 'EXTRACTED - Verbatim Quote with Primary Video Timestamp', evidenceHash: 'sha256_h37_prom_ext', sourceUrl: 'https://rickscott.com/platform' }
       ], 8, 200),
+      createWorker('H38', 'Public Statements & Positions Archive Agent', 'Extraction', 'Archives documented positions across tax, budget, healthcare, education, safety, & environment.', 'TIER_A', 'HIGH_30S', 14200, ['official_press_release_archive', 'floor_speech_transcripts'], [
+        { timestamp: now, targetEntity: 'Policy Stance Archive', field: 'Tax & Budget Stance Record', value: 'ARCHIVED - Verified Policy Position Statement Ingested', evidenceHash: 'sha256_h38_stmt_arch', sourceUrl: 'https://flsenate.gov' }
+      ], 10, 150),
+      createWorker('H39', 'Multi-State Public Court & Docket Agent', 'Extraction', 'Searches PACER, federal courts, and multi-state judicial dockets for legal records.', 'TIER_A', 'LOW_120S', 3100, ['pacer_federal_dockets', 'state_court_repository'], [
+        { timestamp: now, targetEntity: 'Multi-State Court Docket Audit', field: 'Federal Docket Identity Check', value: 'CLEARED - Zero Disqualifying Federal Court Dockets Found', evidenceHash: 'sha256_h39_court_pacer', sourceUrl: 'https://pacer.uscourts.gov' }
+      ], 5, 300),
+      createWorker('H40', 'Florida Public Court & Arrest Records Agent', 'Extraction', 'Searches 67 Florida County Clerks of Court, FDLE arrest dockets, and traffic citations.', 'TIER_A', 'HIGH_30S', 6200, ['fl_county_clerks_dockets', 'fdle_criminal_history'], [
+        { timestamp: now, targetEntity: 'Florida Court Docket Audit', field: 'FDLE Criminal Record Check', value: 'VERIFIED CLEAN - Zero Criminal Arrest Records or Active Warrants', evidenceHash: 'sha256_h40_fl_court', sourceUrl: 'https://www.fdle.state.fl.us' }
+      ], 8, 200),
+      createWorker('H41', 'Ethics & Financial Disclosure Agent', 'Extraction', 'Ingests state/federal Form 6 net worth filings, income sources, liabilities, and gift disclosures.', 'TIER_A', 'HIGH_30S', 7400, ['florida_ethics_form6_vault', 'oge_278_e_federal_disclosures'], [
+        { timestamp: now, targetEntity: 'Form 6 Ethics Disclosure', field: 'Net Worth & Asset Disclosures', value: 'VERIFIED - Form 6 Net Worth $25,400,000 Ingested with Primary Seal', evidenceHash: 'sha256_h41_ethics_f6', sourceUrl: 'https://ethics.state.fl.us' }
+      ], 8, 200),
+      createWorker('H42', 'Business & Corporate Affiliations Agent', 'Extraction', 'Queries Florida Sunbiz and state corporate registries for LLC ownerships, board seats, & corporate roles.', 'TIER_A', 'HIGH_30S', 8100, ['sunbiz_corporate_registry', 'sec_edgar_board_seats'], [
+        { timestamp: now, targetEntity: 'Sunbiz Corporate Audit', field: 'Active LLC Ownership', value: 'VERIFIED - Active LLC Filings Cataloged with Officers List', evidenceHash: 'sha256_h42_sunbiz_llc', sourceUrl: 'https://sunbiz.org' }
+      ], 8, 200),
+      createWorker('H43', 'Education & Career History Agent', 'Extraction', 'Audits colleges, law schools, degrees, professional bar/CPA licenses, and public sector positions.', 'TIER_A', 'HIGH_30S', 9300, ['national_student_clearinghouse', 'state_bar_license_lookup'], [
+        { timestamp: now, targetEntity: 'Degrees & License Audit', field: 'Juris Doctor & Bar Standing', value: 'VERIFIED - JD Degree & Active Bar Admission in Good Standing', evidenceHash: 'sha256_h43_edu_bar', sourceUrl: 'https://floridabar.org' }
+      ], 8, 200),
+      createWorker('H44', 'Legislative Committee & Leadership Agent', 'Extraction', 'Tracks standing committees, chairmanships, hearing attendance, and committee reports authored.', 'TIER_A', 'HIGH_30S', 11200, ['fl_legislative_committees', 'us_congress_committees'], [
+        { timestamp: now, targetEntity: 'Committee Leadership Role', field: 'Committee Chairman Status', value: 'VERIFIED - Senate Appropriations Committee Chairman', evidenceHash: 'sha256_h44_comm_chair', sourceUrl: 'https://flsenate.gov' }
+      ], 10, 150),
+      createWorker('H45', 'Geospatial & GIS Verification Agent', 'Extraction', 'Validates district boundary GeoJSON polygons, census population, and county/city coverage.', 'TIER_A', 'HIGH_30S', 5400, ['census_tiger_shapefiles', 'fl_redistricting_gis_maps'], [
+        { timestamp: now, targetEntity: 'District Polygon Map', field: 'GeoJSON Polygon Validation', value: 'VALIDATED - SHA-256 GeoJSON Boundary Spatial Hash Matched', evidenceHash: 'sha256_h45_gis_polygon', sourceUrl: 'https://census.gov' }
+      ], 8, 200),
+      createWorker('H46', 'Contact Info & Official Web Presence Agent', 'Extraction', 'Captures capitol office address, local district office phone lines, official .gov email & web portal.', 'TIER_A', 'HIGH_30S', 14200, ['official_gov_directory', 'capitol_office_roster'], [
+        { timestamp: now, targetEntity: 'Official Contact Directory', field: 'Capitol & District Office Address', value: 'VERIFIED - 404 Senate Office Building, Tallahassee, FL 32399', evidenceHash: 'sha256_h46_contact_ok', sourceUrl: 'https://flsenate.gov' }
+      ], 12, 100),
+
+      createWorker('C33', 'Candidate Campaign Finance Itemization Agent', 'Extraction', 'Ingests candidate-specific itemized contributions, PAC transfers, and expenditure vendor disbursements.', 'TIER_A', 'HIGH_30S', 18400, ['candidate_fec_itemized', 'candidate_florida_doe_itemized'], [
+        { timestamp: now, targetEntity: 'Candidate Campaign Receipts', field: 'Itemized Donor Contribution Ingestion', value: 'INGESTED - Itemized Contribution Ledger Matched to DOE Total', evidenceHash: 'sha256_c33_fin_item', sourceUrl: 'https://dos.elections.myflorida.com' }
+      ], 12, 100),
+      createWorker('C34', 'Candidate Promise Extraction Agent', 'Extraction', 'Extracts candidate campaign promises, policy positions, and 100-day execution commitments.', 'TIER_A', 'HIGH_30S', 9400, ['candidate_platform_harvester', 'campaign_ad_claims_stream'], [
+        { timestamp: now, targetEntity: 'Candidate Platform Promises', field: 'Platform Commitment Ingestion', value: 'EXTRACTED - 14 Platform Promises Cataloged with Video Links', evidenceHash: 'sha256_c34_prom_ext', sourceUrl: 'https://candidate.vote' }
+      ], 8, 200),
+      createWorker('C35', 'Rapid Candidate Filing Ingestion Agent', 'Ingestion', 'Monitors qualifying fee & petition signature filings with sub-minute alert triggers.', 'TIER_A', 'HIGH_30S', 22100, ['rapid_filing_stream_v1', 'qualifying_paper_scanner'], [
+        { timestamp: now, targetEntity: 'Qualifying Papers Ingestion', field: 'Filing Papers Verification', value: 'QUALIFIED - Petition Signatures Statutory Threshold Verified', evidenceHash: 'sha256_c35_qual_rapid', sourceUrl: 'https://dos.elections.myflorida.com' }
+      ], 15, 80),
+      createWorker('C36', 'Candidate Multi-State Court Records Agent', 'Extraction', 'Executes multi-state civil and criminal public court searches with identity-matching validation.', 'TIER_A', 'LOW_120S', 4200, ['pacer_candidate_lookup', 'multi_state_court_index'], [
+        { timestamp: now, targetEntity: 'Candidate Legal Audit', field: 'Public Court Record Audit', value: 'CLEARED - Zero Disqualifying Lawsuits or Court Dockets', evidenceHash: 'sha256_c36_court_audit', sourceUrl: 'https://flcourts.gov' }
+      ], 5, 300),
+
+      // COMPLETENESS & QUALITY AGENTS (Q1–Q4)
+      createWorker('Q1', 'Completeness Auditor Agent', 'Verification', 'Scans Research Contract fields, generates missing field gap reports, and audits office type rules.', 'TIER_A', 'HIGH_30S', 18900, ['research_contract_field_auditor', 'gap_report_generator'], [
+        { timestamp: now, targetEntity: 'Seat Research Contract Audit', field: 'Contract Field Coverage', value: 'AUDITED - Gap Report Generated for Unfilled Required Fields', evidenceHash: 'sha256_q1_contract_audit', sourceUrl: 'https://civiclenz.org/contract' }
+      ], 12, 100),
+      createWorker('Q2', 'Countable Data Reconciliation Specialist', 'Verification', 'Reconciles votes, bills, finance totals, and election returns against authoritative source totals.', 'TIER_A', 'HIGH_30S', 24100, ['vote_reconciliation_engine', 'finance_total_reconciler'], [
+        { timestamp: now, targetEntity: 'Countable Data Reconciliation', field: 'Reconciliation Audit', value: 'RECONCILED_MATCH - Collected 1,240 Session Votes == Authoritative Total 1,240', evidenceHash: 'sha256_q2_reconcile_ok', sourceUrl: 'https://flsenate.gov' }
+      ], 12, 100),
+      createWorker('Q3', 'Negative Research & Source Recording Agent', 'Verification', 'Executes negative research across mandatory sources and records VERIFIED_NONE with checked source lists.', 'TIER_A', 'HIGH_30S', 16200, ['negative_research_verifier', 'checked_source_logger'], [
+        { timestamp: now, targetEntity: 'Negative Research Audit', field: 'VERIFIED_NONE Seal', value: 'VERIFIED_NONE - Audited FDLE, Sunbiz, & PACER: 0 Records Found', evidenceHash: 'sha256_q3_neg_research', sourceUrl: 'https://civiclenz.org/audit' }
+      ], 10, 150),
+      createWorker('Q4', 'Evidence & Provenance Quality Validator', 'Verification', 'Validates primary source URLs, Tier 1–4 ratings, timestamps, and SHA-256 evidence seals.', 'TIER_A', 'HIGH_30S', 31200, ['evidence_quality_validator', 'provenance_tier_auditor'], [
+        { timestamp: now, targetEntity: 'Evidence Object Validation', field: 'Quality Seal Audit', value: 'VALIDATED - 100% Evidence Objects Meet Tier 1-4 Provenance Standards', evidenceHash: 'sha256_q4_ev_qual_ok', sourceUrl: 'https://civiclenz.org/evidence' }
+      ], 16, 50),
 
       // SWARM B — ELECTION & CANDIDATE INTELLIGENCE AGENTS (C1–C32)
       createWorker('C1', 'Election Discovery Agent', 'Ingestion', 'Discovers upcoming federal, state, county, municipal, school board & judicial elections.', 'TIER_A', 'HIGH_30S', 2840, ['dos.elections.myflorida.com/elections', 'fec.gov/elections'], [
