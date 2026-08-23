@@ -1,11 +1,72 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
+import { hermesBackendStore } from "./src/lib/hermes-backend-store";
+import { hermesWorkerDaemon } from "./src/lib/hermes-worker-daemon";
 
 async function startServer() {
   const app = express();
   app.use(express.json());
   const PORT = 3000;
+
+  // Start Real Server-Side HERMES Background Worker Daemon
+  hermesWorkerDaemon.startDaemon();
+
+  // =========================================================================
+  // REAL HERMES SERVER REST API ENDPOINTS
+  // =========================================================================
+
+  // 1. Daemon Status & Worker Health
+  app.get("/api/hermes/status", (req, res) => {
+    res.json(hermesWorkerDaemon.getDaemonStatus());
+  });
+
+  // 2. Persistent Job Queue & Dead Letter Queue
+  app.get("/api/hermes/jobs", (req, res) => {
+    res.json({
+      jobs: hermesBackendStore.getJobs(),
+      dead_letters: hermesBackendStore.getDeadLetterJobs(),
+      summary: hermesBackendStore.getDatabaseSummary()
+    });
+  });
+
+  // 3. Florida Seat Coverage Ledger
+  app.get("/api/hermes/coverage", (req, res) => {
+    res.json({
+      seats: hermesBackendStore.getSeatCoverageRecords(),
+      summary: hermesBackendStore.getDatabaseSummary()
+    });
+  });
+
+  // 4. Raw Cryptographic Evidence Objects
+  app.get("/api/hermes/evidence", (req, res) => {
+    res.json({
+      evidence_objects: hermesBackendStore.getRawEvidenceObjects()
+    });
+  });
+
+  // 5. Forensic Reality Audit & Source Registry
+  app.get("/api/hermes/audit", (req, res) => {
+    res.json({
+      reality_badge: "REAL_SERVER_SIDE",
+      execution_mode: "Node Express Daemon (Background Process)",
+      sources: hermesBackendStore.getSourceRegistry(),
+      summary: hermesBackendStore.getDatabaseSummary()
+    });
+  });
+
+  // 6. Trigger Real Research Job
+  app.post("/api/hermes/trigger-seat", (req, res) => {
+    const { seat_uuid, person_uuid, agent_id, job_type } = req.body;
+    const newJob = hermesBackendStore.createJob({
+      agent_id: agent_id || "H1",
+      job_type: job_type || "RESEARCH_CONTRACT_COMPLETENESS_RUN",
+      seat_uuid,
+      person_uuid,
+      priority: 9
+    });
+    res.json({ status: "queued", job: newJob });
+  });
 
   // Image Proxy Endpoint to bypass browser CORS / Hotlink protection for official portraits
   app.get("/api/image-proxy", async (req, res) => {

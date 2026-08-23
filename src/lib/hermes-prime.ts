@@ -915,37 +915,14 @@ class HermesPrimeOrchestrator {
         }
       }
 
-      // Offline Ingestion Catchup: Add seats that were ingested while tab/session was closed
+      // Offline Status Check: Log worker offline since last saved timestamp
       if (lastSavedStr) {
         const lastSaved = parseInt(lastSavedStr, 10);
         if (!isNaN(lastSaved) && lastSaved > 0) {
-          const elapsedSec = Math.min(604800, Math.max(0, (Date.now() - lastSaved) / 1000));
+          const elapsedSec = Math.max(0, (Date.now() - lastSaved) / 1000);
           if (elapsedSec > 5) {
-            const catchupCount = Math.min(1000, Math.floor(elapsedSec / 4));
-            const expandedSeats = getExpandedSouthFloridaSeats();
-            let added = 0;
-            for (const s of expandedSeats) {
-              if (!this.activeLocks.has(s.person_uuid) && added < catchupCount) {
-                this.acquireLock({
-                  person_uuid: s.person_uuid,
-                  seat_uuid: s.seat_uuid,
-                  person_name: s.name,
-                  title: s.title,
-                  office_type: s.office_type,
-                  region: s.region,
-                  jurisdiction: s.jurisdiction,
-                  level: s.level,
-                  party: s.party,
-                  district: s.district,
-                  photoUrl: s.photoUrl,
-                  initialCompletion: s.completion
-                });
-                added++;
-              }
-            }
-            if (added > 0) {
-              this.addLog('SUCCESS', `Offline Catchup Complete: Ingested +${added} regional official records acquired during background execution window.`, 'H0_PRIME', 'SYSTEM', 'SOUTH_FLORIDA');
-            }
+            const offlineTimeString = new Date(lastSaved).toISOString();
+            this.addLog('INFO', `Worker offline since ${offlineTimeString} (${Math.round(elapsedSec)}s offline window). Backlog jobs actively queued on server daemon.`, 'H0_PRIME', 'SYSTEM', 'SOUTH_FLORIDA');
           }
         }
       }

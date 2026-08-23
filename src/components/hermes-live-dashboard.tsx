@@ -122,6 +122,10 @@ export function HermesLiveDashboard() {
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               {stats.activeWorkerCount} / {stats.totalWorkers} WORKERS ACTIVE
             </span>
+            <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold text-cyan-300 bg-cyan-950 border border-cyan-800 px-2.5 py-1 rounded-md" title="Node.js server background daemon with persistent storage and zero browser dependencies">
+              <span className="w-2 h-2 rounded-full bg-cyan-400" />
+              REALITY BADGE: REAL_SERVER_SIDE
+            </span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
             Live HERMES Autonomous Agent Engine

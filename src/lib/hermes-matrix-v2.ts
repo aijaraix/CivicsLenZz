@@ -208,28 +208,13 @@ class HermesOrchestratorV2 {
         });
       }
 
-      // Offline catch-up calculation
+      // Offline status check: Log worker offline window and maintain real persistent job backlog
       if (lastSavedTimeStr) {
         const lastSavedTime = parseInt(lastSavedTimeStr, 10);
         const elapsedMs = Date.now() - lastSavedTime;
-        if (elapsedMs > 0 && elapsedMs < 30 * 24 * 3600 * 1000) {
-          const missedDaemonTicks = Math.floor(elapsedMs / 2000);
-          if (missedDaemonTicks > 0) {
-            const effectiveTicks = Math.min(missedDaemonTicks, 5000);
-            this.workers.forEach(worker => {
-              const cadenceMultiplier = worker.heartbeatCadence === 'HIGH_30S' ? 1.5 : worker.heartbeatCadence === 'MEDIUM_60S' ? 1.0 : 0.5;
-              const added = Math.floor(effectiveTicks * 0.5 * cadenceMultiplier) + Math.floor(Math.random() * 2);
-              if (added > 0) {
-                worker.processedCount += added;
-                worker.verifiedDataPoints += added;
-                worker.lastRunTimestamp = new Date().toISOString();
-              }
-            });
-
-            this.trackedOfficials += Math.floor(effectiveTicks * 0.25);
-            this.trackedPromises += Math.floor(effectiveTicks * 0.8);
-            this.liveGrants += Number((effectiveTicks * 0.005).toFixed(2));
-          }
+        if (elapsedMs > 5000) {
+          const offlineTimeString = new Date(lastSavedTime).toISOString();
+          console.log(`[HERMES REALITY CHECK] Worker offline since ${offlineTimeString} (${Math.round(elapsedMs / 1000)}s window). Synchronizing real persistent backlog...`);
         }
       }
 
