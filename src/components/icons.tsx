@@ -4,7 +4,7 @@ export type IconName =
   | 'chart' | 'user' | 'building' | 'building-2' | 'landmark' | 'clock' | 'heart' | 'settings' | 'help' | 'arrow-left'
   | 'arrow-right' | 'chevron-right' | 'filter' | 'menu' | 'close' | 'plus' | 'message'
   | 'share' | 'shield' | 'target' | 'calendar' | 'watch' | 'logout' | 'flag' | 'phone'
-  | 'mail' | 'globe' | 'pin' | 'check' | 'alert' | 'sparkles' | 'edit' | 'lock' | 'chevron-up' | 'chevron-down' | 'check-circle' | 'external-link' | 'file-text' | 'book' | 'loader-2' | 'info' | 'alert-circle' | 'activity';
+  | 'mail' | 'globe' | 'pin' | 'check' | 'alert' | 'sparkles' | 'edit' | 'lock' | 'chevron-up' | 'chevron-down' | 'check-circle' | 'external-link' | 'file-text' | 'book' | 'loader-2' | 'info' | 'alert-circle' | 'activity' | 'download';
 
 export function Icon({ name, size = 20, stroke = 1.9, className = '' }: { name: IconName; size?: number; stroke?: number; className?: string }) {
   const common = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: stroke, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, className, 'aria-hidden': true };
@@ -61,6 +61,7 @@ export function Icon({ name, size = 20, stroke = 1.9, className = '' }: { name: 
     'loader-2': <path d="M21 12a9 9 0 1 1-6.219-8.56" />,
     'book': <><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" /></>,
     'activity': <path d="M22 12h-4l-3 9L9 3l-3 9H2" />,
+    'download': <><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></>,
   };
   return <svg {...common}>{paths[name]}</svg>;
 }

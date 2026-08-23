@@ -279,7 +279,7 @@ export class SeatController {
 
     // 1. Q1: Completeness-Auditor Scan
     const unfulfilledFields = Object.values(this.contract.fields).filter(
-      f => f.applicability === 'REQUIRED' && (f.current_state === 'RESEARCH_IN_PROGRESS' || f.current_state === 'DISCREPANCY_FLAGGED')
+      f => f.applicability === 'REQUIRED' && (f.current_state === 'RESEARCH_IN_PROGRESS' || f.current_state === 'CONFLICTING_EVIDENCE')
     );
 
     const gapReport: Array<{ field_key: string; category: string; agent_assigned: HermesWorkerId }> = [];
