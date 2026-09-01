@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { hermesBackendStore } from "./src/lib/hermes-backend-store";
 import { hermesWorkerDaemon } from "./src/lib/hermes-worker-daemon";
+import { masterFloridaLedger } from "./src/lib/florida-master-ledger";
 
 async function startServer() {
   const app = express();
@@ -30,7 +31,17 @@ async function startServer() {
     });
   });
 
-  // 3. Florida Seat Coverage Ledger
+  // 3. Florida Master Seat Ledger & 67-County Registry
+  app.get("/api/hermes/florida-master-ledger", (req, res) => {
+    res.json({
+      summary: masterFloridaLedger.getMasterLedgerSummary(),
+      seats: masterFloridaLedger.getSeatRecords(),
+      counties: masterFloridaLedger.getCountyRecords(),
+      municipalities: masterFloridaLedger.getMunicipalityRecords()
+    });
+  });
+
+  // 4. Florida Seat Coverage Ledger
   app.get("/api/hermes/coverage", (req, res) => {
     res.json({
       seats: hermesBackendStore.getSeatCoverageRecords(),

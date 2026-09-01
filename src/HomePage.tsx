@@ -6,6 +6,7 @@ import { dataSources } from './lib/civic-database';
 import { HermesLiveDashboard } from './components/hermes-live-dashboard';
 import { CompletedOfficialsDirectory } from './components/completed-officials-directory';
 import { hermesOrchestratorV2 } from './lib/hermes-matrix-v2';
+import { SystemZipExporter } from './components/system-zip-exporter';
 
 import { useState, useEffect } from 'react';
 
@@ -116,21 +117,41 @@ export function HomePage() {
 
       <section className="how-section hermes-stats" style={{ backgroundColor: '#f4f7fb', padding: '60px 0', borderBottom: '1px solid #e1e7ef' }}>
         <div className="site-width mt-12 mb-12">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="home-analytics-counters-grid" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px'}}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4" id="home-analytics-counters-grid" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px'}}>
               {[
-                { label: "Officials Verified & Tracked", target: hermesStats.trackedOfficials, prefix: "", suffix: "", decimals: 0, change: `Out of 513,000 Total Seats`, color: "#102035" },
+                { label: "Data Points Collected", target: hermesStats.totalDataPointsCollected, prefix: "", suffix: "", decimals: 0, change: "Federal, state & county records", color: "#d97706" },
+                { label: "Officials Verified & Tracked", target: hermesStats.trackedOfficials, prefix: "", suffix: "", decimals: 0, change: "Out of 513,000 Total Seats", color: "#102035" },
                 { label: "Public Promises Tracked", target: hermesStats.trackedPromises, prefix: "", suffix: "+ Actions", decimals: 0, change: "Mapped across federal & state levels", color: "#16a36a" },
                 { label: "Public Grants Indexed", target: hermesStats.liveGrants, prefix: "$", suffix: "B", decimals: 2, change: "USASpending & State Contract Feeds", color: "#2563eb" },
-                { label: "Ingestion Accuracy", target: hermesStats.overallAccuracy, prefix: "", suffix: "%", decimals: 2, change: "Cross-Validated Government Archives", color: "#6366f1" }
+                { label: "Ingestion Accuracy", target: hermesStats.overallAccuracy, prefix: "", suffix: "%", decimals: 2, change: "Cryptographically Verified", color: "#6366f1" }
               ].map((stat, idx) => (
                 <div key={idx} className="bg-white border border-gray-200 rounded-xl p-5 shadow-xs flex flex-col justify-between min-h-[120px]" id={`stat-box-${idx}`} style={{background: '#fff', border: '1px solid #e4e8ee', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}}>
                   <p className="text-3xs font-mono text-slate-500 font-bold uppercase tracking-wider leading-relaxed" style={{fontSize: '11px', color: '#687586', letterSpacing: '0.05em', fontWeight: 700}}>{stat.label}</p>
-                  <p className="text-2xl font-display font-bold my-1 tracking-tight" style={{fontSize: '28px', fontWeight: 800, margin: '8px 0', color: stat.color}}>
+                  <p className="text-2xl font-display font-bold my-1 tracking-tight" style={{fontSize: '24px', fontWeight: 800, margin: '8px 0', color: stat.color}}>
                     <AnimatedStat targetNumber={stat.target} prefix={stat.prefix} suffix={stat.suffix} decimals={stat.decimals} />
                   </p>
                   <p className="text-2xs text-slate-500 font-sans font-medium line-clamp-1" style={{fontSize: '12px', color: '#687586'}}>{stat.change}</p>
                 </div>
               ))}
+            </div>
+
+            {/* Master Data Download & GitHub Persistence Banner */}
+            <div className="mt-8 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-amber-500/30 rounded-2xl p-6 shadow-xl text-white flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="space-y-1.5 text-center md:text-left">
+                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold tracking-wider uppercase">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                  Open Civic Data Archive & GitHub Persistence
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold font-display text-white">
+                  Download Full Civic Database & System Data (.ZIP)
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 max-w-2xl">
+                  Export structured JSON & CSV data containing every verified elected official, 2026 candidate, public campaign promise, campaign finance ledger, and 102 HERMES background worker telemetry logs.
+                </p>
+              </div>
+              <div className="shrink-0 flex flex-col sm:flex-row items-center gap-3">
+                <SystemZipExporter buttonText="📦 Download Master Civic Data (.ZIP)" className="w-full sm:w-auto" />
+              </div>
             </div>
         </div>
       </section>

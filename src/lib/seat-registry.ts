@@ -98,49 +98,22 @@ class SeatRegistryManager {
         office_type: 'County Commissioner',
         government_level: 'County',
         jurisdiction: 'Miami-Dade County',
-        district: 'District 7',
-        district_number: '7',
-        county: 'Miami-Dade',
+        county: 'Miami-Dade County',
         state: 'FL',
         country: 'United States',
+        current_officeholder_person_uuid: 'person_raquel_regalado',
         occupancy_status: 'occupied',
-        term_start: '2022-11-22',
-        term_end: '2026-11-17',
-        next_election_date: '2026-08-18',
-        primary_date: '2026-08-18',
-        general_date: '2026-11-03',
-        election_cycle: '4-year staggered',
+        term_start: '2020-11-17',
+        term_end: '2024-11-19',
+        next_election_date: '2026-11-03',
+        election_cycle: '4-year',
         partisan_status: 'Nonpartisan',
-        election_authority: 'Miami-Dade Supervisor of Elections',
+        election_authority: 'Miami-Dade County Supervisor of Elections',
         official_source_urls: ['https://www.miamidade.gov/elections'],
         created_at: new Date().toISOString(),
         last_verified_at: new Date().toISOString(),
         verification_status: 'VERIFIED',
-        evidence_coverage_score: 96
-      },
-      {
-        seat_uuid: 'seat_schoolboard_dadeschools_3',
-        seat_name: 'Miami-Dade School Board Member — District 3',
-        office_type: 'School Board Member',
-        government_level: 'School Board',
-        jurisdiction: 'Miami-Dade County Public Schools',
-        district: 'District 3',
-        district_number: '3',
-        county: 'Miami-Dade',
-        state: 'FL',
-        country: 'United States',
-        occupancy_status: 'occupied',
-        term_start: '2020-11-17',
-        term_end: '2024-11-19',
-        next_election_date: '2024-08-20',
-        election_cycle: '4-year staggered',
-        partisan_status: 'Nonpartisan',
-        election_authority: 'Miami-Dade Supervisor of Elections',
-        official_source_urls: ['https://www.dadeschools.net'],
-        created_at: new Date().toISOString(),
-        last_verified_at: new Date().toISOString(),
-        verification_status: 'VERIFIED',
-        evidence_coverage_score: 94
+        evidence_coverage_score: 98
       }
     ];
 
@@ -212,3 +185,5 @@ class SeatRegistryManager {
 }
 
 export const seatRegistry = new SeatRegistryManager();
+export const SEAT_REGISTRY: SeatMasterRecord[] = seatRegistry.getAllSeats();
+export const PERSON_REGISTRY: PersonMasterRecord[] = Array.from((seatRegistry as any).personMap?.values?.() || []);

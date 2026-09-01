@@ -23,6 +23,7 @@ import { CandidatesMapPage } from './components/candidates-map';
 import { ElectionsMapPage } from './components/elections-map';
 import { HermesElectionsAdminPage } from './components/elections-admin';
 import { CompletenessAdmin } from './components/completeness-admin';
+import { DataArchiveView } from './components/data-archive-view';
 
 class ErrorBoundary extends Component<{children: ReactNode}, {hasError: boolean}> {
   constructor(props: {children: ReactNode}) {
@@ -94,6 +95,9 @@ export default function App() {
               <Route path="/officials/map" element={<SearchExperience />} />
               <Route path="/admin/elections" element={<HermesElectionsAdminPage />} />
               <Route path="/admin/completeness" element={<CompletenessAdmin />} />
+              <Route path="/data-archive" element={<DataArchiveView />} />
+              <Route path="/export" element={<DataArchiveView />} />
+              <Route path="/archive" element={<DataArchiveView />} />
 
               <Route path="*" element={<div style={{padding: '100px 20px', textAlign: 'center'}}><h2>Work in Progress</h2><p>This page is currently under maintenance.</p></div>} />
             </Routes>

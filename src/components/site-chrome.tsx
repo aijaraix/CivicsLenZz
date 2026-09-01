@@ -8,6 +8,7 @@ const officialsLinks = [
   { label: 'AI Monitor', href: '/monitor/' },
   { label: 'Promises', href: '/promises/' },
   { label: 'Petitions', href: '/petitions/' },
+  { label: 'Data Archive (.ZIP)', href: '/data-archive' },
   { label: 'Coverage', href: '/coverage/' },
 ];
 
@@ -87,7 +88,7 @@ export function SiteHeader() {
 
 const footerGroups = [
   { title: 'Platform', links: [['Features', '/features/'], ['How It Works', '/how-it-works/'], ['Pricing', '/pricing/'], ['About', '/about/']] },
-  { title: 'Resources', links: [['Blog', '/about/'], ['Help Center', '/contact/'], ['Guides', '/how-it-works/'], ['API', '/contact/']] },
+  { title: 'Resources', links: [['Open Data (.ZIP)', '/data-archive'], ['Blog', '/about/'], ['Help Center', '/contact/'], ['Guides', '/how-it-works/'], ['API', '/contact/']] },
   { title: 'Get Involved', links: [['Petitions', '/petitions/'], ['Community', '/contact/'], ['Events', '/contact/'], ['Contact', '/contact/']] },
 ] as const;
 
