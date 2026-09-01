@@ -2,8 +2,8 @@
   "personId": "person_byron_donalds",
   "legalName": "Byron Donalds",
   "party": "Republican",
-  "sourceUrl": "https://donalds.house.gov/about/",
-  "sourceSha256": "a2c748203ef44a1af466dc06fe4d4b291b8887e89a1335cffa33587a7070b6ac",
+  "sourceUrl": "https://donalds.house.gov/",
+  "sourceSha256": "b973130724eddb06900f97513075b5fd776bed3d188f49a751ec7b940c4bb91a",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

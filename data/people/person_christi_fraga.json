@@ -2,8 +2,8 @@
   "personId": "person_christi_fraga",
   "legalName": "Christi Fraga",
   "party": "Nonpartisan",
-  "sourceUrl": "https://www.doralfl.gov/government/mayor-and-council/mayor-christi-fraga/",
-  "sourceSha256": "d64afdb4c9d7eaae72d37025b296e7b94dcddfb2d4130eff1dc8c17f34a1aef1",
+  "sourceUrl": "https://www.doralfl.gov/",
+  "sourceSha256": "dbf4cd86f00ab31e0634bf944b3266cfe6fbb13f925d5787e5fe1adadf733fc8",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

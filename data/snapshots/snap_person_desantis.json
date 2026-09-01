@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_desantis",
-  "sourceUrl": "https://www.flgov.com/governor-ron-desantis/",
+  "sourceUrl": "https://www.flgov.com/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "0255b8c595051929fff2ae24d992fc26226416ffbcf38ab1077478267eba9bb1",
-  "bytes": 99,
-  "content": "Official Record: Ron DeSantis, Party: Republican, URL: https://www.flgov.com/governor-ron-desantis/",
+  "sha256": "c5fd246eec991d40df4d86cbbaa5f1184a8c2fcbcd3af8e9286d4cd09efdafc9",
+  "bytes": 521,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Ron DeSantis</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Ron DeSantis</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.flgov.com/\">https://www.flgov.com/</a></p>\n        <p>Extraction Payload: Official public record for Ron DeSantis (Republican) extracted from https://www.flgov.com/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

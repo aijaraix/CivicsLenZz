@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_carlos_gimenez",
-  "sourceUrl": "https://gimenez.house.gov/about",
+  "sourceUrl": "https://gimenez.house.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "4eaac940448ce5b5da6429732ef36c48a27d01585fba79f6d92514a92b3215e4",
-  "bytes": 88,
-  "content": "Official Record: Carlos Gimenez, Party: Republican, URL: https://gimenez.house.gov/about",
+  "sha256": "85312db54baad8d639312a1852261b679f9da1b8f52916beb0e6276d00e53611",
+  "bytes": 539,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Carlos Gimenez</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Carlos Gimenez</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://gimenez.house.gov/\">https://gimenez.house.gov/</a></p>\n        <p>Extraction Payload: Official public record for Carlos Gimenez (Republican) extracted from https://gimenez.house.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

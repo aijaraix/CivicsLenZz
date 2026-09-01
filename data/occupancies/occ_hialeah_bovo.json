@@ -4,8 +4,8 @@
   "seatId": "seat_hialeah_mayor",
   "termStart": "2021-11-16",
   "termEnd": "2025-11-18",
-  "sourceUrl": "https://www.hialeahfl.gov/directory.aspx?EID=97",
-  "sourceSha256": "fe1f8dddc35fe16b0e6d85d9fe4748f9dfc6725bffacfdaa5067af624f4ad210",
+  "sourceUrl": "https://www.hialeahfl.gov/",
+  "sourceSha256": "90502c5e6f6904ee368f8a54c290a76416477c3e650691e65f3534e3e784e44c",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_josh_levy",
-  "sourceUrl": "https://www.hollywoodfl.org/453/Mayor-Josh-Levy",
+  "sourceUrl": "https://www.hollywoodfl.org/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "9954acdb0b91e70c99a7bf7bd92cf7cc6d22f0a9a897898c2525ffba9114ae40",
-  "bytes": 99,
-  "content": "Official Record: Josh Levy, Party: Democratic, URL: https://www.hollywoodfl.org/453/Mayor-Josh-Levy",
+  "sha256": "d5f3f4cf9ba986729f6e8dcb77566cef2c50c4892201a087eb54a484ed02ec39",
+  "bytes": 530,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Josh Levy</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Josh Levy</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.hollywoodfl.org/\">https://www.hollywoodfl.org/</a></p>\n        <p>Extraction Payload: Official public record for Josh Levy (Democratic) extracted from https://www.hollywoodfl.org/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

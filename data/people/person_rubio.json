@@ -2,8 +2,8 @@
   "personId": "person_rubio",
   "legalName": "Marco Rubio",
   "party": "Republican",
-  "sourceUrl": "https://www.rubio.senate.gov/about/",
-  "sourceSha256": "29644c75b426f3bbb6868e1350b1ff642391b23a3074611623bb5f3d59a2a650",
+  "sourceUrl": "https://www.rubio.senate.gov/",
+  "sourceSha256": "424525e823bfa3da25497b591a53ea7aabf671de60c53498419a3798c9d53080",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

@@ -4,8 +4,8 @@
   "seatId": "seat_fl_senate_39",
   "termStart": "2022-11-08",
   "termEnd": "2026-11-03",
-  "sourceUrl": "https://www.flsenate.gov/Senators/S39",
-  "sourceSha256": "b1d3a4b976f7edfd20883385b6b0dae5869ba61c7fddaf3034280df876f6784a",
+  "sourceUrl": "https://www.flsenate.gov/",
+  "sourceSha256": "8985b88fb20ce2a8993a7cac7239e8b6c20b8706b9cca001ae3c9ebea5616b52",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

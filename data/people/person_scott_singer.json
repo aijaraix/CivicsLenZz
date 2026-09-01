@@ -2,8 +2,8 @@
   "personId": "person_scott_singer",
   "legalName": "Scott Singer",
   "party": "Nonpartisan",
-  "sourceUrl": "https://www.myboca.us/522/Mayor-Scott-Singer",
-  "sourceSha256": "8ba8b35616eaeeb59a5458f2f24107ce857d59eb42d8c7a57ba713b5fd9101b6",
+  "sourceUrl": "https://www.myboca.us/",
+  "sourceSha256": "8d8d66bf6cb854d84f026b94bf0432426176ad2bf9d46eb12c367711f1a2c65c",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

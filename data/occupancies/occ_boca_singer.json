@@ -4,8 +4,8 @@
   "seatId": "seat_boca_mayor",
   "termStart": "2018-04-24",
   "termEnd": "2026-03-31",
-  "sourceUrl": "https://www.myboca.us/522/Mayor-Scott-Singer",
-  "sourceSha256": "8fd6dc26d9ce0a8db7bb3477a6f341a43fe49d20c8c40e9c17d1d4175c12f8c2",
+  "sourceUrl": "https://www.myboca.us/",
+  "sourceSha256": "8d8d66bf6cb854d84f026b94bf0432426176ad2bf9d46eb12c367711f1a2c65c",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

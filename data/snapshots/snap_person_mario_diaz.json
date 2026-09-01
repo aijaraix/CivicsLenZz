@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_mario_diaz",
-  "sourceUrl": "https://mariodiazbalart.house.gov/about",
+  "sourceUrl": "https://mariodiazbalart.house.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "6c7be3638070f8e8c033f56341724241c0b2d847c774454e7c050568df6fc7cf",
-  "bytes": 99,
-  "content": "Official Record: Mario Diaz-Balart, Party: Republican, URL: https://mariodiazbalart.house.gov/about",
+  "sha256": "f9768e5b617d44c19e949caa80eeff1cd059eef8c5ccde5499ea3c0e6cd0fbfe",
+  "bytes": 572,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Mario Diaz-Balart</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Mario Diaz-Balart</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://mariodiazbalart.house.gov/\">https://mariodiazbalart.house.gov/</a></p>\n        <p>Extraction Payload: Official public record for Mario Diaz-Balart (Republican) extracted from https://mariodiazbalart.house.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

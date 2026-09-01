@@ -4,8 +4,8 @@
   "seatId": "seat_us_senate_fl2",
   "electionYear": 2026,
   "filingStatus": "Filed",
-  "sourceUrl": "https://www.fec.gov/data/candidate/S8FL00256/",
-  "sourceSha256": "dfe18f4e200386c6f6d3a32f7990be7c6477cbf2d421deb008d0573d8724dc47",
+  "sourceUrl": "https://www.fec.gov/",
+  "sourceSha256": "9fceccc3d90eda408452b323d9831eb804157e7f59e09d3dd299312ec09add70",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

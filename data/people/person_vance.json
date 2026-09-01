@@ -2,8 +2,8 @@
   "personId": "person_vance",
   "legalName": "JD Vance",
   "party": "Republican",
-  "sourceUrl": "https://www.whitehouse.gov/administration/vice-president-vance/",
-  "sourceSha256": "4ac61305d76a180807d62e0eb6efdd31deba0266f45f1f1ecd4d52fe5d4ba44d",
+  "sourceUrl": "https://www.whitehouse.gov/",
+  "sourceSha256": "0360b8660b4ec69959babfbfe1ac84beb1f12a9d582b7edae75e7ab0b51d7659",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

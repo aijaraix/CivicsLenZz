@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_vince_lago",
-  "sourceUrl": "https://www.coralgables.com/departments/CityCommission/MayorVinceLago",
+  "sourceUrl": "https://www.coralgables.com/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "dea26ae071608c2a1b23e2c05f77f34e904325a486f2dbdba080a2e92262d2d0",
-  "bytes": 123,
-  "content": "Official Record: Vince Lago, Party: Nonpartisan, URL: https://www.coralgables.com/departments/CityCommission/MayorVinceLago",
+  "sha256": "73ae11cb5822bdc676ed570aa3d8546b6d3327f0f385b22d6818e9345b476887",
+  "bytes": 534,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Vince Lago</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Vince Lago</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.coralgables.com/\">https://www.coralgables.com/</a></p>\n        <p>Extraction Payload: Official public record for Vince Lago (Nonpartisan) extracted from https://www.coralgables.com/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

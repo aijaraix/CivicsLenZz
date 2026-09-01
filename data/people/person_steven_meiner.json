@@ -2,8 +2,8 @@
   "personId": "person_steven_meiner",
   "legalName": "Steven Meiner",
   "party": "Nonpartisan",
-  "sourceUrl": "https://www.miamibeachfl.gov/city-hall/mayor-and-commission/mayor-steven-meiner/",
-  "sourceSha256": "7cc1aae6b6582a98b5c05befeea2bca184da4e9ffc7940185e61e7059cc8b590",
+  "sourceUrl": "https://www.miamibeachfl.gov/",
+  "sourceSha256": "8e71878f6f4adaee080db635169195603edfc04335ae9ce3cbba1b0088c62e65",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

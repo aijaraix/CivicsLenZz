@@ -2,8 +2,8 @@
   "personId": "person_kemp",
   "legalName": "Brian Kemp",
   "party": "Republican",
-  "sourceUrl": "https://gov.georgia.gov/about-us/governor-brian-p-kemp",
-  "sourceSha256": "c0189c660d42994ad1acac4a80d52df96890654fa69dc4d38e209ed3467ccadb",
+  "sourceUrl": "https://gov.georgia.gov/",
+  "sourceSha256": "eca767d39691823b9bb39f18e40de88e6470e415f55adddcd9c716ec3e720644",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

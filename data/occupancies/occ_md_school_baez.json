@@ -4,8 +4,8 @@
   "seatId": "seat_md_school_b3",
   "termStart": "2020-11-17",
   "termEnd": "2024-11-19",
-  "sourceUrl": "https://district3.dadeschools.net/",
-  "sourceSha256": "24d1a33fd52d377937a25142b2e7647749911309fe5b52723303398374840159",
+  "sourceUrl": "https://www.dadeschools.net/",
+  "sourceSha256": "5a75684da373442df136458c322a3236e766df251f7567916d94abb2493f1cd4",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

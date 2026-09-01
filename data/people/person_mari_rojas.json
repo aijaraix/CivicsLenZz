@@ -2,8 +2,8 @@
   "personId": "person_mari_rojas",
   "legalName": "Mari Tere Rojas",
   "party": "Nonpartisan",
-  "sourceUrl": "https://district6.dadeschools.net/",
-  "sourceSha256": "d8ffa9e79cd8809d1462dc7c42a541ab79a8277cb902ede43c88b4647f5832fe",
+  "sourceUrl": "https://www.dadeschools.net/",
+  "sourceSha256": "6d8aee92ec6c09a2f8fe3f8ad99117ba1a07d832283cc81197431d9d4349ba51",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

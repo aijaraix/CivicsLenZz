@@ -2,8 +2,8 @@
   "personId": "person_josh_levy",
   "legalName": "Josh Levy",
   "party": "Democratic",
-  "sourceUrl": "https://www.hollywoodfl.org/453/Mayor-Josh-Levy",
-  "sourceSha256": "9954acdb0b91e70c99a7bf7bd92cf7cc6d22f0a9a897898c2525ffba9114ae40",
+  "sourceUrl": "https://www.hollywoodfl.org/",
+  "sourceSha256": "d5f3f4cf9ba986729f6e8dcb77566cef2c50c4892201a087eb54a484ed02ec39",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

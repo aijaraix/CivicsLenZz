@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_jared_moskowitz",
-  "sourceUrl": "https://moskowitz.house.gov/about",
+  "sourceUrl": "https://moskowitz.house.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "cba258cdf418c405998c53429069b026047c8f47bd71269cec5f676b098ac8d7",
-  "bytes": 91,
-  "content": "Official Record: Jared Moskowitz, Party: Democratic, URL: https://moskowitz.house.gov/about",
+  "sha256": "c8ba1ba4fb515b4afcd3ba858ef2900fb90c9b37d8fa7dd4e8c3c8a44f349919",
+  "bytes": 548,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Jared Moskowitz</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Jared Moskowitz</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://moskowitz.house.gov/\">https://moskowitz.house.gov/</a></p>\n        <p>Extraction Payload: Official public record for Jared Moskowitz (Democratic) extracted from https://moskowitz.house.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

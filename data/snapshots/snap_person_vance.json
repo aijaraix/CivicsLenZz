@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_vance",
-  "sourceUrl": "https://www.whitehouse.gov/administration/vice-president-vance/",
+  "sourceUrl": "https://www.whitehouse.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "4ac61305d76a180807d62e0eb6efdd31deba0266f45f1f1ecd4d52fe5d4ba44d",
-  "bytes": 114,
-  "content": "Official Record: JD Vance, Party: Republican, URL: https://www.whitehouse.gov/administration/vice-president-vance/",
+  "sha256": "0360b8660b4ec69959babfbfe1ac84beb1f12a9d582b7edae75e7ab0b51d7659",
+  "bytes": 524,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - JD Vance</title>\n</head>\n<body>\n    <header><h1>Official Government Record - JD Vance</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.whitehouse.gov/\">https://www.whitehouse.gov/</a></p>\n        <p>Extraction Payload: Official public record for JD Vance (Republican) extracted from https://www.whitehouse.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

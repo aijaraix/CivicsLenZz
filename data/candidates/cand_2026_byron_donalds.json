@@ -4,8 +4,8 @@
   "seatId": "seat_fl_governor",
   "electionYear": 2026,
   "filingStatus": "Declared",
-  "sourceUrl": "https://dos.fl.gov/elections/candidates-committees/",
-  "sourceSha256": "3eced3a40324ed4559e7599a6dede7cb332ddd9afebc2baadf03ae1f71e530a2",
+  "sourceUrl": "https://dos.fl.gov/",
+  "sourceSha256": "b973130724eddb06900f97513075b5fd776bed3d188f49a751ec7b940c4bb91a",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

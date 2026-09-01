@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_mari_rojas",
-  "sourceUrl": "https://district6.dadeschools.net/",
+  "sourceUrl": "https://www.dadeschools.net/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "d8ffa9e79cd8809d1462dc7c42a541ab79a8277cb902ede43c88b4647f5832fe",
-  "bytes": 93,
-  "content": "Official Record: Mari Tere Rojas, Party: Nonpartisan, URL: https://district6.dadeschools.net/",
+  "sha256": "6d8aee92ec6c09a2f8fe3f8ad99117ba1a07d832283cc81197431d9d4349ba51",
+  "bytes": 549,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Mari Tere Rojas</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Mari Tere Rojas</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.dadeschools.net/\">https://www.dadeschools.net/</a></p>\n        <p>Extraction Payload: Official public record for Mari Tere Rojas (Nonpartisan) extracted from https://www.dadeschools.net/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

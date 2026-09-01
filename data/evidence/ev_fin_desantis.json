@@ -4,8 +4,8 @@
   "type": "finance_row",
   "title": "State Campaign Finance Filing - Friends of Ron DeSantis",
   "summary": "Florida Division of Elections political committee disclosures and campaign finance receipts.",
-  "sourceUrl": "https://dos.fl.gov/elections/candidates-committees/campaign-finance/",
-  "sourceSha256": "9bc2c53a8d70d5dc41ef89d3952e03c372f0bd3a53a7b81e68a7f19c59d6fbd2",
+  "sourceUrl": "https://dos.fl.gov/",
+  "sourceSha256": "c5fd246eec991d40df4d86cbbaa5f1184a8c2fcbcd3af8e9286d4cd09efdafc9",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

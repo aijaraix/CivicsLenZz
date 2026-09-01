@@ -2,8 +2,8 @@
   "personId": "person_steve_gallon",
   "legalName": "Steve Gallon III",
   "party": "Nonpartisan",
-  "sourceUrl": "https://district1.dadeschools.net/",
-  "sourceSha256": "59cc14fd55256cabaf1257cb12dfb14a65339321919187106349c9578e025c46",
+  "sourceUrl": "https://www.dadeschools.net/",
+  "sourceSha256": "0c3cf23c5730204f819ed9ecaa76d781a27652e474951c82d509ed9ba91c06f3",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

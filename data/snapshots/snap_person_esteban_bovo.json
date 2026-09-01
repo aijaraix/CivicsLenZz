@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_esteban_bovo",
-  "sourceUrl": "https://www.hialeahfl.gov/directory.aspx?EID=97",
+  "sourceUrl": "https://www.hialeahfl.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "89ef22023b558c22495a1bcf7afadbbdd4a89310534a7f7557b4c1224a94380c",
-  "bytes": 106,
-  "content": "Official Record: Esteban Bovo Jr., Party: Republican, URL: https://www.hialeahfl.gov/directory.aspx?EID=97",
+  "sha256": "90502c5e6f6904ee368f8a54c290a76416477c3e650691e65f3534e3e784e44c",
+  "bytes": 545,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Esteban Bovo Jr.</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Esteban Bovo Jr.</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.hialeahfl.gov/\">https://www.hialeahfl.gov/</a></p>\n        <p>Extraction Payload: Official public record for Esteban Bovo Jr. (Republican) extracted from https://www.hialeahfl.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

@@ -2,8 +2,8 @@
   "personId": "person_wayne_messam",
   "legalName": "Wayne M. Messam",
   "party": "Democratic",
-  "sourceUrl": "https://www.miramarfl.gov/224/Mayor-Wayne-M-Messam",
-  "sourceSha256": "e4d7f4e4aa16be0594869f6d904411b23ecff968d5ad3e3105d240a72de2af37",
+  "sourceUrl": "https://www.miramarfl.gov/",
+  "sourceSha256": "1c78f0d9d33b7e4378d22197f090d88956db0a86c9320ccad64602182c79ea79",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

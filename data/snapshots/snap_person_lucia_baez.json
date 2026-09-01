@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_lucia_baez",
-  "sourceUrl": "https://district3.dadeschools.net/",
+  "sourceUrl": "https://www.dadeschools.net/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "8ff43273883d2210a0ce934e7d93f0a0c8e12bf56cdbd75afc70207d5a35d3ff",
-  "bytes": 95,
-  "content": "Official Record: Lucia Baez-Geller, Party: Nonpartisan, URL: https://district3.dadeschools.net/",
+  "sha256": "5a75684da373442df136458c322a3236e766df251f7567916d94abb2493f1cd4",
+  "bytes": 555,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Lucia Baez-Geller</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Lucia Baez-Geller</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.dadeschools.net/\">https://www.dadeschools.net/</a></p>\n        <p>Extraction Payload: Official public record for Lucia Baez-Geller (Nonpartisan) extracted from https://www.dadeschools.net/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

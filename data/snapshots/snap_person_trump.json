@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_trump",
-  "sourceUrl": "https://www.whitehouse.gov/administration/president-trump/",
+  "sourceUrl": "https://www.whitehouse.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "30cc9ddc89b0014aec00773617722a0bee03faa22647023d40d45e2563c326c9",
-  "bytes": 113,
-  "content": "Official Record: Donald Trump, Party: Republican, URL: https://www.whitehouse.gov/administration/president-trump/",
+  "sha256": "f86f8d934ec18b5b9d9a43ff5026fb66266f77b8ed4e268f4e7255dec8ab54f4",
+  "bytes": 536,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Donald Trump</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Donald Trump</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.whitehouse.gov/\">https://www.whitehouse.gov/</a></p>\n        <p>Extraction Payload: Official public record for Donald Trump (Republican) extracted from https://www.whitehouse.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

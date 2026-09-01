@@ -5,7 +5,7 @@
   "termStart": "2025-01-07",
   "termEnd": "2029-01-02",
   "sourceUrl": "https://www.miamidade.gov/taxcollector/",
-  "sourceSha256": "e2083ec18c2a36a44582ae0fddd8fca2fc37acdc93e4ac4932f49695e81b9aa8",
+  "sourceSha256": "24571eb13ae235109e260b9d88a80ef7426111da4ff19128cb2bcd9d229d5b15",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

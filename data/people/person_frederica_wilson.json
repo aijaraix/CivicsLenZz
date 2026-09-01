@@ -2,8 +2,8 @@
   "personId": "person_frederica_wilson",
   "legalName": "Frederica Wilson",
   "party": "Democratic",
-  "sourceUrl": "https://wilson.house.gov/about",
-  "sourceSha256": "fa0338810be1919015c3a88171bd32d5f05fa759270e68bd9141a1b8c5feae1f",
+  "sourceUrl": "https://wilson.house.gov/",
+  "sourceSha256": "cf04906a0f3d6affd31d1b96e51cc70bc6e2bbc6fb0d526131f6a62659d3b60b",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

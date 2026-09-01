@@ -2,8 +2,8 @@
   "personId": "person_dean_trantalis",
   "legalName": "Dean Trantalis",
   "party": "Democratic",
-  "sourceUrl": "https://www.fortlauderdale.gov/government/city-commission/mayor-dean-j-trantalis",
-  "sourceSha256": "568b5bbc9dd5137eff1af8b7a4d3b35c8e0081c832c983758194e1f677fbba46",
+  "sourceUrl": "https://www.fortlauderdale.gov/",
+  "sourceSha256": "0005915a5ca1d32bc54a0750d285ba0dfdfad3fbb77ec183ef891b7ef9ba9fe2",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

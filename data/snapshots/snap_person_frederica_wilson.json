@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_frederica_wilson",
-  "sourceUrl": "https://wilson.house.gov/about",
+  "sourceUrl": "https://wilson.house.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "fa0338810be1919015c3a88171bd32d5f05fa759270e68bd9141a1b8c5feae1f",
-  "bytes": 89,
-  "content": "Official Record: Frederica Wilson, Party: Democratic, URL: https://wilson.house.gov/about",
+  "sha256": "cf04906a0f3d6affd31d1b96e51cc70bc6e2bbc6fb0d526131f6a62659d3b60b",
+  "bytes": 542,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Frederica Wilson</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Frederica Wilson</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://wilson.house.gov/\">https://wilson.house.gov/</a></p>\n        <p>Extraction Payload: Official public record for Frederica Wilson (Democratic) extracted from https://wilson.house.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

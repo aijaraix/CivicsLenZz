@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_juan_fernandez",
-  "sourceUrl": "https://www.miamidadeclerk.gov/clerk/about.page",
+  "sourceUrl": "https://www.miamidadeclerk.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "74ee97297aaf29d573b8ce1dba29268c9c74d48e75ef8c5a22b0feaa56067fb0",
-  "bytes": 112,
-  "content": "Official Record: Juan Fernandez-Barquin, Party: Republican, URL: https://www.miamidadeclerk.gov/clerk/about.page",
+  "sha256": "5ef36b1f940d872856ac8983bc6d6c8e22f0d3d6f1a99eac0bc73bd4ceb182c0",
+  "bytes": 578,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Juan Fernandez-Barquin</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Juan Fernandez-Barquin</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.miamidadeclerk.gov/\">https://www.miamidadeclerk.gov/</a></p>\n        <p>Extraction Payload: Official public record for Juan Fernandez-Barquin (Republican) extracted from https://www.miamidadeclerk.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

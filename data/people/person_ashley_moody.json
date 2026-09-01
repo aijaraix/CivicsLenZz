@@ -2,8 +2,8 @@
   "personId": "person_ashley_moody",
   "legalName": "Ashley Moody",
   "party": "Republican",
-  "sourceUrl": "https://www.myfloridalegal.com/attorney-general-ashley-moody",
-  "sourceSha256": "6e8d6acddc016edfc19e6fd545ac7959fde500dad37f43da0f237c331de46ad9",
+  "sourceUrl": "https://www.myfloridalegal.com/",
+  "sourceSha256": "0a644677472f52b6d4c74ec67cfdd1431793d0a034bff7dbc15f0f5a501e683a",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

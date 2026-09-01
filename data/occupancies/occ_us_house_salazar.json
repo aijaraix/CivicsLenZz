@@ -4,8 +4,8 @@
   "seatId": "seat_us_house_fl27",
   "termStart": "2023-01-03",
   "termEnd": "2025-01-03",
-  "sourceUrl": "https://salazar.house.gov/about",
-  "sourceSha256": "d200135e93d54a8ef11f0d9b41772aeb4ae08ce377650bf4a45ce9bd88998e97",
+  "sourceUrl": "https://salazar.house.gov/",
+  "sourceSha256": "be5a763c2a5a17477f46afc798cece860a50b5421bce14b6dbc4593a8d6c45e2",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

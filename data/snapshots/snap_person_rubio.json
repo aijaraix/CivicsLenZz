@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_rubio",
-  "sourceUrl": "https://www.rubio.senate.gov/about/",
+  "sourceUrl": "https://www.rubio.senate.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "29644c75b426f3bbb6868e1350b1ff642391b23a3074611623bb5f3d59a2a650",
-  "bytes": 89,
-  "content": "Official Record: Marco Rubio, Party: Republican, URL: https://www.rubio.senate.gov/about/",
+  "sha256": "424525e823bfa3da25497b591a53ea7aabf671de60c53498419a3798c9d53080",
+  "bytes": 539,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Marco Rubio</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Marco Rubio</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.rubio.senate.gov/\">https://www.rubio.senate.gov/</a></p>\n        <p>Extraction Payload: Official public record for Marco Rubio (Republican) extracted from https://www.rubio.senate.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

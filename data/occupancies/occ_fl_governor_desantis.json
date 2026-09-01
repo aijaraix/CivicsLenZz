@@ -4,8 +4,8 @@
   "seatId": "seat_fl_governor",
   "termStart": "2023-01-03",
   "termEnd": "2027-01-05",
-  "sourceUrl": "https://www.flgov.com/governor-ron-desantis/",
-  "sourceSha256": "cf396fa079aee34e0f6f039bb27fae281a235ea209c19487afcb637595450800",
+  "sourceUrl": "https://www.flgov.com/",
+  "sourceSha256": "c5fd246eec991d40df4d86cbbaa5f1184a8c2fcbcd3af8e9286d4cd09efdafc9",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

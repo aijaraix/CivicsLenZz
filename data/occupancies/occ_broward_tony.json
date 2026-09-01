@@ -4,8 +4,8 @@
   "seatId": "seat_broward_sheriff",
   "termStart": "2019-01-11",
   "termEnd": "2028-11-14",
-  "sourceUrl": "https://www.browardsheriff.org/AboutBSO/Pages/SheriffGregoryTony.aspx",
-  "sourceSha256": "3e849dbd9098f04318d5f4f9dc0b9169def42b7bcbc39ee892df5e120b2502a7",
+  "sourceUrl": "https://www.browardsheriff.org/",
+  "sourceSha256": "0fcf841ecd7d267fdbfce516e4261b982b3c628a0e72957d91a73ad498e2cf05",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

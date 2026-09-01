@@ -2,8 +2,8 @@
   "personId": "person_scott",
   "legalName": "Rick Scott",
   "party": "Republican",
-  "sourceUrl": "https://www.rickscott.senate.gov/about",
-  "sourceSha256": "e368ccdd39cfc1075633edac1c211a2b9dba7ae0e2ff9e27432a26b9cbbc6d0e",
+  "sourceUrl": "https://www.rickscott.senate.gov/",
+  "sourceSha256": "9fceccc3d90eda408452b323d9831eb804157e7f59e09d3dd299312ec09add70",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

@@ -2,8 +2,8 @@
   "personId": "person_keith_james",
   "legalName": "Keith A. James",
   "party": "Democratic",
-  "sourceUrl": "https://www.wpb.org/government/mayor-s-office/about-the-mayor",
-  "sourceSha256": "6e2d987f1c2218d1fe5fccf6cd51a04f0f62ac6a7a52f12d9ed1db7d0e31d2c5",
+  "sourceUrl": "https://www.wpb.org/",
+  "sourceSha256": "05df3285d039e2058e1953b91767901ceb97cd77ac634c5813e32255c355d020",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

@@ -2,8 +2,8 @@
   "snapshotId": "snap_person_pedro_garcia",
   "sourceUrl": "https://www.miamidade.gov/pa/home.asp",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "5180de635144c714d1e52e6e2d40449aa2cfa72ea3ffc7a4fd2a596a7c072322",
-  "bytes": 96,
-  "content": "Official Record: Pedro J. Garcia, Party: Nonpartisan, URL: https://www.miamidade.gov/pa/home.asp",
+  "sha256": "a15fe9c88911016e6928c7fc0597f49a4de259ca0154a7ada25dcf8bfbc3cffe",
+  "bytes": 576,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Pedro J. Garcia</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Pedro J. Garcia</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.miamidade.gov/pa/home.asp\">https://www.miamidade.gov/pa/home.asp</a></p>\n        <p>Extraction Payload: Official public record for Pedro J. Garcia (Nonpartisan) extracted from https://www.miamidade.gov/pa/home.asp</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

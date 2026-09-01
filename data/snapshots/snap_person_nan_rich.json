@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_nan_rich",
-  "sourceUrl": "https://www.broward.org/Commission/District1/Pages/default.aspx",
+  "sourceUrl": "https://www.broward.org/Commission/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "e306655709691d1bde3c2aa48fa63f159e871c6b9fc348cf4e69371a6a8e8953",
-  "bytes": 114,
-  "content": "Official Record: Nan Rich, Party: Democratic, URL: https://www.broward.org/Commission/District1/Pages/default.aspx",
+  "sha256": "a14eed947387ddef9d3b0ff3ca976b64193b059d4cb9dfe2e2a5b7266fb34c8b",
+  "bytes": 548,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Nan Rich</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Nan Rich</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.broward.org/Commission/\">https://www.broward.org/Commission/</a></p>\n        <p>Extraction Payload: Official public record for Nan Rich (Democratic) extracted from https://www.broward.org/Commission/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

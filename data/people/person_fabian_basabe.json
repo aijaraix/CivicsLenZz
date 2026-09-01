@@ -2,8 +2,8 @@
   "personId": "person_fabian_basabe",
   "legalName": "Fabian Basabe",
   "party": "Republican",
-  "sourceUrl": "https://www.myfloridahouse.gov/Sections/Representatives/details.aspx?MemberId=4876",
-  "sourceSha256": "26d299480eb0762e6a9c6f9fc56144c5eda6917ac81d4cb198430eb9efbbd4dc",
+  "sourceUrl": "https://www.myfloridahouse.gov/",
+  "sourceSha256": "de0474a694d16f7403419eb4ec6527c0d4943b5cb059e98f7373cea4a510ee85",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

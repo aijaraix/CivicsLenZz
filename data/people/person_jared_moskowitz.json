@@ -2,8 +2,8 @@
   "personId": "person_jared_moskowitz",
   "legalName": "Jared Moskowitz",
   "party": "Democratic",
-  "sourceUrl": "https://moskowitz.house.gov/about",
-  "sourceSha256": "cba258cdf418c405998c53429069b026047c8f47bd71269cec5f676b098ac8d7",
+  "sourceUrl": "https://moskowitz.house.gov/",
+  "sourceSha256": "c8ba1ba4fb515b4afcd3ba858ef2900fb90c9b37d8fa7dd4e8c3c8a44f349919",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

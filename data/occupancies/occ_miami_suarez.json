@@ -4,8 +4,8 @@
   "seatId": "seat_miami_mayor",
   "termStart": "2017-11-15",
   "termEnd": "2025-11-18",
-  "sourceUrl": "https://www.miamigov.com/Government/City-Officials/Mayor-Francis-Suarez",
-  "sourceSha256": "f016fb22df42195e2635c19e7f430f253703cc80d7a8eb623615cfcee1a17e95",
+  "sourceUrl": "https://www.miamigov.com/",
+  "sourceSha256": "8cc2c39797e031ef6106837ba9db62494184837ffc88e0e90518ef2c42c2c6a5",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

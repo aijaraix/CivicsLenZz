@@ -2,8 +2,8 @@
   "snapshotId": "snap_person_alex_fernandez",
   "sourceUrl": "https://www.miamibeachfl.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "f17af89d811531e43d64bb80575527fae0bab8f3d12cce8052bb73d0f876913c",
-  "bytes": 87,
-  "content": "Official Record: Alex Fernandez, Party: Nonpartisan, URL: https://www.miamibeachfl.gov/",
+  "sha256": "6c4d3729e107742368d6077c4332cff03d833d1ceab9e94c34ec8990f5def980",
+  "bytes": 549,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Alex Fernandez</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Alex Fernandez</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.miamibeachfl.gov/\">https://www.miamibeachfl.gov/</a></p>\n        <p>Extraction Payload: Official public record for Alex Fernandez (Nonpartisan) extracted from https://www.miamibeachfl.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

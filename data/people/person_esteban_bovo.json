@@ -2,8 +2,8 @@
   "personId": "person_esteban_bovo",
   "legalName": "Esteban Bovo Jr.",
   "party": "Republican",
-  "sourceUrl": "https://www.hialeahfl.gov/directory.aspx?EID=97",
-  "sourceSha256": "89ef22023b558c22495a1bcf7afadbbdd4a89310534a7f7557b4c1224a94380c",
+  "sourceUrl": "https://www.hialeahfl.gov/",
+  "sourceSha256": "90502c5e6f6904ee368f8a54c290a76416477c3e650691e65f3534e3e784e44c",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

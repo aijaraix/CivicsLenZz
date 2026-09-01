@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_gregory_tony",
-  "sourceUrl": "https://www.browardsheriff.org/AboutBSO/Pages/SheriffGregoryTony.aspx",
+  "sourceUrl": "https://www.browardsheriff.org/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "70b8196b1d9049b400ae7cfc627504d559c562e3535baed8194fa4bf022674fe",
-  "bytes": 124,
-  "content": "Official Record: Gregory Tony, Party: Democratic, URL: https://www.browardsheriff.org/AboutBSO/Pages/SheriffGregoryTony.aspx",
+  "sha256": "0fcf841ecd7d267fdbfce516e4261b982b3c628a0e72957d91a73ad498e2cf05",
+  "bytes": 548,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Gregory Tony</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Gregory Tony</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.browardsheriff.org/\">https://www.browardsheriff.org/</a></p>\n        <p>Extraction Payload: Official public record for Gregory Tony (Democratic) extracted from https://www.browardsheriff.org/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

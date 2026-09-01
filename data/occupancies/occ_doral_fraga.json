@@ -4,8 +4,8 @@
   "seatId": "seat_doral_mayor",
   "termStart": "2022-12-21",
   "termEnd": "2026-12-15",
-  "sourceUrl": "https://www.doralfl.gov/government/mayor-and-council/mayor-christi-fraga/",
-  "sourceSha256": "e64717e55aec02b5336fafffe3b53ef62e59c718a77c7babad7a3a961c7e84db",
+  "sourceUrl": "https://www.doralfl.gov/",
+  "sourceSha256": "dbf4cd86f00ab31e0634bf944b3266cfe6fbb13f925d5787e5fe1adadf733fc8",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

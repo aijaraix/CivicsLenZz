@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_scott_singer",
-  "sourceUrl": "https://www.myboca.us/522/Mayor-Scott-Singer",
+  "sourceUrl": "https://www.myboca.us/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "8ba8b35616eaeeb59a5458f2f24107ce857d59eb42d8c7a57ba713b5fd9101b6",
-  "bytes": 100,
-  "content": "Official Record: Scott Singer, Party: Nonpartisan, URL: https://www.myboca.us/522/Mayor-Scott-Singer",
+  "sha256": "8d8d66bf6cb854d84f026b94bf0432426176ad2bf9d46eb12c367711f1a2c65c",
+  "bytes": 522,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Scott Singer</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Scott Singer</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.myboca.us/\">https://www.myboca.us/</a></p>\n        <p>Extraction Payload: Official public record for Scott Singer (Nonpartisan) extracted from https://www.myboca.us/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

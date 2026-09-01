@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_wayne_messam",
-  "sourceUrl": "https://www.miramarfl.gov/224/Mayor-Wayne-M-Messam",
+  "sourceUrl": "https://www.miramarfl.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "e4d7f4e4aa16be0594869f6d904411b23ecff968d5ad3e3105d240a72de2af37",
-  "bytes": 108,
-  "content": "Official Record: Wayne M. Messam, Party: Democratic, URL: https://www.miramarfl.gov/224/Mayor-Wayne-M-Messam",
+  "sha256": "1c78f0d9d33b7e4378d22197f090d88956db0a86c9320ccad64602182c79ea79",
+  "bytes": 542,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Wayne M. Messam</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Wayne M. Messam</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.miramarfl.gov/\">https://www.miramarfl.gov/</a></p>\n        <p>Extraction Payload: Official public record for Wayne M. Messam (Democratic) extracted from https://www.miramarfl.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

@@ -4,8 +4,8 @@
   "seatId": "seat_mdc_clerk",
   "termStart": "2023-06-15",
   "termEnd": "2028-11-14",
-  "sourceUrl": "https://www.miamidadeclerk.gov/clerk/about.page",
-  "sourceSha256": "aa2b3909c3a98d62ed3945d7f14c26ce8aacae4a557984d2f2e009db387a231f",
+  "sourceUrl": "https://www.miamidadeclerk.gov/",
+  "sourceSha256": "5ef36b1f940d872856ac8983bc6d6c8e22f0d3d6f1a99eac0bc73bd4ceb182c0",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

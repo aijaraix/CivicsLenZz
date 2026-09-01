@@ -4,8 +4,8 @@
   "seatId": "seat_us_house_fl23",
   "termStart": "2023-01-03",
   "termEnd": "2025-01-03",
-  "sourceUrl": "https://moskowitz.house.gov/about",
-  "sourceSha256": "dbc8caf67dabb49fc24e03d5760c9bf97c1a5ec9306a646d8c9d8c78422ae10a",
+  "sourceUrl": "https://moskowitz.house.gov/",
+  "sourceSha256": "c8ba1ba4fb515b4afcd3ba858ef2900fb90c9b37d8fa7dd4e8c3c8a44f349919",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

@@ -4,8 +4,8 @@
   "seatId": "seat_md_school_b6",
   "termStart": "2022-11-22",
   "termEnd": "2026-11-17",
-  "sourceUrl": "https://district6.dadeschools.net/",
-  "sourceSha256": "12f53ab2640957b8cb78555aad7208cbb07f190aade998af932dbca4da3cba2a",
+  "sourceUrl": "https://www.dadeschools.net/",
+  "sourceSha256": "6d8aee92ec6c09a2f8fe3f8ad99117ba1a07d832283cc81197431d9d4349ba51",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

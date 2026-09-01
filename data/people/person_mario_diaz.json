@@ -2,8 +2,8 @@
   "personId": "person_mario_diaz",
   "legalName": "Mario Diaz-Balart",
   "party": "Republican",
-  "sourceUrl": "https://mariodiazbalart.house.gov/about",
-  "sourceSha256": "6c7be3638070f8e8c033f56341724241c0b2d847c774454e7c050568df6fc7cf",
+  "sourceUrl": "https://mariodiazbalart.house.gov/",
+  "sourceSha256": "f9768e5b617d44c19e949caa80eeff1cd059eef8c5ccde5499ea3c0e6cd0fbfe",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

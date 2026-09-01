@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_steven_meiner",
-  "sourceUrl": "https://www.miamibeachfl.gov/city-hall/mayor-and-commission/mayor-steven-meiner/",
+  "sourceUrl": "https://www.miamibeachfl.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "7cc1aae6b6582a98b5c05befeea2bca184da4e9ffc7940185e61e7059cc8b590",
-  "bytes": 137,
-  "content": "Official Record: Steven Meiner, Party: Nonpartisan, URL: https://www.miamibeachfl.gov/city-hall/mayor-and-commission/mayor-steven-meiner/",
+  "sha256": "8e71878f6f4adaee080db635169195603edfc04335ae9ce3cbba1b0088c62e65",
+  "bytes": 546,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Steven Meiner</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Steven Meiner</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.miamibeachfl.gov/\">https://www.miamibeachfl.gov/</a></p>\n        <p>Extraction Payload: Official public record for Steven Meiner (Nonpartisan) extracted from https://www.miamibeachfl.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

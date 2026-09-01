@@ -2,8 +2,8 @@
   "personId": "person_vince_lago",
   "legalName": "Vince Lago",
   "party": "Nonpartisan",
-  "sourceUrl": "https://www.coralgables.com/departments/CityCommission/MayorVinceLago",
-  "sourceSha256": "dea26ae071608c2a1b23e2c05f77f34e904325a486f2dbdba080a2e92262d2d0",
+  "sourceUrl": "https://www.coralgables.com/",
+  "sourceSha256": "73ae11cb5822bdc676ed570aa3d8546b6d3327f0f385b22d6818e9345b476887",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

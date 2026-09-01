@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_ana_maria",
-  "sourceUrl": "https://www.flsenate.gov/Senators/S40",
+  "sourceUrl": "https://www.flsenate.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "ee13a52231c0bc2fe6ff05012ca197f866d470b3a3824768575dd40fa45bc2e4",
-  "bytes": 99,
-  "content": "Official Record: Ana Maria Rodriguez, Party: Republican, URL: https://www.flsenate.gov/Senators/S40",
+  "sha256": "489621cc9d5d62096f86c70ce2dc327ba043896fc64248d76f3fd8b575992d03",
+  "bytes": 551,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Ana Maria Rodriguez</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Ana Maria Rodriguez</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.flsenate.gov/\">https://www.flsenate.gov/</a></p>\n        <p>Extraction Payload: Official public record for Ana Maria Rodriguez (Republican) extracted from https://www.flsenate.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

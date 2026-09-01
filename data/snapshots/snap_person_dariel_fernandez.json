@@ -2,8 +2,8 @@
   "snapshotId": "snap_person_dariel_fernandez",
   "sourceUrl": "https://www.miamidade.gov/taxcollector/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "83a9f1a576cadcc5ca874a84302d82467d78c4dccf308dbcc424b92572506cca",
-  "bytes": 98,
-  "content": "Official Record: Dariel Fernandez, Party: Republican, URL: https://www.miamidade.gov/taxcollector/",
+  "sha256": "24571eb13ae235109e260b9d88a80ef7426111da4ff19128cb2bcd9d229d5b15",
+  "bytes": 584,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Dariel Fernandez</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Dariel Fernandez</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.miamidade.gov/taxcollector/\">https://www.miamidade.gov/taxcollector/</a></p>\n        <p>Extraction Payload: Official public record for Dariel Fernandez (Republican) extracted from https://www.miamidade.gov/taxcollector/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

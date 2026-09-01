@@ -2,8 +2,8 @@
   "personId": "person_lucia_baez",
   "legalName": "Lucia Baez-Geller",
   "party": "Nonpartisan",
-  "sourceUrl": "https://district3.dadeschools.net/",
-  "sourceSha256": "8ff43273883d2210a0ce934e7d93f0a0c8e12bf56cdbd75afc70207d5a35d3ff",
+  "sourceUrl": "https://www.dadeschools.net/",
+  "sourceSha256": "5a75684da373442df136458c322a3236e766df251f7567916d94abb2493f1cd4",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

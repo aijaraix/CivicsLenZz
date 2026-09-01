@@ -4,8 +4,8 @@
   "seatId": "seat_us_house_fl26",
   "termStart": "2023-01-03",
   "termEnd": "2025-01-03",
-  "sourceUrl": "https://mariodiazbalart.house.gov/about",
-  "sourceSha256": "d45744b02e74318aa11c64a4fc3673589bf454d83f1dafbd503edd45a0570320",
+  "sourceUrl": "https://mariodiazbalart.house.gov/",
+  "sourceSha256": "f9768e5b617d44c19e949caa80eeff1cd059eef8c5ccde5499ea3c0e6cd0fbfe",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

@@ -2,8 +2,8 @@
   "personId": "person_shevrin_jones",
   "legalName": "Shevrin Jones",
   "party": "Democratic",
-  "sourceUrl": "https://www.flsenate.gov/Senators/S34",
-  "sourceSha256": "7efc478d4472ca5d01064a3b09f6e78e7c898ff98ca33cedb6547a1a5c78487f",
+  "sourceUrl": "https://www.flsenate.gov/",
+  "sourceSha256": "07ad1a60da2952b082354f7b2ecda27f399c658ae7db0b695d7532722cbedbf2",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

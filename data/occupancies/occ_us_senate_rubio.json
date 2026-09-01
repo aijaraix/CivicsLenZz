@@ -4,8 +4,8 @@
   "seatId": "seat_us_senate_fl1",
   "termStart": "2023-01-03",
   "termEnd": "2029-01-03",
-  "sourceUrl": "https://www.rubio.senate.gov/about/",
-  "sourceSha256": "f0365ea87921ebd3cb42988f6f3ea8ebfb2cf787ef241dddf580e2be12272841",
+  "sourceUrl": "https://www.rubio.senate.gov/",
+  "sourceSha256": "424525e823bfa3da25497b591a53ea7aabf671de60c53498419a3798c9d53080",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

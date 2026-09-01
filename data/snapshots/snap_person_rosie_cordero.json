@@ -2,8 +2,8 @@
   "snapshotId": "snap_person_rosie_cordero",
   "sourceUrl": "https://www.miamidade.gov/global/sheriff/home.page",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "c7f77fe36ae3d9a1b033411d90f111962ad004e587dc40d35beeb2df70502482",
-  "bytes": 112,
-  "content": "Official Record: Rosie Cordero-Stutz, Party: Republican, URL: https://www.miamidade.gov/global/sheriff/home.page",
+  "sha256": "5f076bddc637edd06e16589069a256486655a8cd3cb97fb2ea926d1377e0184d",
+  "bytes": 626,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Rosie Cordero-Stutz</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Rosie Cordero-Stutz</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.miamidade.gov/global/sheriff/home.page\">https://www.miamidade.gov/global/sheriff/home.page</a></p>\n        <p>Extraction Payload: Official public record for Rosie Cordero-Stutz (Republican) extracted from https://www.miamidade.gov/global/sheriff/home.page</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

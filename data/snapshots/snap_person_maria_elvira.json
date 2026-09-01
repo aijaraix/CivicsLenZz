@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_maria_elvira",
-  "sourceUrl": "https://salazar.house.gov/about",
+  "sourceUrl": "https://salazar.house.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "771e646251aa28a83b881c0c7167fd62214978a8bbb26eaf5c963005d619159a",
-  "bytes": 94,
-  "content": "Official Record: Maria Elvira Salazar, Party: Republican, URL: https://salazar.house.gov/about",
+  "sha256": "be5a763c2a5a17477f46afc798cece860a50b5421bce14b6dbc4593a8d6c45e2",
+  "bytes": 557,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Maria Elvira Salazar</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Maria Elvira Salazar</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://salazar.house.gov/\">https://salazar.house.gov/</a></p>\n        <p>Extraction Payload: Official public record for Maria Elvira Salazar (Republican) extracted from https://salazar.house.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

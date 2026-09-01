@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_keith_james",
-  "sourceUrl": "https://www.wpb.org/government/mayor-s-office/about-the-mayor",
+  "sourceUrl": "https://www.wpb.org/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "6e2d987f1c2218d1fe5fccf6cd51a04f0f62ac6a7a52f12d9ed1db7d0e31d2c5",
-  "bytes": 118,
-  "content": "Official Record: Keith A. James, Party: Democratic, URL: https://www.wpb.org/government/mayor-s-office/about-the-mayor",
+  "sha256": "05df3285d039e2058e1953b91767901ceb97cd77ac634c5813e32255c355d020",
+  "bytes": 521,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Keith A. James</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Keith A. James</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.wpb.org/\">https://www.wpb.org/</a></p>\n        <p>Extraction Payload: Official public record for Keith A. James (Democratic) extracted from https://www.wpb.org/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

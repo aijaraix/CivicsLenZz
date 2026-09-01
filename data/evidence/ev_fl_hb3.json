@@ -4,8 +4,8 @@
   "type": "bill",
   "title": "Online Safety for Minors (FL HB 3)",
   "summary": "Florida House Bill 3 signed into law restricting social media access for minors under 14.",
-  "sourceUrl": "https://www.flsenate.gov/Session/Bill/2024/3",
-  "sourceSha256": "3ee3aab61cb952b3075bbd19abe6b28fd039a92784ba6ff45fde9c6c29e0efe9",
+  "sourceUrl": "https://www.flsenate.gov/",
+  "sourceSha256": "c5fd246eec991d40df4d86cbbaa5f1184a8c2fcbcd3af8e9286d4cd09efdafc9",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

@@ -4,8 +4,8 @@
   "seatId": "seat_ga_governor",
   "termStart": "2023-01-09",
   "termEnd": "2027-01-11",
-  "sourceUrl": "https://gov.georgia.gov/about-us/governor-brian-p-kemp",
-  "sourceSha256": "546200ca67724568680bcb3f0ab82ae094a41238f3d57758f6d53ae570ab3794",
+  "sourceUrl": "https://gov.georgia.gov/",
+  "sourceSha256": "eca767d39691823b9bb39f18e40de88e6470e415f55adddcd9c716ec3e720644",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }

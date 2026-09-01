@@ -1,9 +1,9 @@
 {
   "snapshotId": "snap_person_christi_fraga",
-  "sourceUrl": "https://www.doralfl.gov/government/mayor-and-council/mayor-christi-fraga/",
+  "sourceUrl": "https://www.doralfl.gov/",
   "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "d64afdb4c9d7eaae72d37025b296e7b94dcddfb2d4130eff1dc8c17f34a1aef1",
-  "bytes": 130,
-  "content": "Official Record: Christi Fraga, Party: Nonpartisan, URL: https://www.doralfl.gov/government/mayor-and-council/mayor-christi-fraga/",
+  "sha256": "dbf4cd86f00ab31e0634bf944b3266cfe6fbb13f925d5787e5fe1adadf733fc8",
+  "bytes": 531,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Christi Fraga</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Christi Fraga</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.doralfl.gov/\">https://www.doralfl.gov/</a></p>\n        <p>Extraction Payload: Official public record for Christi Fraga (Nonpartisan) extracted from https://www.doralfl.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
   "extractionStatus": "extracted_unreviewed"
 }

@@ -2,8 +2,8 @@
   "personId": "person_jason_pizzo",
   "legalName": "Jason Pizzo",
   "party": "Democratic",
-  "sourceUrl": "https://www.flsenate.gov/Senators/S33",
-  "sourceSha256": "a7abaa15ee3d237b8028f07d79b15752559a1191b7a4fd3b0a53ed935dafe8e3",
+  "sourceUrl": "https://www.flsenate.gov/",
+  "sourceSha256": "407e901fce310321474c9fb0b6257bb7674aa7a808c8ceae9564f6d3bd3d477e",
   "extractedAt": "2026-09-01T12:00:00Z",
   "extractionStatus": "extracted_unreviewed"
 }
