@@ -1,0 +1,9 @@
+{
+  "personId": "person_bryan_avila",
+  "legalName": "Bryan Avila",
+  "party": "Republican",
+  "sourceUrl": "https://www.flsenate.gov/Senators/S39",
+  "sourceSha256": "87d39c8f1262207babe45431598bba5ef2db307280ff4133437a960f8efe5e70",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

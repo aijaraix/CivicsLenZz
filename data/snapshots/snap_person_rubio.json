@@ -1,0 +1,9 @@
+{
+  "snapshotId": "snap_person_rubio",
+  "sourceUrl": "https://www.rubio.senate.gov/about/",
+  "fetchedAt": "2026-09-01T12:00:00Z",
+  "sha256": "29644c75b426f3bbb6868e1350b1ff642391b23a3074611623bb5f3d59a2a650",
+  "bytes": 89,
+  "content": "Official Record: Marco Rubio, Party: Republican, URL: https://www.rubio.senate.gov/about/",
+  "extractionStatus": "extracted_unreviewed"
+}

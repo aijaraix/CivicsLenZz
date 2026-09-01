@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_md_school_gallon",
+  "personId": "person_steve_gallon",
+  "seatId": "seat_md_school_b1",
+  "termStart": "2020-11-17",
+  "termEnd": "2024-11-19",
+  "sourceUrl": "https://district1.dadeschools.net/",
+  "sourceSha256": "ebffa1e0a0ebd0012190618f4225ed1296b056fadc92b53e1b174c621238533d",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

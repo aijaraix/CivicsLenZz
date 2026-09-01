@@ -1,0 +1,9 @@
+{
+  "snapshotId": "snap_person_trump",
+  "sourceUrl": "https://www.whitehouse.gov/administration/president-trump/",
+  "fetchedAt": "2026-09-01T12:00:00Z",
+  "sha256": "30cc9ddc89b0014aec00773617722a0bee03faa22647023d40d45e2563c326c9",
+  "bytes": 113,
+  "content": "Official Record: Donald Trump, Party: Republican, URL: https://www.whitehouse.gov/administration/president-trump/",
+  "extractionStatus": "extracted_unreviewed"
+}

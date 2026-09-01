@@ -1,0 +1,9 @@
+{
+  "personId": "person_desantis",
+  "legalName": "Ron DeSantis",
+  "party": "Republican",
+  "sourceUrl": "https://www.flgov.com/governor-ron-desantis/",
+  "sourceSha256": "0255b8c595051929fff2ae24d992fc26226416ffbcf38ab1077478267eba9bb1",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

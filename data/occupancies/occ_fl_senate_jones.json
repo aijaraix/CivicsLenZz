@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_fl_senate_jones",
+  "personId": "person_shevrin_jones",
+  "seatId": "seat_fl_senate_34",
+  "termStart": "2022-11-08",
+  "termEnd": "2026-11-03",
+  "sourceUrl": "https://www.flsenate.gov/Senators/S34",
+  "sourceSha256": "f2d3cc23498c20dd1a928aa78320b1485da7aa21946141ca12df9a5dbdc319d9",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

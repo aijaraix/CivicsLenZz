@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_us_house_moskowitz",
+  "personId": "person_jared_moskowitz",
+  "seatId": "seat_us_house_fl23",
+  "termStart": "2023-01-03",
+  "termEnd": "2025-01-03",
+  "sourceUrl": "https://moskowitz.house.gov/about",
+  "sourceSha256": "dbc8caf67dabb49fc24e03d5760c9bf97c1a5ec9306a646d8c9d8c78422ae10a",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

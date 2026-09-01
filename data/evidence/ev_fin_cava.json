@@ -1,0 +1,11 @@
+{
+  "evidenceId": "ev_fin_cava",
+  "subjectPersonId": "person_daniella_levine_cava",
+  "type": "finance_row",
+  "title": "Miami-Dade County Campaign Finance Filing - Our Democracy PC",
+  "summary": "Miami-Dade Supervisor of Elections campaign finance reports and itemized donations.",
+  "sourceUrl": "https://www.miamidade.gov/global/elections/campaign-finance.page",
+  "sourceSha256": "57071614659c52e670cdb0471e1fe290a6c3cb945f72aff667af6dda2cc531a4",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

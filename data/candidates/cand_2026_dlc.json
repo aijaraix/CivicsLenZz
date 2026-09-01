@@ -1,0 +1,11 @@
+{
+  "candidateId": "cand_2026_dlc",
+  "personId": "person_daniella_levine_cava",
+  "seatId": "seat_mdc_mayor",
+  "electionYear": 2026,
+  "filingStatus": "Filed",
+  "sourceUrl": "https://www.miamidade.gov/global/elections/home.page",
+  "sourceSha256": "f84eafa4dbc27035e4360de0d30fab082203f1b815a0214dacf72fff484a64e0",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_broward_tony",
+  "personId": "person_gregory_tony",
+  "seatId": "seat_broward_sheriff",
+  "termStart": "2019-01-11",
+  "termEnd": "2028-11-14",
+  "sourceUrl": "https://www.browardsheriff.org/AboutBSO/Pages/SheriffGregoryTony.aspx",
+  "sourceSha256": "3e849dbd9098f04318d5f4f9dc0b9169def42b7bcbc39ee892df5e120b2502a7",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

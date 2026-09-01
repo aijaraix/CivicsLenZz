@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_broward_rich",
+  "personId": "person_nan_rich",
+  "seatId": "seat_broward_mayor",
+  "termStart": "2023-11-21",
+  "termEnd": "2026-11-17",
+  "sourceUrl": "https://www.broward.org/Commission/District1/Pages/default.aspx",
+  "sourceSha256": "a2a1ad1db205fbb18af3c58189777560d1a46ce1674a5e6caa85a476b8094d18",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

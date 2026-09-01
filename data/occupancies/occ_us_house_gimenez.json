@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_us_house_gimenez",
+  "personId": "person_carlos_gimenez",
+  "seatId": "seat_us_house_fl28",
+  "termStart": "2023-01-03",
+  "termEnd": "2025-01-03",
+  "sourceUrl": "https://gimenez.house.gov/about",
+  "sourceSha256": "332f83e3def2087303cd41364fc3889850ce039e1de26479ba11cdc4fad3747b",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

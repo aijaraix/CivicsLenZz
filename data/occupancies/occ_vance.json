@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_vance",
+  "personId": "person_vance",
+  "seatId": "seat_us_vp",
+  "termStart": "2025-01-20",
+  "termEnd": "2029-01-20",
+  "sourceUrl": "https://www.whitehouse.gov/administration/vice-president-vance/",
+  "sourceSha256": "a6b3508141fbc011798489d1a04cbc9fee89cd17c8221cff74c42bb7e4fd82d9",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

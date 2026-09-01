@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_mdc_fernandez",
+  "personId": "person_dariel_fernandez",
+  "seatId": "seat_mdc_tax_collector",
+  "termStart": "2025-01-07",
+  "termEnd": "2029-01-02",
+  "sourceUrl": "https://www.miamidade.gov/taxcollector/",
+  "sourceSha256": "e2083ec18c2a36a44582ae0fddd8fca2fc37acdc93e4ac4932f49695e81b9aa8",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

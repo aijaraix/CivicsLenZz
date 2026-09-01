@@ -1,0 +1,11 @@
+{
+  "evidenceId": "ev_p1_teacher_pay",
+  "subjectPersonId": "person_desantis",
+  "type": "quote",
+  "title": "Establish .2 Billion Teacher Pay Boost",
+  "summary": "Executive commitment to increase baseline teacher compensation state-wide.",
+  "sourceUrl": "https://www.flgov.com/2024/06/12/governor-ron-desantis-signs-focus-on-floridas-future-budget/",
+  "sourceSha256": "08441768f8d53341b10c879aaf399f23d463d6769ab4d8fa1d6e3e3f36c0e938",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

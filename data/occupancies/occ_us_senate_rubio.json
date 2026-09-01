@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_us_senate_rubio",
+  "personId": "person_rubio",
+  "seatId": "seat_us_senate_fl1",
+  "termStart": "2023-01-03",
+  "termEnd": "2029-01-03",
+  "sourceUrl": "https://www.rubio.senate.gov/about/",
+  "sourceSha256": "f0365ea87921ebd3cb42988f6f3ea8ebfb2cf787ef241dddf580e2be12272841",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

@@ -1,0 +1,9 @@
+{
+  "personId": "person_ana_maria",
+  "legalName": "Ana Maria Rodriguez",
+  "party": "Republican",
+  "sourceUrl": "https://www.flsenate.gov/Senators/S40",
+  "sourceSha256": "ee13a52231c0bc2fe6ff05012ca197f866d470b3a3824768575dd40fa45bc2e4",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

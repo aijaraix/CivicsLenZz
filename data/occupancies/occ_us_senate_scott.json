@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_us_senate_scott",
+  "personId": "person_scott",
+  "seatId": "seat_us_senate_fl2",
+  "termStart": "2025-01-03",
+  "termEnd": "2031-01-03",
+  "sourceUrl": "https://www.rickscott.senate.gov/about",
+  "sourceSha256": "23291d375649d1cf6c110df094db728d23b70adccee6a05b77c61816442c0bc1",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

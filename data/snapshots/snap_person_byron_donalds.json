@@ -1,0 +1,9 @@
+{
+  "snapshotId": "snap_person_byron_donalds",
+  "sourceUrl": "https://donalds.house.gov/about/",
+  "fetchedAt": "2026-09-01T12:00:00Z",
+  "sha256": "a2c748203ef44a1af466dc06fe4d4b291b8887e89a1335cffa33587a7070b6ac",
+  "bytes": 88,
+  "content": "Official Record: Byron Donalds, Party: Republican, URL: https://donalds.house.gov/about/",
+  "extractionStatus": "extracted_unreviewed"
+}

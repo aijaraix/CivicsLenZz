@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_ftlaud_trantalis",
+  "personId": "person_dean_trantalis",
+  "seatId": "seat_ftlaud_mayor",
+  "termStart": "2018-03-20",
+  "termEnd": "2028-11-14",
+  "sourceUrl": "https://www.fortlauderdale.gov/government/city-commission/mayor-dean-j-trantalis",
+  "sourceSha256": "7d9dc465956c2fd94c9b733086fc606be4d120b19308af4347e4615eb9bb34ad",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

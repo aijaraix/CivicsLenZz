@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_fl_senate_rodriguez",
+  "personId": "person_ana_maria",
+  "seatId": "seat_fl_senate_40",
+  "termStart": "2020-11-03",
+  "termEnd": "2024-11-05",
+  "sourceUrl": "https://www.flsenate.gov/Senators/S40",
+  "sourceSha256": "9467243bd8418ba7e0d4585708b862ff3235d4b5ece0bc83579b2d6d137a812c",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

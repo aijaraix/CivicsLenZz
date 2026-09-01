@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_fl_senate_pizzo",
+  "personId": "person_jason_pizzo",
+  "seatId": "seat_fl_senate_33",
+  "termStart": "2022-11-08",
+  "termEnd": "2026-11-03",
+  "sourceUrl": "https://www.flsenate.gov/Senators/S33",
+  "sourceSha256": "19668d3e12340e2fd93cb99a362fe77052bb5f891cdb9321c3d4101bd1d5d891",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

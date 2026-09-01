@@ -1,0 +1,9 @@
+{
+  "personId": "person_juan_fernandez",
+  "legalName": "Juan Fernandez-Barquin",
+  "party": "Republican",
+  "sourceUrl": "https://www.miamidadeclerk.gov/clerk/about.page",
+  "sourceSha256": "74ee97297aaf29d573b8ce1dba29268c9c74d48e75ef8c5a22b0feaa56067fb0",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

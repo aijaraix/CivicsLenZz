@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_hollywood_levy",
+  "personId": "person_josh_levy",
+  "seatId": "seat_hollywood_mayor",
+  "termStart": "2016-11-22",
+  "termEnd": "2028-11-14",
+  "sourceUrl": "https://www.hollywoodfl.org/453/Mayor-Josh-Levy",
+  "sourceSha256": "81f2928f2915231506f99c0273ed260a7a5a9ca537f1741a9f05dbe5a8537ede",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

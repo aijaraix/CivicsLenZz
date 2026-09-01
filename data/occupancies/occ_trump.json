@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_trump",
+  "personId": "person_trump",
+  "seatId": "seat_us_president",
+  "termStart": "2025-01-20",
+  "termEnd": "2029-01-20",
+  "sourceUrl": "https://www.whitehouse.gov/administration/president-trump/",
+  "sourceSha256": "febbc60c29a8e7404627d07722fe3c9ef3111e03257034095f79d0a9731dfafa",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

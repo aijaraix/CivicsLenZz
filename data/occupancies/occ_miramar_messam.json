@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_miramar_messam",
+  "personId": "person_wayne_messam",
+  "seatId": "seat_miramar_mayor",
+  "termStart": "2015-03-31",
+  "termEnd": "2027-03-30",
+  "sourceUrl": "https://www.miramarfl.gov/224/Mayor-Wayne-M-Messam",
+  "sourceSha256": "aa9d8f6a046327937e871ef2f44c4a010b521d60801d6578fa9a504ae00fda57",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

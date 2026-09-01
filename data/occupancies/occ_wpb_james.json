@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_wpb_james",
+  "personId": "person_keith_james",
+  "seatId": "seat_wpb_mayor",
+  "termStart": "2019-04-04",
+  "termEnd": "2027-04-01",
+  "sourceUrl": "https://www.wpb.org/government/mayor-s-office/about-the-mayor",
+  "sourceSha256": "81c9c63f10e7e1aa5e8f9c6b5ce82a2ba8256e252c45a0cc9ffc667fcabd4260",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

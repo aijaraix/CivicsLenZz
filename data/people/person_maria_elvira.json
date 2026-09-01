@@ -1,0 +1,9 @@
+{
+  "personId": "person_maria_elvira",
+  "legalName": "Maria Elvira Salazar",
+  "party": "Republican",
+  "sourceUrl": "https://salazar.house.gov/about",
+  "sourceSha256": "771e646251aa28a83b881c0c7167fd62214978a8bbb26eaf5c963005d619159a",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

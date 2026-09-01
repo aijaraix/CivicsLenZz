@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_us_house_wilson",
+  "personId": "person_frederica_wilson",
+  "seatId": "seat_us_house_fl24",
+  "termStart": "2023-01-03",
+  "termEnd": "2025-01-03",
+  "sourceUrl": "https://wilson.house.gov/about",
+  "sourceSha256": "795d4e77e873baba52d6e2adb8fc9a4cd00ddf30f81b58a6d3586b56f994602f",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

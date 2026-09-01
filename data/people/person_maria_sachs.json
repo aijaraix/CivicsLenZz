@@ -1,0 +1,9 @@
+{
+  "personId": "person_maria_sachs",
+  "legalName": "Maria Sachs",
+  "party": "Democratic",
+  "sourceUrl": "https://discover.pbcgov.org/countycommissioners/district5/Pages/default.aspx",
+  "sourceSha256": "1408d0b0d981761b6bc8bccf44e9e31eb473bf76fe5b27b99ba6ab8a25fe60b8",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

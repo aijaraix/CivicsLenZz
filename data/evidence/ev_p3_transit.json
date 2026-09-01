@@ -1,0 +1,11 @@
+{
+  "evidenceId": "ev_p3_transit",
+  "subjectPersonId": "person_daniella_levine_cava",
+  "type": "quote",
+  "title": "100% Zero-Emission County Transit Fleet by 2030",
+  "summary": "Miami-Dade Climate Action Plan commitment to transition Metrobus fleet to zero-emission electric vehicles.",
+  "sourceUrl": "https://www.miamidade.gov/global/climate/resilience-action-plan.page",
+  "sourceSha256": "30fde86caed567c4d6671834aff6c8d0618584237af1d528f5d6f659c89d2aad",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

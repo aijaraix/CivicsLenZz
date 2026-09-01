@@ -1,0 +1,11 @@
+{
+  "evidenceId": "ev_fl_sb256",
+  "subjectPersonId": "person_desantis",
+  "type": "bill",
+  "title": "Public Sector Union Reforms (FL SB 256)",
+  "summary": "Florida Senate Bill 256 establishing 60% dues paying threshold for public sector unions.",
+  "sourceUrl": "https://www.flsenate.gov/Session/Bill/2023/256",
+  "sourceSha256": "8734635e80122c0cbd7dd9de373e214b2591ddf093287565089fe7a490c212b9",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

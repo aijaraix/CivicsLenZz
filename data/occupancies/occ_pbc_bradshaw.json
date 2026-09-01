@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_pbc_bradshaw",
+  "personId": "person_ric_bradshaw",
+  "seatId": "seat_pbc_sheriff",
+  "termStart": "2005-01-04",
+  "termEnd": "2028-11-14",
+  "sourceUrl": "https://www.pbso.org/about-pbso/sheriff-ric-bradshaw/",
+  "sourceSha256": "757632ed95b082d5f746fdff1349b5748ec678ca099fbb5c034ccb4bb3fbd288",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

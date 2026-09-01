@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_pbc_sachs",
+  "personId": "person_maria_sachs",
+  "seatId": "seat_pbc_mayor",
+  "termStart": "2023-11-21",
+  "termEnd": "2026-11-17",
+  "sourceUrl": "https://discover.pbcgov.org/countycommissioners/district5/Pages/default.aspx",
+  "sourceSha256": "cf7664e6a7c5d9abde2c2336e33c340dff34122f95620c22e4a1024627ce5c98",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

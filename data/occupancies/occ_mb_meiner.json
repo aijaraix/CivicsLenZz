@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_mb_meiner",
+  "personId": "person_steven_meiner",
+  "seatId": "seat_miami_beach_mayor",
+  "termStart": "2023-11-28",
+  "termEnd": "2025-11-25",
+  "sourceUrl": "https://www.miamibeachfl.gov/city-hall/mayor-and-commission/mayor-steven-meiner/",
+  "sourceSha256": "6c7bfb3afbd5674b4a4356057570b473934a7ae32f053e876dc24cb5c436837f",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

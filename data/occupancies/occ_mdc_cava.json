@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_mdc_cava",
+  "personId": "person_daniella_levine_cava",
+  "seatId": "seat_mdc_mayor",
+  "termStart": "2020-11-17",
+  "termEnd": "2028-11-14",
+  "sourceUrl": "https://www.miamidade.gov/global/government/mayor/home.page",
+  "sourceSha256": "f03e536a3d9a68e635b99649cc836f60e8d0be651c63402765c851feb33b9b5c",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

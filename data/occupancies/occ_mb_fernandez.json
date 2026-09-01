@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_mb_fernandez",
+  "personId": "person_alex_fernandez",
+  "seatId": "seat_mb_commissioner_g3",
+  "termStart": "2021-11-23",
+  "termEnd": "2025-11-25",
+  "sourceUrl": "https://www.miamibeachfl.gov/",
+  "sourceSha256": "a4a263c0f3eae3acb1c3a269d337b74d531834f4bb0c088ff7b6f1845ff09462",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

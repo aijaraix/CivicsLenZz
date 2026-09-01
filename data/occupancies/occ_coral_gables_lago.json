@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_coral_gables_lago",
+  "personId": "person_vince_lago",
+  "seatId": "seat_coral_gables_mayor",
+  "termStart": "2021-04-27",
+  "termEnd": "2025-04-22",
+  "sourceUrl": "https://www.coralgables.com/departments/CityCommission/MayorVinceLago",
+  "sourceSha256": "82008309e06eb8b75997736aeec33dbf3c2599125400d3a3523b126c60329d29",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

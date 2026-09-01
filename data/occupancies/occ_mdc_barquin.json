@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_mdc_barquin",
+  "personId": "person_juan_fernandez",
+  "seatId": "seat_mdc_clerk",
+  "termStart": "2023-06-15",
+  "termEnd": "2028-11-14",
+  "sourceUrl": "https://www.miamidadeclerk.gov/clerk/about.page",
+  "sourceSha256": "aa2b3909c3a98d62ed3945d7f14c26ce8aacae4a557984d2f2e009db387a231f",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

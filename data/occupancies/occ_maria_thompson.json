@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_maria_thompson",
+  "personId": "person_maria_thompson",
+  "seatId": "seat_oc_school_b2",
+  "termStart": "2022-11-22",
+  "termEnd": "2026-11-17",
+  "sourceUrl": "https://www.orange.k12.fl.us/board/district2",
+  "sourceSha256": "d8a84228ec46064f63ee7473e79b23157ff20799289caf5fe017d9b7f8ad38b5",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

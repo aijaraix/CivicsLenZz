@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { hermesBackendStore } from "./src/lib/hermes-backend-store";
 import { hermesWorkerDaemon } from "./src/lib/hermes-worker-daemon";
@@ -77,6 +78,34 @@ async function startServer() {
       priority: 9
     });
     res.json({ status: "queued", job: newJob });
+  });
+
+  // 7. Direct file stream of data/ directory from disk
+  app.get("/api/data-files", (req, res) => {
+    try {
+      const dataDir = path.join(process.cwd(), "data");
+      const files: { path: string; content: string }[] = [];
+
+      function readDirRecursive(dir: string, baseRelative = "") {
+        if (!fs.existsSync(dir)) return;
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          const relPath = baseRelative ? `${baseRelative}/${entry.name}` : entry.name;
+          if (entry.isDirectory()) {
+            readDirRecursive(fullPath, relPath);
+          } else if (entry.isFile()) {
+            const content = fs.readFileSync(fullPath, "utf-8");
+            files.push({ path: relPath, content });
+          }
+        }
+      }
+
+      readDirRecursive(dataDir);
+      res.json({ files });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   // Image Proxy Endpoint to bypass browser CORS / Hotlink protection for official portraits

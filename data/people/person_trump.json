@@ -1,0 +1,9 @@
+{
+  "personId": "person_trump",
+  "legalName": "Donald Trump",
+  "party": "Republican",
+  "sourceUrl": "https://www.whitehouse.gov/administration/president-trump/",
+  "sourceSha256": "30cc9ddc89b0014aec00773617722a0bee03faa22647023d40d45e2563c326c9",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

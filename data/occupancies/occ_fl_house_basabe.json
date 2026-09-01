@@ -1,0 +1,11 @@
+{
+  "occupancyId": "occ_fl_house_basabe",
+  "personId": "person_fabian_basabe",
+  "seatId": "seat_fl_house_106",
+  "termStart": "2022-11-08",
+  "termEnd": "2026-11-03",
+  "sourceUrl": "https://www.myfloridahouse.gov/Sections/Representatives/details.aspx?MemberId=4876",
+  "sourceSha256": "a7d8300e61fd66b56c7e876f0527f7464877d37429c7ced0b8118f32c3504b24",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}

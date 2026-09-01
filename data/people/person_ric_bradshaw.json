@@ -1,0 +1,9 @@
+{
+  "personId": "person_ric_bradshaw",
+  "legalName": "Ric Bradshaw",
+  "party": "Democratic",
+  "sourceUrl": "https://www.pbso.org/about-pbso/sheriff-ric-bradshaw/",
+  "sourceSha256": "c5ceca3f8c9120c1e70c5425cda904c38742b35be280adabf84c20dea3fdc027",
+  "extractedAt": "2026-09-01T12:00:00Z",
+  "extractionStatus": "extracted_unreviewed"
+}
