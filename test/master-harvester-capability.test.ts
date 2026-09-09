@@ -31,6 +31,9 @@ import {
 import { 
   physicalResearchPipeline 
 } from '../src/lib/physical-research-pipeline';
+import { 
+  autonomousCapabilityProver 
+} from '../src/lib/autonomous-capability-prover';
 
 let passed = 0;
 let failed = 0;
@@ -121,13 +124,30 @@ async function runMasterCapabilityTests() {
 
   // 4. Physical Research Pass: Florida Senate District 34 (Shevrin Jones)
   const pkg34 = physicalResearchPipeline.executeResearchPassSD34();
-  runTest("Physical research pass for SD34 produces complete MultiTrack package", () => {
+  runTest("Physical research pass for SD34 produces complete MultiTrack package with reconciled 2026 cycle", () => {
     assert.strictEqual(pkg34.seat_key, "seat_fl_senate_34");
     assert.strictEqual(pkg34.track_a_civic_structure.district_number, 34);
     assert.strictEqual(pkg34.track_a_civic_structure.current_occupant.full_name, "Shevrin D. Jones");
     assert.strictEqual(pkg34.track_a_civic_structure.current_occupant.party, "Democrat");
-    assert.strictEqual(pkg34.track_b_election_and_candidates.next_election_cycle, 2028);
-    assert.strictEqual(pkg34.track_b_election_and_candidates.is_scheduled_for_cycle, false);
+    assert.strictEqual(pkg34.track_a_civic_structure.current_occupant.term_end_date, "2026-11-03");
+    assert.strictEqual(pkg34.track_b_election_and_candidates.next_election_cycle, 2026);
+    assert.strictEqual(pkg34.track_b_election_and_candidates.is_scheduled_for_cycle, true);
+    assert.strictEqual(pkg34.track_b_election_and_candidates.filed_candidate_count, 1);
+    assert.strictEqual(pkg34.track_b_election_and_candidates.qualified_candidate_count, 0);
+    assert.strictEqual(pkg34.track_b_election_and_candidates.candidate_campaigns[0].candidate_status, "FILED_PENDING_QUALIFYING");
+  });
+
+  // 4b. SD34 Physical Reconciliation Superseded Audit Preservation
+  runTest("SD34 physical reconciliation archives superseded audit record with full trace lineage", () => {
+    const records = physicalResearchPipeline.getSupersededAuditRecords("seat_fl_senate_34");
+    assert.ok(records.length > 0);
+    const rec = records[0];
+    assert.strictEqual(rec.seat_key, "seat_fl_senate_34");
+    assert.strictEqual(rec.reason, "RECONCILED_EVEN_DISTRICT_2026_PARITY_ERROR_IN_PIPELINE");
+    assert.strictEqual(rec.producing_capability, "election_lifecycle");
+    assert.strictEqual(rec.previous_package.erroneous_next_cycle, 2028);
+    assert.strictEqual(rec.reconciled_package.next_election_cycle, 2026);
+    assert.strictEqual(rec.reconciled_package.is_scheduled_for_cycle, true);
   });
 
   // 5. Track B Statutory Qualifying Window vs Pre-Qualifying Document Filing Fidelity
@@ -318,6 +338,77 @@ async function runMasterCapabilityTests() {
     assert.strictEqual(queueFailure.failure_class, "QUEUE_FAILURE");
     assert.strictEqual(queueFailure.data_lost, false);
     assert.strictEqual(queueFailure.retryable, true);
+  });
+
+  // 21. Runtime Proofing for the 13 IMPLEMENTED_NOT_RUNTIME_PROVEN Capabilities
+  runTest("Runtime-proof engine executes representative real work for all 13 unproven capabilities", () => {
+    const proofs = autonomousCapabilityProver.proveAllRemainingCapabilities();
+    assert.strictEqual(proofs.length, 13);
+
+    for (const proof of proofs) {
+      assert.ok(proof.capability_id);
+      assert.strictEqual(proof.retrieval.status, "SUCCESS");
+      assert.ok(proof.retrieval.retrieved_bytes > 0);
+      assert.ok(proof.retrieval.content_sha256);
+      assert.ok(proof.extraction.facts_extracted_count >= 1);
+      assert.ok(proof.extraction.facts.length >= 1);
+
+      // Verify each extracted fact has a precise non-homepage locator
+      for (const fact of proof.extraction.facts) {
+        assert.strictEqual(fact.locator.is_homepage_shortcut, false);
+        assert.ok(fact.locator.exact_text_anchor.length > 5);
+      }
+
+      // Verify zero-synthetic evidence compliance
+      assert.strictEqual(proof.evidence.zero_synthetic_compliance, true);
+      assert.ok(proof.evidence.evidence_sha256);
+
+      // Verify cryptographically verifiable handoff receipt
+      assert.ok(proof.handoff.receipt_id);
+      assert.ok(proof.handoff.to_service);
+
+      // Verify monitoring & failure behavior verified against capability contract
+      const capContract = CANONICAL_CAPABILITY_MATRIX[proof.capability_id];
+      assert.strictEqual(proof.monitoring_and_failure.failure_behavior_verified, true);
+      assert.strictEqual(proof.monitoring_and_failure.fail_fast_on_schema_drift, capContract.failure_policy.fail_fast_on_schema_drift);
+      assert.strictEqual(proof.monitoring_and_failure.dead_letter_queue, capContract.failure_policy.dead_letter_queue);
+    }
+  });
+
+  // 22. Post-Proof Capability Audit: All 47 Capabilities PROVEN
+  runTest("Post-proof capability audit reflects 47/47 capabilities IMPLEMENTED_AND_PROVEN", () => {
+    const detailed = harvesterCapabilityMatrixEngine.getDetailedCapabilityAudit();
+    assert.strictEqual(detailed.summary.total_capabilities, 47);
+    assert.strictEqual(detailed.summary.IMPLEMENTED_AND_PROVEN, 47);
+    assert.strictEqual(detailed.summary.IMPLEMENTED_NOT_RUNTIME_PROVEN, 0);
+    assert.strictEqual(detailed.summary.PARTIAL, 0);
+    assert.strictEqual(detailed.summary.MISSING, 0);
+    assert.strictEqual(detailed.summary.DUPLICATE, 0);
+    assert.strictEqual(detailed.summary.BLOCKED, 0);
+
+    // Verify all 13 newly proven capabilities have attached proof records in audit
+    const targetCapabilityIds = [
+      'business_board_disclosure_relationships',
+      'campaign_website_discovery',
+      'campaign_website_archiving',
+      'promise_platform_extraction',
+      'official_campaign_social_discovery',
+      'roll_call_votes',
+      'public_statements',
+      'ethics_oversight_public_records',
+      'lobbying_pac_committee_relationships',
+      'public_contract_grant_relationships',
+      'public_finance_resource_flows',
+      'constituency_territory_intelligence',
+      'community_datasets'
+    ];
+
+    for (const capId of targetCapabilityIds) {
+      const capAudit = detailed.capabilities[capId];
+      assert.strictEqual(capAudit.audit_status, "IMPLEMENTED_AND_PROVEN");
+      assert.ok(capAudit.runtime_proof, `Capability ${capId} must contain attached runtime proof record`);
+      assert.strictEqual(capAudit.runtime_proof.evidence.zero_synthetic_compliance, true);
+    }
   });
 
   console.log("\n=======================================================");

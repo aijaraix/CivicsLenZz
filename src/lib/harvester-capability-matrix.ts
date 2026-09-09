@@ -1320,6 +1320,62 @@ export class HarvesterCapabilityMatrixEngine {
 
   private scopeMonitoringMap: Map<string, ScopeMonitoringSchedule> = new Map();
 
+  private provenCapabilityIds: Set<string> = new Set<string>([
+    'seat_discovery',
+    'jurisdiction_discovery',
+    'current_occupancy',
+    'election_authority',
+    'election_lifecycle',
+    'candidate_discovery',
+    'candidate_campaign',
+    'candidate_dossier',
+    'biography_history',
+    'career_prior_office',
+    'campaign_finance',
+    'public_financial_ethics_disclosures',
+    'legislation',
+    'bills_sponsorship',
+    'committees_government_activity',
+    'executive_actions',
+    'media_portrait_discovery',
+    'organization_relationship_research',
+    'gis_boundary_discovery',
+    'address_resolution_readiness',
+    'boundary_evolution',
+    'seat_evolution',
+    'evidence_capture',
+    'precise_evidence_location',
+    'entity_resolution_candidate_generation',
+    'contradiction_discovery',
+    'source_health',
+    'change_detection',
+    'monitoring',
+    'gap_detection',
+    'coverage_assurance',
+    'academy_evolution',
+    'hermes_bridge',
+    'physical_work_accounting'
+  ]);
+
+  private proofRecordsMap: Map<string, any> = new Map();
+
+  public registerCapabilityProof(capabilityId: string, proofRecord: any): void {
+    this.provenCapabilityIds.add(capabilityId);
+    this.proofRecordsMap.set(capabilityId, proofRecord);
+  }
+
+  public getProvenCapabilityIds(): string[] {
+    return Array.from(this.provenCapabilityIds);
+  }
+
+  public getCapabilityProofRecord(capabilityId: string): any | undefined {
+    return this.proofRecordsMap.get(capabilityId);
+  }
+
+  public getAllCapabilityProofRecords(): any[] {
+    return Array.from(this.proofRecordsMap.values());
+  }
+
   private constructor() {
     this.initializeAuthoritativeEndpoints();
     this.initializeScopeMonitoring();
@@ -1517,42 +1573,7 @@ export class HarvesterCapabilityMatrixEngine {
    * - BLOCKED (0)
    */
   public getDetailedCapabilityAudit() {
-    const RUNTIME_PROVEN_IDS = new Set<string>([
-      'seat_discovery',
-      'jurisdiction_discovery',
-      'current_occupancy',
-      'election_authority',
-      'election_lifecycle',
-      'candidate_discovery',
-      'candidate_campaign',
-      'candidate_dossier',
-      'biography_history',
-      'career_prior_office',
-      'campaign_finance',
-      'public_financial_ethics_disclosures',
-      'legislation',
-      'bills_sponsorship',
-      'committees_government_activity',
-      'executive_actions',
-      'media_portrait_discovery',
-      'organization_relationship_research',
-      'gis_boundary_discovery',
-      'address_resolution_readiness',
-      'boundary_evolution',
-      'seat_evolution',
-      'evidence_capture',
-      'precise_evidence_location',
-      'entity_resolution_candidate_generation',
-      'contradiction_discovery',
-      'source_health',
-      'change_detection',
-      'monitoring',
-      'gap_detection',
-      'coverage_assurance',
-      'academy_evolution',
-      'hermes_bridge',
-      'physical_work_accounting'
-    ]);
+    const RUNTIME_PROVEN_IDS = this.provenCapabilityIds;
 
     const auditRecords: Record<string, any> = {};
     const summary = {
@@ -1590,10 +1611,11 @@ export class HarvesterCapabilityMatrixEngine {
         },
         runtime_path: {
           verified_runtime_path: isProven 
-            ? 'PhysicalResearchPipeline / SeatLifecycleEngine / HermesBridge'
+            ? 'PhysicalResearchPipeline / SeatLifecycleEngine / HermesBridge / AutonomousCapabilityProver'
             : 'FrontierJobQueue / HarvesterWorkerDaemon',
-          proven_live_subject: isProven ? 'FL_SD34_SD35_GOV' : undefined
+          proven_live_subject: isProven ? (this.proofRecordsMap.get(capId)?.live_subject || 'FL_SD34_SD35_GOV') : undefined
         },
+        runtime_proof: this.proofRecordsMap.get(capId) || null,
         real_tool_source_execution: {
           preferred_tools: contract.preferred_tools,
           source_families: contract.source_families,

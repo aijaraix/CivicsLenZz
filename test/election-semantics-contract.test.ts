@@ -34,6 +34,7 @@ import {
 import { cohortReadinessEngine } from '../src/lib/cohort-readiness-engine';
 import { seatLifecycleEngine } from '../src/lib/seat-lifecycle-engine';
 import { floridaBacklogEngine } from '../src/lib/florida-backlog-engine';
+import { physicalResearchPipeline } from '../src/lib/physical-research-pipeline';
 import assert from 'assert';
 
 let passed = 0;
@@ -140,6 +141,65 @@ async function runAllSemanticsTests() {
 
     assert.strictEqual(evenCount, 20, "Must have exactly 20 even Senate districts scheduled for 2026");
     assert.strictEqual(oddCount, 20, "Must have exactly 20 odd Senate districts off-cycle until 2028");
+  });
+
+  // Test 4b: Florida Senate District 34 (Shevrin Jones) Authoritative Lifecycle Reconciliation
+  await runTest("4b. Florida Senate District 34 (Shevrin Jones): Authoritative Lifecycle Reconciliation & Superseded Audit", () => {
+    // 1. Roster seat check
+    const sd34Seat = FLORIDA_SENATE_SEATS.find(s => s.chamber_district === "District 34");
+    assert.ok(sd34Seat, "Senate District 34 must exist in roster");
+    assert.strictEqual(sd34Seat.current_occupant.name, 'Shevrin D. "Shev" Jones');
+    assert.strictEqual(sd34Seat.current_occupant.term_start, "2022-11-08");
+    assert.strictEqual(sd34Seat.current_occupant.term_end, "2026-11-03");
+    assert.strictEqual(sd34Seat.election_schedule?.seat_scheduled_for_election, true);
+    assert.strictEqual(sd34Seat.election_schedule?.cycle_year, 2026);
+    assert.strictEqual(sd34Seat.election_schedule?.next_election_date, "2026-11-03");
+
+    // 2. Physical research pipeline check
+    const pkg34 = physicalResearchPipeline.executeResearchPassSD34();
+    assert.strictEqual(pkg34.seat_key, "seat_fl_senate_34");
+    assert.strictEqual(pkg34.track_a_civic_structure.district_number, 34);
+    assert.strictEqual(pkg34.track_a_civic_structure.current_occupant.full_name, "Shevrin D. Jones");
+    assert.strictEqual(pkg34.track_a_civic_structure.current_occupant.term_end_date, "2026-11-03");
+    assert.strictEqual(pkg34.track_b_election_and_candidates.next_election_cycle, 2026);
+    assert.strictEqual(pkg34.track_b_election_and_candidates.is_scheduled_for_cycle, true);
+    assert.strictEqual(pkg34.track_b_election_and_candidates.filed_candidate_count, 1);
+    assert.strictEqual(pkg34.track_b_election_and_candidates.qualified_candidate_count, 0);
+    assert.strictEqual(
+      pkg34.track_b_election_and_candidates.candidate_campaigns[0].candidate_status,
+      "FILED_PENDING_QUALIFYING"
+    );
+
+    // 3. Superseded audit record verification
+    const superseded = physicalResearchPipeline.getSupersededAuditRecords("seat_fl_senate_34");
+    assert.ok(superseded.length > 0, "Must contain archived superseded audit record for SD34");
+    const auditRec = superseded[0];
+    assert.strictEqual(auditRec.seat_key, "seat_fl_senate_34");
+    assert.strictEqual(auditRec.reason, "RECONCILED_EVEN_DISTRICT_2026_PARITY_ERROR_IN_PIPELINE");
+    assert.strictEqual(auditRec.previous_package.erroneous_next_cycle, 2028);
+    assert.strictEqual(auditRec.reconciled_package.next_election_cycle, 2026);
+    assert.strictEqual(auditRec.reconciled_package.is_scheduled_for_cycle, true);
+
+    // 4. Parity and term alignment check across all 40 Senate seats
+    FLORIDA_SENATE_SEATS.forEach(seat => {
+      const distMatch = seat.chamber_district.match(/District (\d+)/)!;
+      const distNum = parseInt(distMatch[1], 10);
+      const isEven = distNum % 2 === 0;
+
+      if (isEven) {
+        assert.strictEqual(seat.current_occupant.term_start, "2022-11-08");
+        assert.strictEqual(seat.current_occupant.term_end, "2026-11-03");
+        assert.strictEqual(seat.election_schedule?.cycle_year, 2026);
+        assert.strictEqual(seat.election_schedule?.seat_scheduled_for_election, true);
+        assert.strictEqual(seat.election_schedule?.next_election_date, "2026-11-03");
+      } else {
+        assert.strictEqual(seat.current_occupant.term_start, "2024-11-05");
+        assert.strictEqual(seat.current_occupant.term_end, "2028-11-07");
+        assert.strictEqual(seat.election_schedule?.cycle_year, 2028);
+        assert.strictEqual(seat.election_schedule?.seat_scheduled_for_election, false);
+        assert.strictEqual(seat.election_schedule?.next_election_date, "2028-11-07");
+      }
+    });
   });
 
   // Test 5: Florida House Semantics (All 120 Scheduled for 2026)
