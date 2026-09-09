@@ -23,6 +23,31 @@ export const CANONICAL_SCHEMA_VERSIONS = {
   PRODUCER_ID: 'CivicsLenZz-Harvester'
 } as const;
 
+export interface CivicLenZRecordItem {
+  producer: string;
+  producer_version: string;
+  capability: string;
+  source_key: string;
+  source_url: string;
+  source_authority: string;
+  source_type: string;
+  jurisdiction_key: string;
+  seat_key: string;
+  person_candidate_key?: string;
+  election_key?: string;
+  retrieved_at: string;
+  http_status: number;
+  content_type: string;
+  byte_length: number;
+  content_hash: string;
+  raw_object_reference: string;
+  parser_key: string;
+  parser_version: string;
+  extracted_claims: Record<string, any>;
+  warnings: string[];
+  extraction_status: 'extracted_unreviewed';
+}
+
 export interface CanonicalBatchEnvelope {
   batch_id: string;
   schema_version: string;
@@ -36,7 +61,7 @@ export interface CanonicalBatchEnvelope {
     candidates_targeted: number;
     errors_count: number;
   };
-  items: ResearchIngestPackage[];
+  items: (ResearchIngestPackage | CivicLenZRecordItem)[];
   signature?: string;
 }
 
@@ -59,29 +84,17 @@ export class CanonicalContractSyncEngine {
   }
 
   /**
-   * Validates an individual package against CIVICLENZ_RESEARCH_INGEST_CONTRACT_V1
+   * Validates an individual package or record against canonical ingest rules
    */
-  public validatePackage(pkg: ResearchIngestPackage): { valid: boolean; errors: string[] } {
+  public validatePackage(pkg: ResearchIngestPackage | CivicLenZRecordItem): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
 
-    if (!pkg.producer || pkg.producer !== 'CivicsLenZz-Harvester') {
-      errors.push(`Invalid producer: expected 'CivicsLenZz-Harvester', received '${pkg.producer}'`);
+    if (!pkg.producer || (pkg.producer !== 'CivicsLenZz-Harvester' && pkg.producer !== 'civicslenzz-gemini-harvester')) {
+      errors.push(`Invalid producer: received '${pkg.producer}'`);
     }
 
     if (!pkg.capability) {
       errors.push('Missing required capability');
-    }
-
-    if (!pkg.source_key) {
-      errors.push('Missing required source_key');
-    }
-
-    if (!pkg.source_url || !pkg.source_url.startsWith('http')) {
-      errors.push(`Invalid source_url: '${pkg.source_url}'`);
-    }
-
-    if (!pkg.seat_key) {
-      errors.push('Missing required seat_key');
     }
 
     if (!pkg.content_hash || pkg.content_hash.length !== 64) {
@@ -92,8 +105,32 @@ export class CanonicalContractSyncEngine {
       errors.push(`extraction_status must be strictly 'extracted_unreviewed', got '${pkg.extraction_status}'`);
     }
 
-    if (!pkg.retrieved_at) {
-      errors.push('Missing retrieved_at ISO timestamp');
+    // Distinguish between full ResearchIngestPackage and CivicLenZRecordItem
+    if ('job_id' in pkg) {
+      // Full ResearchIngestPackage
+      if (pkg.contract_version !== CANONICAL_SCHEMA_VERSIONS.INGEST_CONTRACT) {
+        errors.push(`Invalid contract_version: '${pkg.contract_version}'`);
+      }
+      if (!pkg.research_work_identity || !pkg.research_work_identity.work_key) {
+        errors.push('Missing research_work_identity.work_key');
+      }
+      if (!pkg.canonical_validation_required) {
+        errors.push('canonical_validation_required must be true');
+      }
+    } else {
+      // CivicLenZRecordItem
+      if (!pkg.source_key) {
+        errors.push('Missing required source_key');
+      }
+      if (!pkg.source_url || !pkg.source_url.startsWith('http')) {
+        errors.push(`Invalid source_url: '${pkg.source_url}'`);
+      }
+      if (!pkg.seat_key) {
+        errors.push('Missing required seat_key');
+      }
+      if (!pkg.retrieved_at) {
+        errors.push('Missing retrieved_at timestamp');
+      }
     }
 
     return {
@@ -106,15 +143,29 @@ export class CanonicalContractSyncEngine {
    * Generates a sealed CanonicalBatchEnvelope from a collection of validated items
    */
   public createBatchEnvelope(
-    items: ResearchIngestPackage[],
+    items: (ResearchIngestPackage | CivicLenZRecordItem)[],
     batchIdPrefix = 'batch_fl'
   ): CanonicalBatchEnvelope {
     const timestamp = new Date().toISOString();
     const batchId = `${batchIdPrefix}_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
 
-    const uniqueSources = new Set(items.map(i => i.source_url));
-    const uniqueSeats = new Set(items.map(i => i.seat_key));
-    const uniqueCandidates = new Set(items.map(i => i.person_candidate_key).filter(Boolean));
+    const uniqueSources = new Set<string>();
+    const uniqueSeats = new Set<string>();
+    const uniqueCandidates = new Set<string>();
+
+    for (const item of items) {
+      if ('job_id' in item) {
+        item.sources?.forEach(s => uniqueSources.add(s.url));
+        if (item.seat_candidate_key) uniqueSeats.add(item.seat_candidate_key);
+        if (item.person_identity_candidates) {
+          item.person_identity_candidates.forEach(p => uniqueCandidates.add(p.key || p.name || 'cand'));
+        }
+      } else {
+        if (item.source_url) uniqueSources.add(item.source_url);
+        if (item.seat_key) uniqueSeats.add(item.seat_key);
+        if (item.person_candidate_key) uniqueCandidates.add(item.person_candidate_key);
+      }
+    }
 
     const envelope: CanonicalBatchEnvelope = {
       batch_id: batchId,
@@ -166,7 +217,8 @@ export class CanonicalContractSyncEngine {
         validItems++;
       } else {
         invalidItems++;
-        errors.push(`Item [${idx}] (${item.seat_key || 'unknown'}): ${itemRes.errors.join('; ')}`);
+        const itemKey = ('job_id' in item) ? item.job_id : (item.seat_key || 'unknown');
+        errors.push(`Item [${idx}] (${itemKey}): ${itemRes.errors.join('; ')}`);
       }
     }
 
