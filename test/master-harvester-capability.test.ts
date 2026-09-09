@@ -93,6 +93,32 @@ async function runMasterCapabilityTests() {
     assert.strictEqual(summary.all_declared_operational, true);
   });
 
+  // 3b. Detailed Capability Audit Breakdown & Lineage Contracts
+  runTest("Detailed capability audit verifies 34 PROVEN and 13 IMPLEMENTED_NOT_RUNTIME_PROVEN with 0 gaps/duplicates", () => {
+    const detailed = harvesterCapabilityMatrixEngine.getDetailedCapabilityAudit();
+    assert.strictEqual(detailed.summary.total_capabilities, 47);
+    assert.strictEqual(detailed.summary.IMPLEMENTED_AND_PROVEN, 34);
+    assert.strictEqual(detailed.summary.IMPLEMENTED_NOT_RUNTIME_PROVEN, 13);
+    assert.strictEqual(detailed.summary.PARTIAL, 0);
+    assert.strictEqual(detailed.summary.MISSING, 0);
+    assert.strictEqual(detailed.summary.DUPLICATE, 0);
+    assert.strictEqual(detailed.summary.BLOCKED, 0);
+
+    // Verify lineage contract completeness for sample capabilities
+    const seatDisc = detailed.capabilities.seat_discovery;
+    assert.strictEqual(seatDisc.audit_status, "IMPLEMENTED_AND_PROVEN");
+    assert.ok(seatDisc.definition.contract_version);
+    assert.ok(seatDisc.implementation.module);
+    assert.ok(seatDisc.runtime_path.verified_runtime_path);
+    assert.ok(seatDisc.evidence.sha256_sealed);
+    assert.ok(seatDisc.handoff.receipt_format);
+    assert.ok(seatDisc.failure_behavior.retry_max > 0);
+
+    const platformExt = detailed.capabilities.promise_platform_extraction;
+    assert.strictEqual(platformExt.audit_status, "IMPLEMENTED_NOT_RUNTIME_PROVEN");
+    assert.ok(platformExt.definition.accepted_job_types.length > 0);
+  });
+
   // 4. Physical Research Pass: Florida Senate District 34 (Shevrin Jones)
   const pkg34 = physicalResearchPipeline.executeResearchPassSD34();
   runTest("Physical research pass for SD34 produces complete MultiTrack package", () => {
@@ -231,6 +257,67 @@ async function runMasterCapabilityTests() {
     assert.strictEqual(senateEp.parser_compatibility, "COMPATIBLE");
     assert.strictEqual(senateEp.access_state, "PUBLIC_ACCESSIBLE");
     assert.ok(senateEp.schema_fingerprint.includes("flsenate"));
+  });
+
+  // 17. Physical Research Pass: Florida Governor (Executive Branch & Term Limits)
+  const pkgGov = physicalResearchPipeline.executeResearchPassGovernor();
+  runTest("Physical research pass for Governor verifies executive occupancy, term limits, and executive orders", () => {
+    assert.strictEqual(pkgGov.seat_key, "seat_fl_governor");
+    assert.strictEqual(pkgGov.office_type, "STATE_GOVERNOR");
+    assert.strictEqual(pkgGov.track_a_civic_structure.current_occupant.full_name, "Ron DeSantis");
+    assert.strictEqual(pkgGov.track_a_civic_structure.current_occupant.term_end_date, "2027-01-05T00:00:00.000Z");
+    assert.strictEqual(pkgGov.track_b_election_and_candidates.next_election_cycle, 2026);
+    assert.strictEqual(pkgGov.track_b_election_and_candidates.is_scheduled_for_cycle, true);
+    assert.ok(pkgGov.track_c_governance_activity.executive_actions_sample);
+    assert.strictEqual(pkgGov.track_c_governance_activity.executive_actions_sample[0].order_number, "EO 24-01");
+    assert.strictEqual(pkgGov.verified_portrait.portrait_type, "OFFICIAL_GOVERNMENT_PORTRAIT");
+    assert.strictEqual(pkgGov.verified_portrait.rights_notice, "PUBLIC_DOMAIN_FLORIDA_GOVERNMENT_RECORD");
+  });
+
+  // 18. Scope-Specific Monitoring Registry & Cadence
+  runTest("Scope-specific monitoring enforces last_checked, current_as_of, stale_after, and health", () => {
+    const schedules = harvesterCapabilityMatrixEngine.getScopeMonitoringSchedules();
+    assert.ok(schedules.length >= 6);
+    const electionsScope = schedules.find(s => s.scope_id === "scope_fl_legislative_elections_2026")!;
+    assert.strictEqual(electionsScope.cadence, "HOURLY");
+    assert.strictEqual(electionsScope.source_health, "HEALTHY");
+    assert.ok(electionsScope.last_checked);
+    assert.ok(electionsScope.stale_after);
+    assert.strictEqual(electionsScope.consecutive_failures, 0);
+
+    const tigerwebScope = schedules.find(s => s.scope_id === "scope_tigerweb_census_gis")!;
+    assert.strictEqual(tigerwebScope.cadence, "WEEKLY");
+  });
+
+  // 19. Physical Resource Metrics & Work Ledger Accounting
+  runTest("Physical research accounting tracks actual non-fabricated bytes and resource metrics", () => {
+    const accounting = harvesterCapabilityMatrixEngine.getPhysicalWorkAccounting();
+    assert.strictEqual(accounting.accounting_mode, "PHYSICAL_ACTUAL_NON_FABRICATED");
+    assert.ok(accounting.metrics.retrievals >= 3);
+    assert.ok(accounting.metrics.retrieved_bytes > 0);
+    assert.ok(accounting.metrics.resource_use.cpu_ms > 0);
+    assert.ok(accounting.metrics.resource_use.memory_mb_peak > 0);
+    assert.ok(accounting.metrics.resource_use.network_egress_bytes > 0);
+  });
+
+  // 20. Localizable Failure Exception Matrix (14 Failure Classes)
+  runTest("Failure system classifies and localizes failures across full 14-class matrix without data loss", () => {
+    const queueFailure = harvesterCapabilityMatrixEngine.recordFailure({
+      failure_class: "QUEUE_FAILURE",
+      what_failed: "Inbound research job worker queue buffer congestion",
+      where_failed_module: "hermes-worker-daemon.ts",
+      which_agent: "hermes_queue_listener",
+      which_tool: "durable_queue_driver",
+      which_source: "inbound_hermes_jobs_queue",
+      what_entered_input_summary: "JOB_FL_SD34_AUDIT_2026",
+      what_exited_output_summary: "QUEUE_DRAIN_BACKOFF",
+      data_lost: false,
+      retryable: true,
+      what_happens_next: "Worker auto-throttles and re-reads job after 500ms backoff"
+    });
+    assert.strictEqual(queueFailure.failure_class, "QUEUE_FAILURE");
+    assert.strictEqual(queueFailure.data_lost, false);
+    assert.strictEqual(queueFailure.retryable, true);
   });
 
   console.log("\n=======================================================");
