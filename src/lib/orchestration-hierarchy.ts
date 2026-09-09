@@ -689,7 +689,7 @@ export class MainHermesPrime {
     notes?: string;
   }): DirectiveDownward {
     const directive: DirectiveDownward = {
-      directive_id: `directive_${Math.random().toString(36).substring(2, 9)}`,
+      directive_id: `directive_${Date.now()}_${this.directivesHistory.length + 1}`,
       source_prime: 'MAIN_PRIME',
       target_level: params.targetLevel,
       target_seat_uuid: params.targetSeatUuid,

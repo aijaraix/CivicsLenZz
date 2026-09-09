@@ -126,7 +126,7 @@ export interface RawEvidenceObject {
   parser_version: string;
   extraction_method: string;
   supporting_locator?: string;
-  verification_state: 'VERIFIED' | 'UNVERIFIED' | 'REJECTED';
+  verification_state: 'VERIFIED' | 'UNVERIFIED' | 'REJECTED' | 'EXTRACTED_UNREVIEWED';
   seat_uuid?: string;
   person_uuid?: string;
   field_key?: string;
@@ -464,19 +464,37 @@ class HermesBackendStore {
           last_updated_at: new Date().toISOString()
         },
         {
-          seat_uuid: 'fl_senate_dist_35',
-          office_name: 'Florida State Senator - District 35',
+          seat_uuid: 'fl_senate_dist_34',
+          office_name: 'Florida State Senator - District 34',
           office_type: 'STATE_LEGISLATOR',
           jurisdiction: 'Miami-Dade & Broward',
-          district_number: '35',
+          district_number: '34',
           government_level: 'State',
           current_official_person_uuid: 'person_shevrin_jones',
-          current_official_name: 'Shevrin Jones',
+          current_official_name: 'Shevrin D. "Shev" Jones',
           is_vacant: false,
           term_start: '2022-11-08',
           term_end: '2026-11-03',
           next_election_date: '2026-11-03',
           in_active_election_cycle: true,
+          completeness_percentage: 100,
+          coverage_status: 'BASELINE_COMPLETE',
+          last_updated_at: new Date().toISOString()
+        },
+        {
+          seat_uuid: 'fl_senate_dist_35',
+          office_name: 'Florida State Senator - District 35',
+          office_type: 'STATE_LEGISLATOR',
+          jurisdiction: 'Broward County',
+          district_number: '35',
+          government_level: 'State',
+          current_official_person_uuid: 'person_barbara_sharief',
+          current_official_name: 'Barbara Sharief',
+          is_vacant: false,
+          term_start: '2024-11-05',
+          term_end: '2028-11-07',
+          next_election_date: '2028-11-07',
+          in_active_election_cycle: false,
           completeness_percentage: 100,
           coverage_status: 'BASELINE_COMPLETE',
           last_updated_at: new Date().toISOString()

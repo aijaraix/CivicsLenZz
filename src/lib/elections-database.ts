@@ -274,13 +274,6 @@ export const southFloridaRaces: RaceRecord[] = [
     votingMethod: 'Nonpartisan Primary (Top 2 Runoff if <50%)',
     description: 'Contest representing South Miami, Key Biscayne, Coral Gables, and Pinecrest. Major debate centers on transit expansion (SMART Plan), coastal flood mitigation, and housing density.',
     keyIssues: ['Transit & SMART Plan', 'Coastal Resiliency & Flooding', 'Property Taxes & Housing Density'],
-    polling: [
-      { pollster: 'Mason-Dixon Polling', date: 'July 2026', marginOfError: '±4.2%', results: [
-        { candidateName: 'Raquel Regalado (Incumbent)', percentage: 46 },
-        { candidateName: 'Richard Cruz (Challenger)', percentage: 34 },
-        { candidateName: 'Undecided', percentage: 20 }
-      ]}
-    ],
     candidates: [
       {
         id: 'cand-raquel-regalado',
@@ -353,64 +346,74 @@ export const southFloridaRaces: RaceRecord[] = [
         userVotesCount: 142
       },
       {
-        id: 'cand-richard-cruz',
-        slug: 'richard-cruz',
-        personId: 'person-cruz',
-        name: 'Richard Cruz',
-        ballotName: 'Richard "Rich" Cruz',
-        photoUrl: 'https://cruzfordistrict7.com/wp-content/uploads/2026/01/richard-cruz-headshot.jpg',
+        id: 'cand-cindy-lerner',
+        slug: 'cindy-lerner',
+        personId: 'person-lerner',
+        name: 'Cindy Lerner',
+        ballotName: 'Cindy Lerner',
+        photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7c/Profile_avatar_placeholder_large.png/800px-Profile_avatar_placeholder_large.png',
         party: 'Nonpartisan',
         seatId: 'seat-miami-dade-d7',
         raceId: 'race-miami-dade-commissioner-d7',
         isIncumbent: false,
         status: 'Qualified',
-        filingDate: 'February 3, 2026',
-        qualificationStatus: 'Qualified via Petition',
-        campaignWebsite: 'https://cruzfordistrict7.com',
-        campaignCommittee: 'Friends of Richard Cruz for Commission',
-        treasurer: 'Elena Santos',
+        filingDate: 'January 25, 2026',
+        qualificationStatus: 'Qualified on Ballot',
+        campaignWebsite: 'https://www.cindylerner.com',
+        campaignCommittee: 'Friends of Cindy Lerner',
+        treasurer: 'Cindy Lerner Campaign Committee',
         socials: [
-          { platform: 'Twitter/X', handle: '@RichCruzMIA', url: 'https://x.com' }
+          { platform: 'Twitter/X', handle: '@CindyLernerFL', url: 'https://x.com' }
         ],
         biography: [
-          'Richard Cruz is a civil engineer, community activist, and small business owner from Pinecrest.',
-          'Campaigning on tax relief, stricter oversight on high-rise development zoning, and lower county spending.'
+          'Cindy Lerner is an attorney and former Mayor of South Miami who served from 2008 to 2016.',
+          'Previously represented District 119 in the Florida House of Representatives from 2000 to 2002.',
+          'Focuses on climate resilience, sea-level rise mitigation, municipal ethics, and Biscayne Bay watershed protection.'
         ],
-        education: ['University of Miami (B.S. in Civil Engineering)'],
-        professionalHistory: ['CEO, Cruz Engineering Solutions (15 yrs)', 'President, Pinecrest Homeowners Association'],
-        governmentExperience: ['Pinecrest Zoning Advisory Board Member (3 yrs)'],
-        familyDisclosures: ['Married, father of three children attending Miami-Dade Public Schools'],
+        education: [
+          'Emory University School of Law (J.D.)',
+          'Tulane University (B.A.)'
+        ],
+        professionalHistory: [
+          'Mayor, City of South Miami (2008-2016)',
+          'Member, Florida House of Representatives (2000-2002)',
+          'President, Miami-Dade County League of Cities',
+          'Attorney at Law'
+        ],
+        governmentExperience: ['Mayor of South Miami (8 yrs)', 'Florida State Representative (2 yrs)'],
+        familyDisclosures: ['Married to Dr. Irv Lerner, mother of three adult children'],
         legalArrestEthicsDisclosures: [
-          { title: 'No criminal record or ethics violations found', year: '2026', details: 'Verified by Hermes Background Validation Node.', status: 'Clean' }
+          { title: 'Florida Commission on Ethics Compliance Review', year: '2016', details: 'Statutory financial disclosures filed and in full compliance.', status: 'Compliant' }
         ],
         stances: [
-          { category: 'Housing & Zoning', position: 'Oppose Density Overdevelopment', detail: 'Promises to vote NO on comprehensive development master plan amendments exceeding 4 stories in residential zones.', sourceUrl: 'https://cruzfordistrict7.com', sourceLabel: 'Campaign Platform', aiConfidence: 94 },
-          { category: 'Taxes', position: 'Roll back County Property Millage Rate', detail: 'Proposes 5% millage rate cut for primary homeowners.', sourceUrl: 'https://cruzfordistrict7.com', sourceLabel: 'Press Release', aiConfidence: 91 }
+          { category: 'Environment', position: 'Aggressive Sea-Level Rise Preparedness', detail: 'Advocates for county-wide green infrastructure investments and stricter stormwater runoff regulations.', sourceUrl: 'https://www.cindylerner.com', sourceLabel: 'Campaign Platform', aiConfidence: 95 },
+          { category: 'Ethics', position: 'Stricter Lobbying & Campaign Finance Disclosures', detail: 'Proposes tighter restrictions on real estate developers appearing before the Board of County Commissioners.', sourceUrl: 'https://www.cindylerner.com', sourceLabel: 'Public Statement', aiConfidence: 92 }
         ],
         finance: {
-          totalRaised: 210000,
-          totalSpent: 140000,
-          cashOnHand: 70000,
-          pacSupport: 10,
-          individualSupport: 90,
+          totalRaised: 310000,
+          totalSpent: 220000,
+          cashOnHand: 90000,
+          pacSupport: 15,
+          individualSupport: 85,
           asOf: 'July 31, 2026',
           topDonors: [
-            { name: 'Pinecrest Homeowners Association PAC', amount: 5000, isPac: true },
-            { name: 'South Florida Engineering Guild', amount: 2500, isPac: false }
+            { name: 'Sierra Club Florida PAC', amount: 5000, isPac: true },
+            { name: 'Clean Water Action Coalition', amount: 2500, isPac: true }
           ]
         },
         aiSocialAnalysis: {
-          overallTone: 'Moderate Fiscal',
-          engagementRate: '3.2%',
-          keyThemes: ['Tax Relief', 'Smart Growth', 'Clean Government', 'Neighborhood Protection'],
+          overallTone: 'Progressive Reform',
+          engagementRate: '3.9%',
+          keyThemes: ['Resilience', 'Environmental Protection', 'Government Accountability', 'Transit'],
           topPlatformClaims: [
-            { platform: 'Twitter/X', claim: 'County spending has increased 22% over 4 years without proportional service improvements.', factCheck: 'Matches budget inflation data compiled by County Auditor.', status: 'Verified' }
+            { platform: 'Twitter/X', claim: 'Biscayne Bay requires systemic septic-to-sewer infrastructure conversions across the basin.', factCheck: 'Supported by Miami-Dade County Biscayne Bay Task Force Report.', status: 'Verified' }
           ],
-          aiSummary: 'Positions himself as a grass-roots challenger against corporate developer interests.'
+          aiSummary: 'Focuses heavily on environmental science, sea-level rise data, and municipal government track record.'
         },
-        userVotesCount: 98
+        userVotesCount: 112
       }
     ]
+
   },
   {
     id: 'race-florida-house-d106',

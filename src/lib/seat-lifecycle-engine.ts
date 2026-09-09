@@ -10,9 +10,9 @@ export interface CandidateRecord {
   candidate_name: string;
   party: string;
   filing_date: string;
-  status: 'DECLARED' | 'QUALIFIED' | 'PRIMARY' | 'RUNOFF' | 'GENERAL' | 'ELECTED' | 'DEFEATED' | 'WITHDRAWN';
+  status: 'DECLARED' | 'FILED' | 'QUALIFIED' | 'PRIMARY' | 'RUNOFF' | 'GENERAL' | 'ELECTED' | 'DEFEATED' | 'WITHDRAWN';
   campaign_website_url?: string;
-  total_raised: number;
+  total_raised?: number;
 }
 
 export interface OfficeholderTenure {
@@ -46,14 +46,38 @@ export interface SeatWatchMeta {
   current_officeholder?: OfficeholderTenure;
   past_officeholders: OfficeholderTenure[];
   
-  // Upcoming Election Engine
+  // Upcoming Election Engine: Decomposed per statutory semantics
   upcoming_election: {
     election_uuid: string;
     election_date: string;
     election_type: 'PRIMARY' | 'GENERAL' | 'SPECIAL' | 'RUNOFF';
+    election_cycle_known: boolean;
+    seat_scheduled_for_election: boolean;
+    cycle_year: number;
+    monitoring_intensity: 'ROUTINE_WATCH' | 'ELEVATED_ELECTION_WATCH' | 'INTENSIVE_COUNT_WATCH';
+    // Statutory Qualifying Period (e.g. Noon June 8 - Noon June 12, 2026 per § 99.061(2), F.S.)
+    qualifying_period: {
+      start: string;
+      end: string;
+      statutory_authority: string;
+      status: 'UPCOMING' | 'ACTIVE' | 'CLOSED';
+    };
+    // Pre-qualifying document acceptance (e.g. 14 days prior per § 99.061(8), F.S.)
+    pre_qualifying_document_acceptance: {
+      start: string;
+      end: string;
+      statutory_authority: string;
+      status: 'UPCOMING' | 'ACTIVE' | 'CLOSED';
+    };
+    // Continuous Candidate Filing activity (Form DS-DE 9 per § 106.021, F.S.)
+    filing_activity: {
+      candidate_filing_active: boolean;
+      filing_status: 'ACTIVE_ACCEPTING_FILINGS' | 'SUSPENDED' | 'CLOSED';
+      statutory_authority: string;
+    };
+    // Backward-compatibility accessors
     qualifying_start: string;
     qualifying_end: string;
-    monitoring_intensity: 'ROUTINE_WATCH' | 'ELEVATED_ELECTION_WATCH' | 'INTENSIVE_COUNT_WATCH';
   };
   
   declared_candidates: CandidateRecord[];
@@ -83,16 +107,18 @@ class SeatLifecycleEngine {
     }
   ): CandidateRecord {
     const seat = this.seats.get(seatUuid);
-    const personUuid = `person_cand_${Math.random().toString(36).substring(2, 8)}`;
+    const slug = candidate.candidate_name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_');
+    const personUuid = `person_cand_${slug}`;
     
+    // Status defaults to 'FILED' (never 'QUALIFIED' before statutory qualifying period opens)
     const newCandidate: CandidateRecord = {
       person_uuid: personUuid,
       candidate_name: candidate.candidate_name,
       party: candidate.party,
       filing_date: new Date().toISOString(),
-      status: 'QUALIFIED',
+      status: 'FILED',
       campaign_website_url: candidate.campaign_website_url,
-      total_raised: 125000
+      total_raised: undefined // Never invent fake finance numbers
     };
 
     if (seat) {
@@ -197,11 +223,11 @@ class SeatLifecycleEngine {
       district_number: '15',
       current_officeholder: {
         person_uuid: 'person_fl_sen_15_incumbent',
-        name: 'Senator Kamia L. Brown',
+        name: 'Senator Geraldine Thompson',
         party: 'Democrat',
-        term_start: '2022-11-08',
-        term_end: '2026-11-03',
-        swearing_in_date: '2022-11-22',
+        term_start: '2024-11-05',
+        term_end: '2028-11-07',
+        swearing_in_date: '2024-11-19',
         status: 'ACTIVE_INCUMBENT'
       },
       past_officeholders: [
@@ -216,31 +242,41 @@ class SeatLifecycleEngine {
         }
       ],
       upcoming_election: {
-        election_uuid: 'elec_fl_sen_15_2026',
-        election_date: '2026-11-03',
+        election_uuid: 'elec_fl_sen_15_2028',
+        election_date: '2028-11-07',
         election_type: 'GENERAL',
+        election_cycle_known: true,
+        seat_scheduled_for_election: false, // District 15 is odd-numbered; off-cycle in 2026, scheduled for 2028
+        cycle_year: 2028,
+        monitoring_intensity: 'ROUTINE_WATCH',
+        qualifying_period: {
+          start: '2026-06-08T12:00:00-04:00',
+          end: '2026-06-12T12:00:00-04:00',
+          statutory_authority: 'Section 99.061(2), Florida Statutes',
+          status: 'UPCOMING'
+        },
+        pre_qualifying_document_acceptance: {
+          start: '2026-05-25T08:00:00-04:00',
+          end: '2026-06-08T12:00:00-04:00',
+          statutory_authority: 'Section 99.061(8), Florida Statutes',
+          status: 'UPCOMING'
+        },
+        filing_activity: {
+          candidate_filing_active: true,
+          filing_status: 'ACTIVE_ACCEPTING_FILINGS',
+          statutory_authority: 'Section 106.021, Florida Statutes'
+        },
         qualifying_start: '2026-06-08',
-        qualifying_end: '2026-06-12',
-        monitoring_intensity: 'ELEVATED_ELECTION_WATCH'
+        qualifying_end: '2026-06-12'
       },
       declared_candidates: [
         {
           person_uuid: 'person_fl_sen_15_incumbent',
-          candidate_name: 'Senator Kamia L. Brown',
+          candidate_name: 'Senator Geraldine Thompson',
           party: 'Democrat',
           filing_date: '2025-01-15',
-          status: 'PRIMARY',
-          campaign_website_url: 'https://kamiabrown.com',
-          total_raised: 284500
-        },
-        {
-          person_uuid: 'person_cand_challenger_001',
-          candidate_name: 'Marcus Vance',
-          party: 'Republican',
-          filing_date: '2025-03-02',
-          status: 'PRIMARY',
-          campaign_website_url: 'https://vanceforflorida.org',
-          total_raised: 198200
+          status: 'FILED',
+          campaign_website_url: 'https://flsenate.gov/Senators/s15'
         }
       ],
       boundary_gis: {
@@ -283,9 +319,29 @@ class SeatLifecycleEngine {
         election_uuid: 'elec_fl_gov_2026',
         election_date: '2026-11-03',
         election_type: 'GENERAL',
+        election_cycle_known: true,
+        seat_scheduled_for_election: true, // Governor is on 2026 General ballot
+        cycle_year: 2026,
+        monitoring_intensity: 'INTENSIVE_COUNT_WATCH',
+        qualifying_period: {
+          start: '2026-06-08T12:00:00-04:00',
+          end: '2026-06-12T12:00:00-04:00',
+          statutory_authority: 'Section 99.061(2), Florida Statutes (Second Qualifying Period: Noon June 8 - Noon June 12, 2026)',
+          status: 'UPCOMING'
+        },
+        pre_qualifying_document_acceptance: {
+          start: '2026-05-25T08:00:00-04:00',
+          end: '2026-06-08T12:00:00-04:00',
+          statutory_authority: 'Section 99.061(8), Florida Statutes (14-day pre-qualifying acceptance)',
+          status: 'UPCOMING'
+        },
+        filing_activity: {
+          candidate_filing_active: true,
+          filing_status: 'ACTIVE_ACCEPTING_FILINGS',
+          statutory_authority: 'Section 106.021, Florida Statutes (Campaign Treasurer Designation)'
+        },
         qualifying_start: '2026-06-08',
-        qualifying_end: '2026-06-12',
-        monitoring_intensity: 'INTENSIVE_COUNT_WATCH'
+        qualifying_end: '2026-06-12'
       },
       declared_candidates: [
         {
@@ -293,16 +349,14 @@ class SeatLifecycleEngine {
           candidate_name: 'Byron Donalds',
           party: 'Republican',
           filing_date: '2025-02-10',
-          status: 'PRIMARY',
-          total_raised: 4200000
+          status: 'FILED'
         },
         {
           person_uuid: 'person_cand_gov_02',
           candidate_name: 'Matt Gaetz',
           party: 'Republican',
           filing_date: '2025-04-01',
-          status: 'PRIMARY',
-          total_raised: 3100000
+          status: 'FILED'
         }
       ],
       boundary_gis: {

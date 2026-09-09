@@ -201,7 +201,7 @@ class ProfileCompletenessEngine {
     const generated_jobs: HermesJob[] = [];
     jobsByAgent.forEach((fieldIds, agentId) => {
       generated_jobs.push({
-        jobId: `job_missing_${agentId}_${Math.random().toString(36).substring(2, 7)}`,
+        jobId: `job_missing_${agentId}_${personUuid.slice(0, 8)}_${fieldIds.length}`,
         targetEntityUuid: personUuid,
         targetEntityType: 'PERSON',
         assignedWorker: agentId,
@@ -251,8 +251,8 @@ class ProfileCompletenessEngine {
         initialState = 'NOT_APPLICABLE';
       } else if (officeType === 'JUDICIAL' && def.category === 'CAMPAIGN_PROMISES') {
         initialState = 'NOT_APPLICABLE';
-      } else if (def.field_id === 'legislation_roll_call_votes' && Math.random() > 0.85) {
-        initialState = 'PENDING_RESEARCH';
+      } else if (def.category === 'LEGISLATION' && officeType !== 'FEDERAL_LEGISLATOR' && officeType !== 'STATE_LEGISLATOR') {
+        initialState = 'NOT_APPLICABLE';
       }
 
       return {

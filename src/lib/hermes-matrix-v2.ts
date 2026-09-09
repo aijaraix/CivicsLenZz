@@ -264,7 +264,7 @@ class HermesOrchestratorV2 {
       sourceTier,
       status: 'ACTIVE_LISTENING',
       heartbeatCadence: cadence,
-      lastHeartbeatMs: nowMs - Math.floor(Math.random() * 5000),
+      lastHeartbeatMs: nowMs - (this.workers.size * 100),
       lastRunTimestamp: now,
       processedCount,
       verifiedDataPoints: processedCount,
@@ -618,76 +618,25 @@ class HermesOrchestratorV2 {
       const promiseAgents: HermesWorkerId[] = ['H3', 'H13', 'H14', 'H15', 'H19', 'H25'];
       const grantAgents: HermesWorkerId[] = ['H17', 'H18'];
 
-      let officialIncremented = false;
-      let promiseIncremented = false;
-      let grantIncremented = false;
-
-      // Pulse active workers based on heartbeat speed mode
+      // Pulse active workers based on heartbeat speed mode without fabricating synthetic metrics
       this.workers.forEach((worker, id) => {
         if (worker.status === 'ACTIVE_LISTENING' || worker.status === 'SCHEDULED' || worker.status === 'EXECUTING') {
           const elapsed = nowMs - worker.lastHeartbeatMs;
           const targetIntervalMs = this.getSpeedIntervalMs(worker.heartbeatCadence);
 
-          if (elapsed >= targetIntervalMs || Math.random() < 0.4) {
+          if (elapsed >= targetIntervalMs) {
             worker.lastHeartbeatMs = nowMs;
             worker.lastRunTimestamp = nowIso;
-            const addP = Math.floor(Math.random() * 3) + 1;
-            const addV = Math.floor(Math.random() * 3) + 1;
-            worker.processedCount += addP;
-            worker.verifiedDataPoints += addV;
-
-            // Direct real-time metric linkage to platform counters
-            if (officialAgents.includes(id as HermesWorkerId)) {
-              if (Math.random() < 0.65) {
-                this.trackedOfficials += Math.floor(Math.random() * 2) + 1;
-                officialIncremented = true;
-              }
-            } else if (promiseAgents.includes(id as HermesWorkerId)) {
-              if (Math.random() < 0.70) {
-                this.trackedPromises += Math.floor(Math.random() * 4) + 1;
-                promiseIncremented = true;
-              }
-            } else if (grantAgents.includes(id as HermesWorkerId)) {
-              if (Math.random() < 0.60) {
-                this.liveGrants += Number((Math.random() * 0.03 + 0.01).toFixed(2));
-                grantIncremented = true;
-              }
-            }
-
-            // Append live sample data record
-            if (worker.sampleCollectedData && Array.isArray(worker.sampleCollectedData)) {
-              const hash = `sha256_${id.toLowerCase()}_${nowMs.toString(36)}`;
-              worker.sampleCollectedData.unshift({
-                timestamp: nowIso,
-                targetEntity: `${worker.name} Live Ingestion Stream`,
-                field: 'Verified Data Point Ingestion',
-                value: `VERIFIED - Record #${worker.processedCount.toLocaleString()}`,
-                evidenceHash: hash,
-                sourceUrl: worker.docketsMonitored[0] || 'https://dos.elections.myflorida.com'
-              });
-              if (worker.sampleCollectedData.length > 20) {
-                worker.sampleCollectedData.pop();
-              }
-            }
+            // Real workers update processedCount upon actual HTTP response completion
           }
         }
       });
-
-      // Ensure steady baseline growth across core metrics
-      if (!officialIncremented && Math.random() < 0.5) {
-        this.trackedOfficials += 1;
-      }
-      if (!promiseIncremented && Math.random() < 0.5) {
-        this.trackedPromises += Math.floor(Math.random() * 2) + 1;
-      }
-      if (!grantIncremented && Math.random() < 0.3) {
-        this.liveGrants += 0.01;
-      }
 
       // Run Watchdog Supervision Scan
       if (this.watchdogEnabled) {
         this.runWatchdogSupervisionScan(nowMs, nowIso);
       }
+
 
       this.saveToStorage();
     }, 2000);
@@ -708,7 +657,7 @@ class HermesOrchestratorV2 {
         this.autoRecoveryCount++;
 
         const newLog: RecoveryLogEntry = {
-          id: `rec_${Math.random().toString(36).substring(2, 7)}`,
+          id: `rec_${nowMs}_${worker.id.toLowerCase()}`,
           timestamp: nowIso,
           workerId: worker.id,
           workerName: worker.name,
@@ -784,8 +733,6 @@ class HermesOrchestratorV2 {
     if (!worker) return null;
     const oldThreads = worker.concurrencyLimit || 8;
     worker.concurrencyLimit = Math.max(1, Math.min(500, targetThreads));
-    worker.processedCount += Math.floor(Math.random() * 20) + 10;
-    worker.verifiedDataPoints += Math.floor(Math.random() * 15) + 5;
     this.saveToStorage();
     return {
       workerId,
@@ -800,8 +747,7 @@ class HermesOrchestratorV2 {
     let scaled = 0;
     this.workers.forEach(worker => {
       const current = worker.concurrencyLimit || 8;
-      const queueDepth = Math.floor(Math.random() * 250) + 50;
-      worker.queueDepth = queueDepth;
+      const queueDepth = worker.queueDepth || 0;
       if (queueDepth > 100) {
         worker.concurrencyLimit = Math.min(500, current + Math.floor(queueDepth / 10));
         scaled++;
@@ -818,7 +764,7 @@ class HermesOrchestratorV2 {
   public getPrimeEvolutionSummary() {
     const workers = Array.from(this.workers.values());
     const totalThreads = workers.reduce((sum, w) => sum + (w.concurrencyLimit || 8), 0);
-    const totalQueueDepth = workers.reduce((sum, w) => sum + (w.queueDepth || Math.floor(Math.random() * 120) + 20), 0);
+    const totalQueueDepth = workers.reduce((sum, w) => sum + (w.queueDepth || 0), 0);
     
     return {
       masterOrchestrator: 'HERMES PRIME (H0)',
@@ -861,36 +807,18 @@ class HermesOrchestratorV2 {
     const worker = this.workers.get(workerId);
     if (!worker) return null;
 
-    const addP = Math.floor(Math.random() * 8) + 3;
-    const addV = Math.floor(Math.random() * 6) + 2;
-
-    worker.processedCount += addP;
-    worker.verifiedDataPoints += addV;
     worker.lastRunTimestamp = new Date().toISOString();
     worker.status = 'EXECUTING';
 
-    const officialAgents: HermesWorkerId[] = ['H1', 'H2', 'H5', 'H28', 'H29', 'H30', 'H32'];
-    const promiseAgents: HermesWorkerId[] = ['H3', 'H13', 'H14', 'H15', 'H19', 'H25'];
-    const grantAgents: HermesWorkerId[] = ['H17', 'H18'];
-
-    if (officialAgents.includes(workerId)) {
-      this.trackedOfficials += Math.floor(Math.random() * 3) + 1;
-    } else if (promiseAgents.includes(workerId)) {
-      this.trackedPromises += Math.floor(Math.random() * 6) + 2;
-    } else if (grantAgents.includes(workerId)) {
-      this.liveGrants += Number((Math.random() * 0.05 + 0.02).toFixed(2));
-    } else {
-      this.trackedOfficials += 1;
-    }
-
+    // Record legitimate execution event
     if (worker.sampleCollectedData && Array.isArray(worker.sampleCollectedData)) {
       const nowIso = new Date().toISOString();
       worker.sampleCollectedData.unshift({
         timestamp: nowIso,
         targetEntity: `${worker.name} Manual Scan Trigger`,
-        field: 'Instant High-Frequency Sweep',
-        value: `VERIFIED - Batch Ingested +${addP} Data Points`,
-        evidenceHash: `sha256_${workerId.toLowerCase()}_manual_${Date.now().toString(36)}`,
+        field: 'Harvester Sweep Initiated',
+        value: `STATUS: DISPATCHED - Listening on primary government source`,
+        evidenceHash: `sha256_unreviewed_pending`,
         sourceUrl: worker.docketsMonitored[0] || 'https://dos.elections.myflorida.com'
       });
       if (worker.sampleCollectedData.length > 20) worker.sampleCollectedData.pop();
@@ -914,19 +842,19 @@ class HermesOrchestratorV2 {
       : ['H1', 'H2', 'H7', 'H8', 'H10', 'H12', 'H27', 'H28', 'H29', 'H30'];
 
     const createdJobs: HermesJob[] = jobWorkerList.map((workerId, idx) => ({
-      jobId: `job_${Math.random().toString(36).substring(2, 9)}`,
+      jobId: `job_${targetUuid}_${workerId.toLowerCase()}_${idx}`,
       targetEntityUuid: targetUuid,
       targetEntityType: targetType,
       assignedWorker: workerId,
       frequency: idx < 3 ? 'High' : 'Medium',
-      status: 'COMPLETED',
-      createdAt: new Date().toISOString(),
-      completedAt: new Date().toISOString()
+      status: 'QUEUED', // Honest initial state, not fake 'COMPLETED'
+      createdAt: new Date().toISOString()
     }));
 
     this.jobQueue.push(...createdJobs);
     return createdJobs;
   }
+
 }
 
 export const hermesOrchestratorV2 = new HermesOrchestratorV2();

@@ -1,0 +1,90 @@
+{
+  "contract_version": "CIVICLENZ_RESEARCH_INGEST_CONTRACT_V1",
+  "package_id": "pkg_fl_senate_sd35_representative_2026",
+  "generated_at": "2026-09-08T03:10:59.744Z",
+  "records_count": 1,
+  "batch_metadata": {
+    "extraction_status": "extracted_unreviewed",
+    "verified_by_canonical_civiclenz": false,
+    "written_to_supabase": false,
+    "harvester_operational_state": "ACTIVE_PRODUCER"
+  },
+  "records": [
+    {
+      "producer": "CivicsLenZz-Harvester",
+      "producer_version": "2.1.0-HERMES-PRIME",
+      "capability": "official_legislature_extraction",
+      "source_key": "fl_senate_sd35_primary",
+      "source_url": "https://flsenate.gov/Senators/s35",
+      "source_authority": "The Florida Senate (flsenate.gov)",
+      "source_type": "official_legislature",
+      "jurisdiction_key": "jurisdiction_us_fl",
+      "seat_key": "seat_fl_senate_35",
+      "person_candidate_key": "person_fl_senator_barbara_sharief",
+      "election_key": "election_fl_senate_35_2026",
+      "retrieved_at": "2026-09-08T03:10:59.726Z",
+      "http_status": 200,
+      "content_type": "text/html; charset=utf-8",
+      "byte_length": 55428,
+      "content_hash": "529391eccaed52977b953a351c71006ed499ef1cdcc66431f2ad94a2c9e5c21c",
+      "raw_object_reference": "data/snapshots/fl_senate_sd35_authoritative.html",
+      "parser_key": "deterministic_fl_senate_cheerio_v1",
+      "parser_version": "1.0.0",
+      "extracted_claims": {
+        "seat": {
+          "seat_id": "seat_fl_senate_35",
+          "title": "Florida State Senator, District 35",
+          "level": "State",
+          "branch": "Legislative",
+          "jurisdiction": "State of Florida",
+          "district": "District 35",
+          "session": "2024-2026"
+        },
+        "occupant": {
+          "full_name": "Barbara Sharief",
+          "title": "State Senator",
+          "chamber": "Florida Senate",
+          "district": "35",
+          "session_years": "2024-2026",
+          "official_photo_url": "https://flsenate.gov/PublishedContent/Senators/2024-2026/Photos/s35_5572.jpg"
+        },
+        "legislative_assignments": {
+          "committees": [
+            "Banking and Insurance, Vice Chair",
+            "Appropriations",
+            "Appropriations Committee on Agriculture, Environment, and General Government",
+            "Appropriations Committee on Health and Human Services",
+            "Children, Families, and Elder Affairs",
+            "Community Affairs",
+            "Military and Veterans Affairs, Space, and Domestic Security"
+          ]
+        },
+        "provenance": {
+          "primary_domain": "flsenate.gov",
+          "capture_method": "Direct TLS HTTP GET",
+          "sha256_verified_from_bytes": "529391eccaed52977b953a351c71006ed499ef1cdcc66431f2ad94a2c9e5c21c",
+          "is_search_or_gemini_inference": false
+        }
+      },
+      "relationships": [
+        {
+          "relationship_type": "OCCUPIES_SEAT",
+          "target_key": "seat_fl_senate_35",
+          "target_type": "Seat"
+        },
+        {
+          "relationship_type": "REPRESENTS_DISTRICT",
+          "target_key": "district_fl_senate_35",
+          "target_type": "District"
+        },
+        {
+          "relationship_type": "MEMBER_OF_BODY",
+          "target_key": "body_fl_senate",
+          "target_type": "LegislativeBody"
+        }
+      ],
+      "warnings": [],
+      "extraction_status": "extracted_unreviewed"
+    }
+  ]
+}

@@ -93,7 +93,7 @@ class EvidenceEngineRegistry {
     evidence_uuid: string;
     agent_id?: string;
   }): AssertionRecord {
-    const assertion_uuid = `as_${Math.random().toString(36).substring(2, 10)}`;
+    const assertion_uuid = `as_${params.person_uuid || 'entity'}_${params.field_name}_${Date.now()}`;
     const assertion: AssertionRecord = {
       assertion_uuid,
       person_uuid: params.person_uuid,

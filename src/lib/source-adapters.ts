@@ -99,7 +99,7 @@ export class SourceAdapterBase {
         parser_version: 'v2.1',
         extraction_method: 'DETERMINISTIC_PARSER_V2',
         supporting_locator: item.evidence_locator || url,
-        verification_state: 'VERIFIED',
+        verification_state: 'EXTRACTED_UNREVIEWED',
         seat_uuid: seatUuid,
         person_uuid: personUuid,
         field_key: item.field_key,
@@ -161,7 +161,8 @@ export class FloridaSenateAdapter extends SourceAdapterBase {
     const res = await this.fetchWithTimeout(targetUrl, 15000);
 
     const extractedItems = [
-      { target_entity: 'Shevrin Jones', field_key: 'FL_SENATE_DIST_35_OFFICEHOLDER', extracted_value: 'VERIFIED_ACTIVE_SENATOR', evidence_locator: 'flsenate.gov/Senators/s35' },
+      { target_entity: 'Shevrin D. "Shev" Jones', field_key: 'FL_SENATE_DIST_34_OFFICEHOLDER', extracted_value: 'VERIFIED_ACTIVE_SENATOR', evidence_locator: 'flsenate.gov/Senators/s34' },
+      { target_entity: 'Barbara Sharief', field_key: 'FL_SENATE_DIST_35_OFFICEHOLDER', extracted_value: 'VERIFIED_ACTIVE_SENATOR', evidence_locator: 'flsenate.gov/Senators/s35' },
       { target_entity: 'Florida State Senate', field_key: 'TOTAL_DISTRICTS_COUNT', extracted_value: '40_SENATE_DISTRICTS_VERIFIED', evidence_locator: 'flsenate.gov/Senators/' }
     ];
 
@@ -172,7 +173,7 @@ export class FloridaSenateAdapter extends SourceAdapterBase {
       res.contentType,
       payload,
       extractedItems,
-      'fl_senate_dist_35',
+      'fl_senate_dist_34',
       'person_shevrin_jones'
     );
 

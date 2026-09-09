@@ -24,11 +24,10 @@ export function HermesElectionsAdminPage() {
     setTimeout(() => {
       setNodes(prev => prev.map(n => ({
         ...n,
-        dataPointsIngested: n.dataPointsIngested + Math.floor(Math.random() * 45) + 10,
         lastScanTime: 'JUST NOW'
       })));
       setIsScanning(false);
-    }, 800);
+    }, 400);
   };
 
   const handleInspectWorkerEvidence = (worker: HermesWorkerMeta) => {

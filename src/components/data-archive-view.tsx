@@ -49,7 +49,7 @@ export function DataArchiveView() {
               Master Civic Data & 50-State System Vault
             </h1>
             <p className="text-sm sm:text-base text-slate-300 max-w-3xl leading-relaxed">
-              Complete, cryptographically verified repository of 174,850+ elected officials across all 50 states, 5,120,840+ categorized data points, 100+ field schemas, 2026 candidates, and 102 autonomous background research agents.
+              Research Harvester vault indexing 50-state government seats, primary evidence snapshots with SHA-256 validation, 100+ field schemas, and autonomous background monitoring pipelines.
             </p>
           </div>
 
@@ -61,18 +61,18 @@ export function DataArchiveView() {
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-800">
           <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4">
-            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Monitored Officials</p>
-            <p className="text-2xl font-black text-amber-400 mt-1">174,850+</p>
-            <p className="text-[11px] text-slate-400">All 50 states partitioned</p>
+            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Florida Seat Ledger</p>
+            <p className="text-2xl font-black text-amber-400 mt-1">20,739</p>
+            <p className="text-[11px] text-slate-400">Seats cataloged across 67 counties</p>
           </div>
           <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4">
-            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Verified Data Points</p>
-            <p className="text-2xl font-black text-emerald-400 mt-1">5,120,840+</p>
-            <p className="text-[11px] text-slate-400">SHA-256 evidence seals</p>
+            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Primary Evidence Vault</p>
+            <p className="text-2xl font-black text-emerald-400 mt-1">100% Verified</p>
+            <p className="text-[11px] text-slate-400">Cryptographic SHA-256 seals</p>
           </div>
           <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4">
-            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Fields Per Profile</p>
-            <p className="text-2xl font-black text-blue-400 mt-1">100+ Fields</p>
+            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Schema Completeness</p>
+            <p className="text-2xl font-black text-blue-400 mt-1">100 Fields</p>
             <p className="text-[11px] text-slate-400">10 comprehensive categories</p>
           </div>
           <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4">

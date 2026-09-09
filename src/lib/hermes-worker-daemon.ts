@@ -58,7 +58,8 @@ export class HermesWorkerDaemonEngine {
       
       const priorityJobs = [
         { agent_id: 'H1', job_type: 'INGEST_CANDIDATE_FILINGS', seat_uuid: 'fl_us_senate_seat_01', person_uuid: 'person_rick_scott', priority: 10 },
-        { agent_id: 'H13', job_type: 'INGEST_LEGISLATIVE_ROSTER', seat_uuid: 'fl_senate_dist_35', person_uuid: 'person_shevrin_jones', priority: 9 },
+        { agent_id: 'H13', job_type: 'INGEST_LEGISLATIVE_ROSTER', seat_uuid: 'fl_senate_dist_34', person_uuid: 'person_shevrin_jones', priority: 9 },
+        { agent_id: 'H13', job_type: 'INGEST_LEGISLATIVE_ROSTER', seat_uuid: 'fl_senate_dist_35', person_uuid: 'person_barbara_sharief', priority: 9 },
         { agent_id: 'H2', job_type: 'INGEST_COUNTY_ELECTION_DATA', seat_uuid: 'fl_miami_dade_mayor_seat_01', person_uuid: 'person_daniella_levine_cava', priority: 8 },
         { agent_id: 'H11', job_type: 'INGEST_EXECUTIVE_ORDERS', seat_uuid: 'fl_governor_seat_01', person_uuid: 'person_ron_desantis', priority: 8 },
         { agent_id: 'Q1', job_type: 'COMPLETENESS_AUDIT_SCAN', seat_uuid: 'fl_us_senate_seat_02', person_uuid: 'person_marco_rubio', priority: 7 }
@@ -129,17 +130,18 @@ export class HermesWorkerDaemonEngine {
       resultRecords = parseResult.records_extracted;
       
       if (job.seat_uuid) {
+        const isSD35 = job.seat_uuid.includes('35');
         hermesBackendStore.updateSeatCoverage({
           seat_uuid: job.seat_uuid,
-          office_name: 'Florida State Senator - District 35',
+          office_name: isSD35 ? 'Florida State Senator - District 35' : 'Florida State Senator - District 34',
           office_type: 'STATE_LEGISLATOR',
-          jurisdiction: 'Miami-Dade & Broward',
-          district_number: '35',
+          jurisdiction: isSD35 ? 'Broward County' : 'Miami-Dade & Broward',
+          district_number: isSD35 ? '35' : '34',
           government_level: 'State',
-          current_official_person_uuid: 'person_shevrin_jones',
-          current_official_name: 'Shevrin Jones',
+          current_official_person_uuid: isSD35 ? 'person_barbara_sharief' : 'person_shevrin_jones',
+          current_official_name: isSD35 ? 'Barbara Sharief' : 'Shevrin D. "Shev" Jones',
           is_vacant: false,
-          in_active_election_cycle: true,
+          in_active_election_cycle: !isSD35, // SD34 is active 2026 cycle; SD35 is off-cycle in 2026 (next 2028)
           completeness_percentage: 100,
           coverage_status: 'BASELINE_COMPLETE',
           last_updated_at: new Date().toISOString()

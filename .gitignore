@@ -6,3 +6,12 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Live Runtime Data & Local Persistence (Preserve physical files, do not track in Git)
+data/bridge-submissions.json
+data/jobs.json
+data/hermes_persistent_db.json
+data/coverage-atlas.json
+data/boundary-evolution.json
+temp_db.txt
+home_jsx.txt

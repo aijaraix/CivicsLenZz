@@ -1,0 +1,28 @@
+{
+  "producer_id": "civicslenzz-gemini-harvester",
+  "producer_name": "CivicsLenZz-Gemini-Harvester",
+  "producer_version": "2.2.0-HERMES-BRIDGE",
+  "canonical_upstream": "aijaraix/CivicLenZ",
+  "contract_versions_supported": [
+    "HERMES_RESEARCH_JOB_V1",
+    "CIVICLENZ_RESEARCH_INGEST_CONTRACT_V1"
+  ],
+  "contract_package_version": "CANONICAL_RESEARCH_CONTRACT_PACKAGE_V1",
+  "target_ingest_contract": "CIVICLENZ_RESEARCH_INGEST_CONTRACT_V1",
+  "environment": "PRODUCTION_ADVANCE_HARVESTER",
+  "runtime_version": "v20.x",
+  "result_formats": [
+    "application/json",
+    "CIVICLENZ_RESEARCH_INGEST_CONTRACT_V1"
+  ],
+  "default_extraction_status": "extracted_unreviewed",
+  "capabilities_count": 10,
+  "prohibitions_count": 8,
+  "prohibitions": [
+    "canonical verification",
+    "canonical publication",
+    "canonical identity override",
+    "truth-standard override",
+    "direct canonical database writes"
+  ]
+}

@@ -33,35 +33,6 @@ function createCustomIcon(color: string) {
   });
 }
 
-function generateMockBoundary(center: [number, number], level: string, isNational: boolean) {
-    if (isNational) return null;
-    let radius = 0.05;
-    if (level === 'State') radius = 0.3;
-    if (level === 'Federal') radius = 0.5;
-    if (level === 'Local') radius = 0.1;
-    if (level === 'School Board') radius = 0.05;
-    
-    const [lng, lat] = center;
-    const points = [];
-    for (let i = 0; i <= 8; i++) {
-        const angle = (i * Math.PI) / 4;
-        const r = radius * (0.8 + 0.4 * (Math.sin(i * 12345) * 0.5 + 0.5));
-        points.push([
-            lng + r * Math.cos(angle),
-            lat + r * Math.sin(angle)
-        ]);
-    }
-    
-    return {
-        type: "Feature",
-        properties: {},
-        geometry: {
-            type: "Polygon",
-            coordinates: [points]
-        }
-    };
-}
-
 // Component to dynamically fit bounds
 function MapFitter({ userLocation }: { userLocation: [number, number] | null }) {
     const map = useMap();
@@ -150,12 +121,6 @@ export function MapVisual({ compact, officials = [], levelFilter = 'All', userAd
                       feature: stateFeature,
                       color
                   });
-              } else {
-                  boundaries.push({
-                      key: `bound-${off.slug}-${index}`,
-                      feature: generateMockBoundary([lng, lat], off.level, isNational),
-                      color
-                  });
               }
           } else if (usGeoJSON && isNational) {
               boundaries.push({
@@ -163,16 +128,8 @@ export function MapVisual({ compact, officials = [], levelFilter = 'All', userAd
                   feature: usGeoJSON,
                   color
               });
-          } else {
-              const mock = generateMockBoundary([lng, lat], off.level, isNational);
-              if (mock) {
-                  boundaries.push({
-                      key: `bound-${off.slug}-${index}`,
-                      feature: mock,
-                      color
-                  });
-              }
           }
+          // Sub-state districts without loaded local GIS shapefiles display as exact geocoded markers without synthetic boundary hulls
       });
       
       return { markers, boundaries };

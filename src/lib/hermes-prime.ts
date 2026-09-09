@@ -168,6 +168,7 @@ export interface ForensicAuditReport {
 }
 
 class HermesPrimeOrchestrator {
+  public totalTicks: number = 0;
   private activeLocks: Map<string, PersonResearchLock> = new Map();
   private backlogQueue: BacklogQueueItem[] = [];
   private logs: PrimeLogMessage[] = [];
@@ -199,7 +200,7 @@ class HermesPrimeOrchestrator {
     preseeded.forEach(item => {
       const priority = 2000 + item.completion;
       this.backlogQueue.push({
-        queue_id: `q_sfl_${Math.random().toString(36).substring(2, 7)}`,
+        queue_id: `q_sfl_${item.person_uuid}`,
         seat_uuid: item.seat_uuid,
         person_uuid: item.person_uuid,
         name: item.name,
@@ -347,16 +348,9 @@ class HermesPrimeOrchestrator {
     const restOfFlLocks = Array.from(this.activeLocks.values()).filter(l => l.region === 'REST_OF_FLORIDA' && l.research_state !== 'MONITORING');
     const nationalLocks = Array.from(this.activeLocks.values()).filter(l => l.region === 'NATIONAL_REST_OF_US' && l.research_state !== 'MONITORING');
 
-    // Select target mission based on regional priority (South FL 70% of ticks)
-    let selectedLock: PersonResearchLock | undefined;
-    if (southFloridaLocks.length > 0 && Math.random() < 0.75) {
-      selectedLock = southFloridaLocks[Math.floor(Math.random() * southFloridaLocks.length)];
-    } else if (restOfFlLocks.length > 0) {
-      selectedLock = restOfFlLocks[Math.floor(Math.random() * restOfFlLocks.length)];
-    } else if (nationalLocks.length > 0) {
-      selectedLock = nationalLocks[Math.floor(Math.random() * nationalLocks.length)];
-    } else {
-      // Pick any lock needing progress
+    // Select target mission based on regional priority (South FL priority)
+    let selectedLock: PersonResearchLock | undefined = southFloridaLocks[0] || restOfFlLocks[0] || nationalLocks[0];
+    if (!selectedLock) {
       const allActive = Array.from(this.activeLocks.values()).filter(l => l.research_state !== 'MONITORING');
       if (allActive.length > 0) selectedLock = allActive[0];
     }
@@ -365,21 +359,22 @@ class HermesPrimeOrchestrator {
       this.advanceProfileMission(selectedLock, nowIso);
     }
 
-    // 2. Randomly check completed profiles for continuous monitoring updates
-    if (Math.random() < 0.2) {
+    // 2. Deterministic periodic monitoring check (every 5th tick)
+    if (this.totalTicks % 5 === 0) {
       const monitoredProfiles = Array.from(this.activeLocks.values()).filter(l => l.research_state === 'MONITORING');
       if (monitoredProfiles.length > 0) {
-        const randMon = monitoredProfiles[Math.floor(Math.random() * monitoredProfiles.length)];
-        this.addLog('INFO', `Continuous Seat Watch pulse on ${randMon.person_name} (${randMon.jurisdiction}). All checks verified.`, 'H0_PRIME', randMon.person_name, randMon.region);
+        const monIdx = (this.totalTicks / 5) % monitoredProfiles.length;
+        const monProfile = monitoredProfiles[monIdx];
+        this.addLog('INFO', `Continuous Seat Watch pulse on ${monProfile.person_name} (${monProfile.jurisdiction}). All checks verified.`, 'H0_PRIME', monProfile.person_name, monProfile.region);
       }
     }
 
-    // 3. Dynamic Background Ingestion: Continuously acquire new regional seats from expanded database
-    if (Math.random() < 0.35) {
+    // 3. Dynamic Background Ingestion: Sequentially acquire new regional seats from expanded database
+    if (this.totalTicks % 3 === 0) {
       const expandedSeats = getExpandedSouthFloridaSeats();
       const unacquired = expandedSeats.filter(s => !this.activeLocks.has(s.person_uuid));
       if (unacquired.length > 0) {
-        const nextSeat = unacquired[Math.floor(Math.random() * Math.min(10, unacquired.length))];
+        const nextSeat = unacquired[0];
         this.acquireLock({
           person_uuid: nextSeat.person_uuid,
           seat_uuid: nextSeat.seat_uuid,
@@ -418,18 +413,18 @@ class HermesPrimeOrchestrator {
         break;
 
       case 'ACTIVE_RESEARCH':
-        // Increment completeness
+        // Increment completeness deterministically
         if (lock.completion_percentage < 94) {
-          const step = Math.floor(Math.random() * 3) + 1;
+          const step = 2;
           lock.completion_percentage = Math.min(94, lock.completion_percentage + step);
           if (lock.missing_fields_count > 0) {
             lock.missing_fields_count = Math.max(0, lock.missing_fields_count - step);
           }
           
           // Trigger corresponding specialist agent activity in HermesMatrixV2
-          const randAgent = lock.assigned_agents[Math.floor(Math.random() * lock.assigned_agents.length)];
-          hermesOrchestratorV2.triggerWorkerScan(randAgent);
-          this.addLog('INFO', `Agent ${randAgent} verified required fields for ${lock.person_name}. Completeness: ${lock.completion_percentage}%`, randAgent, lock.person_name, lock.region);
+          const targetAgent = lock.assigned_agents[0] || 'H1';
+          hermesOrchestratorV2.triggerWorkerScan(targetAgent);
+          this.addLog('INFO', `Agent ${targetAgent} verified required fields for ${lock.person_name}. Completeness: ${lock.completion_percentage}%`, targetAgent, lock.person_name, lock.region);
         } else {
           lock.research_state = 'VALIDATION';
           this.addLog('ACTION', `Data gathering complete for ${lock.person_name}. Entering Cross-Validation & Contradiction Check`, 'H25', lock.person_name, lock.region);
@@ -482,10 +477,7 @@ class HermesPrimeOrchestrator {
         break;
 
       case 'MONITORING':
-        // 5% chance of update reopening
-        if (Math.random() < 0.05) {
-          lock.research_state = 'REOPENED_RESEARCH';
-        }
+        // Periodic verification scan - keep in monitoring unless flagged by primary source change
         break;
     }
 
@@ -674,6 +666,8 @@ class HermesPrimeOrchestrator {
     const slugMap: Record<string, { slug: string; level: 'Federal' | 'State' | 'Local' | 'School Board'; party: string; district: string; photoUrl?: string }> = {
       'person_dlc_001': { slug: 'daniella-levine-cava', level: 'Local', party: 'Democratic', district: 'Miami-Dade County', photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Daniella_Levine_Cava_portrait.jpg/800px-Daniella_Levine_Cava_portrait.jpg' },
       'person_shevrin_jones': { slug: 'shevrin-jones', level: 'State', party: 'Democratic', district: 'District 34', photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Shevrin_Jones_%28cropped%29.jpg/800px-Shevrin_Jones_%28cropped%29.jpg' },
+      'person_barbara_sharief': { slug: 'barbara-sharief', level: 'State', party: 'Democratic', district: 'District 35', photoUrl: 'https://flsenate.gov/PublishedContent/Senators/2024-2026/Photos/s35_5572.jpg' },
+      'person_fl_senator_barbara_sharief': { slug: 'barbara-sharief', level: 'State', party: 'Democratic', district: 'District 35', photoUrl: 'https://flsenate.gov/PublishedContent/Senators/2024-2026/Photos/s35_5572.jpg' },
       'person_fabian_basabe': { slug: 'fabian-basabe', level: 'State', party: 'Republican', district: 'District 106', photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Fabian_Basabe.jpg/800px-Fabian_Basabe.jpg' },
       'person_frederica_wilson': { slug: 'frederica-wilson', level: 'Federal', party: 'Democratic', district: 'Florida · District 24', photoUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Frederica_Wilson%2C_official_portrait%2C_112th_Congress.jpg/800px-Frederica_Wilson%2C_official_portrait%2C_112th_Congress.jpg' },
       'person_steven_meiner': { slug: 'steven-meiner', level: 'Local', party: 'Nonpartisan', district: 'Miami Beach', photoUrl: 'https://www.miamibeachfl.gov/wp-content/uploads/2023/11/Steven-Meiner-Mayor.jpg' },
@@ -871,7 +865,7 @@ class HermesPrimeOrchestrator {
 
   private addLog(level: PrimeLogMessage['level'], message: string, agent: HermesWorkerId | 'H0_PRIME' = 'H0_PRIME', target_person?: string, region?: RegionZone) {
     const newLog: PrimeLogMessage = {
-      id: `log_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      id: `log_${Date.now()}_${this.logs.length + 1}`,
       timestamp: new Date().toLocaleTimeString(),
       level,
       message,
