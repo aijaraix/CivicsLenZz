@@ -175,7 +175,7 @@ export class PhysicalControlPlaneEngine {
     });
 
     return {
-      canonical_branch_head_sha: '5882b577b76d89c64b9548bb1b20f70dcfae0972',
+      canonical_branch_head_sha: '6462ef06b837d64f13967188d9d74341da5080f6',
       manifest_version: manifestVersion,
       manifest_blob_sha: manifestBlobSha,
       manifest_content_hash: manifestContentHash,

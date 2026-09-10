@@ -50,10 +50,10 @@ async function runPhysicalControlPlaneTests() {
   // 1. Manifest Required Documents Array & Blob SHA
   runTest("Physical manifest audit counts required_documents array directly and separates Blob SHA from Commit SHA", () => {
     const manifest = physicalControlPlaneEngine.auditManifest();
-    assert.strictEqual(manifest.canonical_branch_head_sha, '5882b577b76d89c64b9548bb1b20f70dcfae0972');
-    assert.strictEqual(manifest.manifest_version, '1.0.0');
-    assert.strictEqual(manifest.required_document_count, 42);
-    assert.strictEqual(manifest.read_and_reconciled_count, 42);
+    assert.strictEqual(manifest.canonical_branch_head_sha, '6462ef06b837d64f13967188d9d74341da5080f6');
+    assert.strictEqual(manifest.manifest_version, '1.1.0');
+    assert.strictEqual(manifest.required_document_count, 46);
+    assert.strictEqual(manifest.read_and_reconciled_count, 46);
     assert.strictEqual(manifest.missing_count, 0);
     assert.strictEqual(manifest.contradiction_count, 0);
     assert.ok(manifest.manifest_blob_sha.length === 40); // Valid git blob sha1

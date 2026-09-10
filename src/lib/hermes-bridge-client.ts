@@ -493,7 +493,9 @@ export class HermesBridgeClient {
       if (!isJson && response.status >= 500) {
         this.telemetry.retryable_failures += 1;
         record.delivery_state = 'RETRYABLE';
-        const backoffMs = Math.min(60000, Math.pow(2, record.attempts) * 1000 + Math.floor(Math.random() * 500));
+        // Deterministic bounded jitter based on attempt count
+        const jitter = (record.attempts * 97) % 500;
+        const backoffMs = Math.min(60000, Math.pow(2, record.attempts) * 1000 + jitter);
         record.next_retry_at = new Date(Date.now() + backoffMs).toISOString();
         record.last_error = `HTTP ${response.status} from Canonical Gateway. Retrying in ${Math.round(backoffMs / 1000)}s`;
         this.saveSubmissions();

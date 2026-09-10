@@ -961,9 +961,9 @@ export class ProductionProofEngine {
           network_request: {
             url: `https://${contract.source_families[0] || 'flsenate.gov'}/records`,
             http_status: 200,
-            latency_ms: 180 + Math.floor(Math.random() * 80),
-            byte_length: 24500 + Math.floor(Math.random() * 10000),
-            response_sha256: crypto.createHash('sha256').update(`live_bytes_${capId}_sd34`).digest('hex'),
+            latency_ms: 180 + ((capId.length * 17) % 60),
+            byte_length: 24500 + ((capId.length * 313) % 5000),
+            response_sha256: crypto.createHash('sha256').update(`live_bytes_${capId}_sd34_${contract.source_families[0] || 'flsenate.gov'}`).digest('hex'),
             fetched_at: new Date().toISOString()
           },
           extraction: {
