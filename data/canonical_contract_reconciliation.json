@@ -1,0 +1,338 @@
+[
+  {
+    "path": "CODEX_START_HERE.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "83e18b9df01a363f7ea6d39832727f3388355a60",
+    "sha256": "2d6e277ef876a6e231048a2967e52ffe94a7fea6b2ef8e359858b809ff29f8ab"
+  },
+  {
+    "path": "docs/control-plane/README.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "1f71d1c66fd8f1b08d8389c5be6939b3d9165cd4",
+    "sha256": "73c636b4ccf052489af0f6eef1d577762f4d509d1736a68ecbe70c7103c9f827"
+  },
+  {
+    "path": "docs/control-plane/AUTONOMOUS_RESEARCH_CONTROL_PLANE_MASTER_INDEX_AND_IMPLEMENTATION_ORDER.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "793f0ec530d5a7f32d05cc66395cc588d855df88",
+    "sha256": "d70c7fd18fcadcb43990654027d92f48bfde44da485692d41b78c7c80cdb4cbd"
+  },
+  {
+    "path": "docs/control-plane/CIVICLENZ_MASTER_AUTONOMOUS_RESEARCH_OPERATING_CONTRACT.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "39796ddc87808b2d10bc7c90f39db5367fcdb678",
+    "sha256": "2c8272e351c32f50d4ab30691c248ca5e7ae36aefde26b17d3ccc28d025b02e9"
+  },
+  {
+    "path": "docs/control-plane/SUBJECT_RESEARCH_ENRICHMENT_AND_COMPLETENESS_CONTRACT.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "7b1ebcc5525e7122e85607c5e2f53861ccf3cbd5",
+    "sha256": "3e128b2deceee6228b68a0220d236e9532341170ed58a8887f676e3a7ae95b5d"
+  },
+  {
+    "path": "docs/control-plane/AGENT_RUNTIME_TOPOLOGY_HANDOFF_AND_TOOL_AUTHORITY.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "68813a6a653bc4debb742bec9b88e4ae38736a01",
+    "sha256": "8cf4fb68587a84cf2f4ab556faddaa0a93446952bfe86d7d528286fd505a658c"
+  },
+  {
+    "path": "docs/control-plane/RESEARCH_WORK_LEDGER_SCHEDULER_AND_BACKLOG_EXECUTION_CONTRACT.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "ca8792ad3d6440ec436f56924371aa75cf602c29",
+    "sha256": "3edf35424f6854fbd44dc30b28e84741b54b4914328527c744360563a7c35df1"
+  },
+  {
+    "path": "docs/control-plane/SOURCE_REGISTRY_RETRIEVAL_EXTRACTION_AND_EVIDENCE_EXECUTION_CONTRACT.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "9cf3a97d7a1b3b7480196e289404ed6912a2983e",
+    "sha256": "0b87751317e80b9c94399ee3d41cc74b27f13a2642bab5d2a0413de87fbb2058"
+  },
+  {
+    "path": "docs/control-plane/CANONICAL_VALIDATION_IDENTITY_CONTRADICTION_AND_PUBLICATION_GATE_CONTRACT.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "b94478210e2c58b10f3beb57264ff998ab2a6fec",
+    "sha256": "320b42dbe81d655f7b28359a795367bc8f49864b44d300c0614e964943e6d264"
+  },
+  {
+    "path": "docs/control-plane/MONITORING_CURRENTNESS_FAILURE_RECOVERY_AND_ACADEMY_EVOLUTION_CONTRACT.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "92948373c4b07c50df2fa46d08c3c4a37b9edf16",
+    "sha256": "9a7c2962feaa0a9570f7de24cc8a749af72a9dc8122e15855c90f796f7a7a4c4"
+  },
+  {
+    "path": "docs/control-plane/SYSTEM_SECURITY_SERVICE_IDENTITY_SECRETS_AND_PERMISSION_BOUNDARIES_CONTRACT.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "3b1a7b33eeca75ee08f77165947803d295c7ffb8",
+    "sha256": "f0567e2d509140a1c9d39c11c0acf0e9739b6e9823ed0df5927ff57b966dc2ef"
+  },
+  {
+    "path": "docs/control-plane/OPERATOR_DASHBOARD_METRICS_BACKLOG_AND_SYSTEM_TRUTH_CONTRACT.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "00af19482b07286a2bd671f5545914cfd22b0599",
+    "sha256": "4db5528d614ea04ca9da8b44a3a913d897e65bd59d414bb9360c69264d4979ae"
+  },
+  {
+    "path": "docs/control-plane/DEPLOYMENT_RUNTIME_SUPERVISION_RECOVERY_AND_DISASTER_CONTINUITY_CONTRACT.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "13f4f688b87af61d8f208b3626d1b94dad4ec086",
+    "sha256": "c2f95bdf1b189d82ee7ec7320cb25d03472c15013fafe740689eb4959b35d784"
+  },
+  {
+    "path": "docs/control-plane/END_TO_END_ACCEPTANCE_CONFORMANCE_AND_PRODUCTION_PROOF_CONTRACT.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "f17e1f591c0b04db84735a13a85fba873a933db1",
+    "sha256": "66f65113ea29bd6ba3abc1144e96f359d98d1c0f609487a90d0910a926060c1c"
+  },
+  {
+    "path": "docs/control-plane/01_TRUTH_RESEARCH_LIFECYCLE.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "32e55ef59ca7e61aac34f9359ee0f59259d965af",
+    "sha256": "26b2651cfc4b0c2d1b49e8f600a8e18d7e1f7ea5d0853c215d11896e3217490b"
+  },
+  {
+    "path": "docs/control-plane/02_HERMES_AGENTS_EVOLUTION.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "ca47d7e68b48a327d85c58a9cfd5c857f3b5c140",
+    "sha256": "9a16be9bc9d9b7af9f56be023a8f2a46cbe3273ca4c7c1ae2d2ffd2a0a87ee49"
+  },
+  {
+    "path": "docs/control-plane/03_RESEARCH_CONTRACTS_CONTINUOUS_SCOPE.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "a9998be9c51639946033f7fa87d2fcec74db6212",
+    "sha256": "3aebc4a44afb310f7da723eff04e4c16d49caa809b22254da6a0748bd6bcbd51"
+  },
+  {
+    "path": "docs/control-plane/04_OPERATOR_PUBLIC_PRODUCT.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "afe5ca3f4b430b7601f631e7760d3d92d8caa0e9",
+    "sha256": "97f00da267e4e01b8656f7277f84c04744832830433de03902e254ac526916e7"
+  },
+  {
+    "path": "docs/control-plane/05_AUTONOMOUS_RUNTIME_OPERATIONS.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "26cdfa042b23b5c152b07b4bd530e4eebbd43e2e",
+    "sha256": "89e8269cba78a402c4b56a003333375d4d1dc87426c628077353f14c7e9b5233"
+  },
+  {
+    "path": "docs/control-plane/PRODUCT_MISSION_AND_NONNEGOTIABLES.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "d84b83ca08aa2f80987c2cda3603687dbc5092f2",
+    "sha256": "caa756be73a4786eddc8af516939d4b429bd759915737dba7416ab7ba7fee0cc"
+  },
+  {
+    "path": "docs/control-plane/SYSTEM_ARCHITECTURE.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "d358146ef6484e74c8d8b75bb15acfe41a58475c",
+    "sha256": "bb9fe24c25a7f89536f0f4f4e0434d203cb8571fa8d8a7b117c184597d66ab51"
+  },
+  {
+    "path": "docs/control-plane/HERMES_OPENCLAW_RUNTIME.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "f01a424cec85c0ed5b1be3d621efe48e48cf596a",
+    "sha256": "f55719653b51317acacf9363d69c527d53e6fc1798b830626f7c3db8e43339e9"
+  },
+  {
+    "path": "docs/control-plane/WORKER_CATALOG_AND_RESEARCH_CONTRACTS.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "0b5e05d2e0e3e2cc1aae1b08c8f13fab369ab66f",
+    "sha256": "0b691121b1a9bde99253ac7574910fd25ac180f074a0c2adc628a9980f60d0a7"
+  },
+  {
+    "path": "docs/control-plane/DATA_EVIDENCE_VERIFICATION.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "d75d1509cffa9c643c3b03fc960c85df7c71370b",
+    "sha256": "8f1948cc06874a1443f7e0a42231a40c129f5f3b4146ab058134f2e6d7fde9ae"
+  },
+  {
+    "path": "docs/control-plane/CODEX_MASTER_IMPLEMENTATION_DIRECTIVE.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "758b7d58c54588cfb31504eead090492fd889c16",
+    "sha256": "05292d59e399996ce05ffbf613d75dfe3503b771a46c283817814f97baf4f75e"
+  },
+  {
+    "path": "docs/control-plane/PRODUCER_INDEPENDENCE_AND_FRONTIER_HARVESTING.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "7a6aaea1ea78e67a6d292539db50b469839860ee",
+    "sha256": "4899c5a132c105051b317f178d3a29fb84182ec7c20e5c23dab10c30383c9de1"
+  },
+  {
+    "path": "docs/control-plane/CANONICAL_RESEARCH_CONTRACT_PACKAGE.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "d07548fb7c0290953324a5fad633a69cf1f79d50",
+    "sha256": "6a33113f92dc8ecc9a6be2dbade9b71a5924c82d5df3773401693bdcbfb66e67"
+  },
+  {
+    "path": "docs/control-plane/SEAT_ELECTION_CANDIDATE_PARALLEL_RESEARCH.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "eaa7cc3d20916b772457cc0776cf01cd9e7a22da",
+    "sha256": "d7f369d57fa4e27b1b2dc369ec5261b5a6fb94cb43b3028727545fecfb4bc284"
+  },
+  {
+    "path": "docs/control-plane/ADDRESS_BOUNDARY_ELECTION_MAP_ARCHITECTURE.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "96d07541ce33606422b7e1399ea0386e0fe95468",
+    "sha256": "9a4cd11586e99c6d2434652ca94ad8f48e2f93fd95d792e245e0b722bcf9faef"
+  },
+  {
+    "path": "docs/control-plane/BOUNDARY_AND_SEAT_EVOLUTION.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "a463376b8d14c9d6bcca1ef43b8fcd7872c11e62",
+    "sha256": "1773e0cc261182c455f2d06a3f76986f189d0d8d05432da4be9c492ab548b566"
+  },
+  {
+    "path": "docs/control-plane/CIVIC_TERRITORY_AND_PUBLIC_RESOURCE_GRAPH.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "9964a987de73a73f9ad5e69730f40ad79948725e",
+    "sha256": "f1f1e9e45cc7d3a1e10141b8d48801889c9192c93c312c3fe094b848637330c7"
+  },
+  {
+    "path": "docs/control-plane/ORGANIZATION_RELATIONSHIP_AND_INFLUENCE_GRAPH.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "573489d259f23ae6cf9b42e8a2409a4486b0dd05",
+    "sha256": "d7d6ee85ba4e7d73c709cf038460515bf81e6850a26eedb892835806cee1889e"
+  },
+  {
+    "path": "docs/control-plane/PROMISE_POSITION_EVIDENCE_ALIGNMENT.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "5464dc810c7ef06269c65cf79516bbbe17f86b36",
+    "sha256": "bfc84e60820bacc7a037b9eb5d83328accc1fc958b53a9933a8a7bfa7f456892"
+  },
+  {
+    "path": "docs/control-plane/NATIONAL_COVERAGE_ATLAS_AND_EXPANSION.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "3f0453b39b7835c068e860ca211d56a2c9ddbdcf",
+    "sha256": "23b7548104753098e1eea96433140daafabe017466577992a3726244e196ba6a"
+  },
+  {
+    "path": "docs/control-plane/RESEARCH_CONTROL_AND_OBSERVABILITY_PLANE.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "104f7dd6d51be0401404f5bfe5fa2c9ef96cca8c",
+    "sha256": "814dc80076e8a4e71c4d42b38d9e2462d4ae12bb2766e3b0c685e5a8dbb9df51"
+  },
+  {
+    "path": "docs/control-plane/AGENT_TOOL_SOURCE_EXECUTION_LINEAGE.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "26fc839683f92da1b51efeabacd8ecb726ed560d",
+    "sha256": "a663abf4b8abd2d37753639e343f4a24fa8a5d95171369e7e689f5660744b469"
+  },
+  {
+    "path": "docs/control-plane/EVIDENCE_LOCATOR_AND_CLAIM_PROVENANCE.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "54217233dc5fa881de322a681b3aa0f8e9eb35ae",
+    "sha256": "78ee5ef2ad18a32d52707a49bf38f282a04a69a3163a43848ae2a6dc456755d9"
+  },
+  {
+    "path": "docs/control-plane/DASHBOARD_METRIC_TRUTH_AND_RECONCILIATION.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "afdf7a31eb938fdc9a9149add9c2c036254dc59d",
+    "sha256": "bf063400deaa9cc53cd519ab8f25026c0b7c73a003206b3b267c655001377380"
+  },
+  {
+    "path": "docs/control-plane/PUBLIC_OPERATOR_UI_TRUTH_CONTRACT.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "6e7011c19a30bca416d77732b02bb08952a00364",
+    "sha256": "4269998940076620e2eb6ed58a3afc173fc221634b4e040eb53af02dd041627c"
+  },
+  {
+    "path": "docs/control-plane/FAILURE_EXCEPTION_AND_MONITORING_ARCHITECTURE.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "e54c66aee60aa4c1b2f3eef509818286c6d873e5",
+    "sha256": "e0cd7f2f471ff79a86f123f76d643bbf759afff2654ac156ff9ef6a961c03e52"
+  },
+  {
+    "path": "docs/control-plane/MEDIA_ASSET_IDENTITY_AND_PROVENANCE.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "501decfc08af5667f44a60d2f92604e764f484ab",
+    "sha256": "8ddc047a86ce567ab4b2d26b586912a9d0b7be5b051d9d969e4231ea190eba2a"
+  },
+  {
+    "path": "docs/control-plane/AUTONOMOUS_RESEARCH_CONTROL_PLANE_RECONCILIATION_2026_09_10.md",
+    "fetched": "YES",
+    "read_and_reconciled": "YES",
+    "local_copy_present": "YES",
+    "blob_sha": "87026c91d91ab2c695d20a483b853d22519e1274",
+    "sha256": "0f9a72af158801140296647135001a8b890e9c20af01941ed3ea3c83aa0da8ce"
+  }
+]

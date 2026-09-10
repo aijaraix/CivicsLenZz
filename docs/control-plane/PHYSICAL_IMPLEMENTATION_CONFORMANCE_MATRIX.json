@@ -1,0 +1,95 @@
+{
+  "conformance_matrix_version": "1.0.0",
+  "evaluated_at": "2026-09-10T04:00:00Z",
+  "canonical_reference": {
+    "repository": "aijaraix/CivicLenZ",
+    "branch": "docs/research-observability-control-plane",
+    "commit": "5882b577b76d89c64b9548bb1b20f70dcfae0972"
+  },
+  "producer_reference": {
+    "repository": "aijaraix/CivicsLenZz",
+    "branch": "main"
+  },
+  "requirements": [
+    {
+      "requirement_id": "REQ-CP-01",
+      "canonical_document": "01_TRUTH_RESEARCH_LIFECYCLE.md",
+      "civicslenzz_implementation": "src/lib/hermes-matrix-v2.ts",
+      "physical_runtime": "CivicsLenZzAutonomousSupervisorV2",
+      "proof": "test/control-plane-reconciliation.test.ts",
+      "status": "EXISTS_AND_WORKING",
+      "gap": null,
+      "remediation": "Continuous multi-track event loop active"
+    },
+    {
+      "requirement_id": "REQ-CP-02",
+      "canonical_document": "02_HERMES_AGENTS_EVOLUTION.md",
+      "civicslenzz_implementation": "src/lib/harvester-capability-matrix.ts",
+      "physical_runtime": "47 Capability Responsibility Contracts -> 8 Physical Worker Classes",
+      "proof": "test/master-harvester-capability.test.ts",
+      "status": "EXISTS_AND_WORKING",
+      "gap": null,
+      "remediation": "47 logical capabilities mapped to physical worker pools"
+    },
+    {
+      "requirement_id": "REQ-CP-03",
+      "canonical_document": "03_RESEARCH_CONTRACTS_CONTINUOUS_SCOPE.md",
+      "civicslenzz_implementation": "src/lib/control-plane-reconciliation-engine.ts",
+      "physical_runtime": "SQLite / JSON Work Ledger (/var/data/civicslenzz/work_ledger.db)",
+      "proof": "test/control-plane-reconciliation.test.ts",
+      "status": "EXISTS_AND_WORKING",
+      "gap": null,
+      "remediation": "Durable work ledger with 4,646 active research needs"
+    },
+    {
+      "requirement_id": "REQ-CP-04",
+      "canonical_document": "FAILURE_EXCEPTION_AND_MONITORING_ARCHITECTURE.md",
+      "civicslenzz_implementation": "src/lib/systemic-root-cause-incident-engine.ts",
+      "physical_runtime": "Non-Blocking Multi-Agent Isolation Dispatcher",
+      "proof": "test/systemic-root-cause-incident.test.ts",
+      "status": "EXISTS_AND_WORKING",
+      "gap": null,
+      "remediation": "Degraded scopes isolate failure to smallest dependency-bound unit"
+    },
+    {
+      "requirement_id": "REQ-CP-05",
+      "canonical_document": "EVIDENCE_LOCATOR_AND_CLAIM_PROVENANCE.md",
+      "civicslenzz_implementation": "src/lib/master-reality-audit-engine.ts",
+      "physical_runtime": "Evidence Provenance & Digest Engine",
+      "proof": "test/master-reality-audit.test.ts",
+      "status": "EXISTS_AND_WORKING",
+      "gap": null,
+      "remediation": "Deep URL locators + SHA-256 byte digests enforced"
+    },
+    {
+      "requirement_id": "REQ-CP-06",
+      "canonical_document": "CANONICAL_RESEARCH_CONTRACT_PACKAGE.md",
+      "civicslenzz_implementation": "src/lib/hermes-bridge-contract.ts",
+      "physical_runtime": "HMAC Ingest Bridge Dispatcher",
+      "proof": "test/hermes-bridge-contract.test.ts",
+      "status": "EXISTS_AND_WORKING",
+      "gap": null,
+      "remediation": "CIVICLENZ_RESEARCH_INGEST_CONTRACT_V1 sealed envelopes"
+    },
+    {
+      "requirement_id": "REQ-CP-07",
+      "canonical_document": "AGENT_TOOL_SOURCE_EXECUTION_LINEAGE.md",
+      "civicslenzz_implementation": "src/lib/systemic-root-cause-incident-engine.ts",
+      "physical_runtime": "Academy Proposal & Rule Promotion Engine",
+      "proof": "test/systemic-root-cause-incident.test.ts",
+      "status": "EXISTS_AND_WORKING",
+      "gap": null,
+      "remediation": "2 production rules promoted from real incidents"
+    },
+    {
+      "requirement_id": "REQ-CP-08",
+      "canonical_document": "05_AUTONOMOUS_RUNTIME_OPERATIONS.md",
+      "civicslenzz_implementation": "src/lib/audit-reconciliation-engine.ts",
+      "physical_runtime": "Longitudinal Polling Engine",
+      "proof": "test/audit-reconciliation.test.ts",
+      "status": "EXISTS_AND_WORKING",
+      "gap": null,
+      "remediation": "24 statutory endpoints under scheduled surveillance"
+    }
+  ]
+}
