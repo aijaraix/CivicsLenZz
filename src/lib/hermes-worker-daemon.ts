@@ -114,7 +114,12 @@ export class HermesWorkerDaemonEngine {
         try {
           await this.processClaimedJob(job, workerInstance, lease.lease_uuid);
         } catch (err: any) {
-          console.error(`[HERMES DAEMON] Job Processing Exception [${job.job_uuid}]:`, err);
+          const isAdapterFailure = err.message && err.message.includes('ADAPTER_EXECUTION_FAILED');
+          if (isAdapterFailure) {
+            console.warn(`[HERMES DAEMON] Job [${job.job_uuid}] adapter retrieval deferred: ${err.message}`);
+          } else {
+            console.error(`[HERMES DAEMON] Job Processing Exception [${job.job_uuid}]:`, err);
+          }
           const isUnsupported = Boolean(err.message && err.message.includes('UNSUPPORTED_JOB_TYPE'));
           hermesBackendStore.failJob(job.job_uuid, workerInstance, err.message || 'Processing Exception', isUnsupported);
         } finally {
