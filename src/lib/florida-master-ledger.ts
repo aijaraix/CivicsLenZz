@@ -154,8 +154,8 @@ export class MasterFloridaLedgerEngine {
       jurisdiction: 'State of Florida',
       office_type: 'FEDERAL_LEGISLATOR',
       elective_status: 'ELECTED',
-      current_officeholder_uuid: 'person_rick_scott',
-      current_officeholder_name: 'Rick Scott',
+      current_officeholder_uuid: undefined,
+      current_officeholder_name: undefined,
       vacant_status: false,
       term_start: '2019-01-08',
       term_end: '2025-01-03',
@@ -163,8 +163,8 @@ export class MasterFloridaLedgerEngine {
       election_cycle: '2026_MIDTERM',
       source_authority: 'https://dos.elections.myflorida.com',
       research_contract_id: 'contract_fl_us_sen_a',
-      coverage_status: 'BASELINE_COMPLETE',
-      completeness_percent: 100,
+      coverage_status: 'RESEARCH_IN_PROGRESS',
+      completeness_percent: 0,
       region: 'SOUTH_FLORIDA'
     });
 
@@ -176,8 +176,8 @@ export class MasterFloridaLedgerEngine {
       jurisdiction: 'State of Florida',
       office_type: 'FEDERAL_LEGISLATOR',
       elective_status: 'ELECTED',
-      current_officeholder_uuid: 'person_marco_rubio',
-      current_officeholder_name: 'Marco Rubio',
+      current_officeholder_uuid: undefined,
+      current_officeholder_name: undefined,
       vacant_status: false,
       term_start: '2023-01-03',
       term_end: '2029-01-03',
@@ -185,8 +185,8 @@ export class MasterFloridaLedgerEngine {
       election_cycle: '2028_PRESIDENTIAL',
       source_authority: 'https://dos.elections.myflorida.com',
       research_contract_id: 'contract_fl_us_sen_b',
-      coverage_status: 'BASELINE_COMPLETE',
-      completeness_percent: 100,
+      coverage_status: 'RESEARCH_IN_PROGRESS',
+      completeness_percent: 0,
       region: 'SOUTH_FLORIDA'
     });
 
@@ -205,20 +205,20 @@ export class MasterFloridaLedgerEngine {
         election_cycle: '2026_MIDTERM',
         source_authority: 'https://api.congress.gov/v3/member/state/FL',
         research_contract_id: `contract_fl_us_rep_${i}`,
-        coverage_status: i <= 5 ? 'BASELINE_COMPLETE' : 'MONITORING',
-        completeness_percent: i <= 5 ? 100 : 92,
+        coverage_status: 'RESEARCH_IN_PROGRESS',
+        completeness_percent: 0,
         region: i <= 10 ? 'SOUTH_FLORIDA' : i <= 20 ? 'CENTRAL' : 'PANHANDLE'
       });
     }
 
     // 2. Statewide Executive Seats (6 Total)
     const statewideExecs = [
-      { uuid: 'fl_governor', title: 'Governor of Florida', name: 'Ron DeSantis', personUuid: 'person_ron_desantis' },
-      { uuid: 'fl_lt_governor', title: 'Lieutenant Governor of Florida', name: 'Jeanette Nuñez', personUuid: 'person_jeanette_nunez' },
-      { uuid: 'fl_attorney_general', title: 'Attorney General of Florida', name: 'Ashley Moody', personUuid: 'person_ashley_moody' },
-      { uuid: 'fl_cfo', title: 'Chief Financial Officer of Florida', name: 'Jimmy Patronis', personUuid: 'person_jimmy_patronis' },
-      { uuid: 'fl_ag_commissioner', title: 'Commissioner of Agriculture', name: 'Wilton Simpson', personUuid: 'person_wilton_simpson' },
-      { uuid: 'fl_special_comm', title: 'Statewide Executive Commission Chair', name: 'Florida Executive Chair', personUuid: 'person_fl_exec_chair' }
+      { uuid: 'fl_governor', title: 'Governor of Florida' },
+      { uuid: 'fl_lt_governor', title: 'Lieutenant Governor of Florida' },
+      { uuid: 'fl_attorney_general', title: 'Attorney General of Florida' },
+      { uuid: 'fl_cfo', title: 'Chief Financial Officer of Florida' },
+      { uuid: 'fl_ag_commissioner', title: 'Commissioner of Agriculture' },
+      { uuid: 'fl_special_comm', title: 'Statewide Executive Commission Chair' }
     ];
 
     statewideExecs.forEach(exec => {
@@ -230,15 +230,15 @@ export class MasterFloridaLedgerEngine {
         jurisdiction: 'State of Florida',
         office_type: 'STATE_EXECUTIVE',
         elective_status: 'ELECTED',
-        current_officeholder_uuid: exec.personUuid,
-        current_officeholder_name: exec.name,
+        current_officeholder_uuid: undefined,
+        current_officeholder_name: undefined,
         vacant_status: false,
         next_expected_election: '2026-11-03',
         election_cycle: '2026_MIDTERM',
         source_authority: 'https://www.flgov.com',
         research_contract_id: `contract_${exec.uuid}`,
-        coverage_status: 'BASELINE_COMPLETE',
-        completeness_percent: 100,
+        coverage_status: 'RESEARCH_IN_PROGRESS',
+        completeness_percent: 0,
         region: 'SOUTH_FLORIDA'
       });
     });
@@ -259,8 +259,8 @@ export class MasterFloridaLedgerEngine {
         election_cycle: '2026_MIDTERM',
         source_authority: 'https://flsenate.gov',
         research_contract_id: `contract_fl_sen_${s}`,
-        coverage_status: s === 35 ? 'BASELINE_COMPLETE' : 'MONITORING',
-        completeness_percent: s === 35 ? 100 : 88,
+        coverage_status: 'RESEARCH_IN_PROGRESS',
+        completeness_percent: 0,
         region: s >= 30 ? 'SOUTH_FLORIDA' : s >= 15 ? 'CENTRAL' : 'NORTH_CENTRAL'
       });
     }
@@ -324,8 +324,8 @@ export class MasterFloridaLedgerEngine {
           election_cycle: '2028_PRESIDENTIAL',
           source_authority: `https://www.${c.name.toLowerCase().replace(/\s+/g, '')}votes.gov`,
           research_contract_id: `contract_${c.fips}_${idx}`,
-          coverage_status: 'BASELINE_COMPLETE',
-          completeness_percent: 100,
+          coverage_status: 'RESEARCH_IN_PROGRESS',
+          completeness_percent: 0,
           region: c.region
         });
       });
@@ -362,7 +362,7 @@ export class MasterFloridaLedgerEngine {
 
   public getMasterLedgerSummary() {
     const totalSeats = this.seats.length;
-    const completeSeats = this.seats.filter(s => s.coverage_status === 'BASELINE_COMPLETE' || s.coverage_status === 'MONITORING').length;
+    const completeSeats = this.seats.filter(s => s.coverage_status === 'UNREVIEWED_RESEARCH_INGESTED' || s.coverage_status === 'MONITORING').length;
 
     return {
       total_expected_seats: totalSeats,

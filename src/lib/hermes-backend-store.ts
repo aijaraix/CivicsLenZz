@@ -376,6 +376,11 @@ class HermesBackendStore {
     const target = dataToSave || this.db;
     target.last_updated_at = new Date().toISOString();
     
+    const dataDir = path.dirname(this.dbFilePath);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+
     // Atomic Write via Temporary File + Rename
     const tempFile = `${this.dbFilePath}.tmp.${Date.now()}`;
     try {
@@ -508,15 +513,15 @@ class HermesBackendStore {
           office_type: 'STATE_EXECUTIVE',
           jurisdiction: 'State of Florida',
           government_level: 'State',
-          current_official_person_uuid: 'person_ron_desantis',
-          current_official_name: 'Ron DeSantis',
+          current_official_person_uuid: undefined,
+          current_official_name: undefined,
           is_vacant: false,
           term_start: '2023-01-03',
           term_end: '2027-01-05',
           next_election_date: '2026-11-03',
           in_active_election_cycle: true,
-          completeness_percentage: 100,
-          coverage_status: 'BASELINE_COMPLETE',
+          completeness_percentage: 0,
+          coverage_status: 'RESEARCH_IN_PROGRESS',
           last_updated_at: new Date().toISOString()
         },
         {
@@ -525,15 +530,15 @@ class HermesBackendStore {
           office_type: 'FEDERAL_LEGISLATOR',
           jurisdiction: 'State of Florida',
           government_level: 'Federal',
-          current_official_person_uuid: 'person_rick_scott',
-          current_official_name: 'Rick Scott',
+          current_official_person_uuid: undefined,
+          current_official_name: undefined,
           is_vacant: false,
           term_start: '2019-01-08',
           term_end: '2025-01-03',
           next_election_date: '2026-11-03',
           in_active_election_cycle: true,
-          completeness_percentage: 100,
-          coverage_status: 'BASELINE_COMPLETE',
+          completeness_percentage: 0,
+          coverage_status: 'RESEARCH_IN_PROGRESS',
           last_updated_at: new Date().toISOString()
         },
         {
@@ -542,15 +547,15 @@ class HermesBackendStore {
           office_type: 'FEDERAL_LEGISLATOR',
           jurisdiction: 'State of Florida',
           government_level: 'Federal',
-          current_official_person_uuid: 'person_marco_rubio',
-          current_official_name: 'Marco Rubio',
+          current_official_person_uuid: undefined,
+          current_official_name: undefined,
           is_vacant: false,
           term_start: '2023-01-03',
           term_end: '2029-01-03',
           next_election_date: '2028-11-07',
           in_active_election_cycle: false,
-          completeness_percentage: 100,
-          coverage_status: 'BASELINE_COMPLETE',
+          completeness_percentage: 0,
+          coverage_status: 'RESEARCH_IN_PROGRESS',
           last_updated_at: new Date().toISOString()
         },
         {
@@ -560,15 +565,15 @@ class HermesBackendStore {
           jurisdiction: 'Miami-Dade County',
           county_fips: '12086',
           government_level: 'County',
-          current_official_person_uuid: 'person_daniella_levine_cava',
-          current_official_name: 'Daniella Levine Cava',
+          current_official_person_uuid: undefined,
+          current_official_name: undefined,
           is_vacant: false,
           term_start: '2020-11-17',
           term_end: '2028-11-20',
           next_election_date: '2028-08-22',
           in_active_election_cycle: false,
-          completeness_percentage: 100,
-          coverage_status: 'BASELINE_COMPLETE',
+          completeness_percentage: 0,
+          coverage_status: 'RESEARCH_IN_PROGRESS',
           last_updated_at: new Date().toISOString()
         },
         {
@@ -578,15 +583,15 @@ class HermesBackendStore {
           jurisdiction: 'Miami-Dade & Broward',
           district_number: '34',
           government_level: 'State',
-          current_official_person_uuid: 'person_shevrin_jones',
-          current_official_name: 'Shevrin D. "Shev" Jones',
+          current_official_person_uuid: undefined,
+          current_official_name: undefined,
           is_vacant: false,
           term_start: '2022-11-08',
           term_end: '2026-11-03',
           next_election_date: '2026-11-03',
           in_active_election_cycle: true,
-          completeness_percentage: 100,
-          coverage_status: 'BASELINE_COMPLETE',
+          completeness_percentage: 0,
+          coverage_status: 'RESEARCH_IN_PROGRESS',
           last_updated_at: new Date().toISOString()
         },
         {
@@ -596,21 +601,35 @@ class HermesBackendStore {
           jurisdiction: 'Broward County',
           district_number: '35',
           government_level: 'State',
-          current_official_person_uuid: 'person_barbara_sharief',
-          current_official_name: 'Barbara Sharief',
+          current_official_person_uuid: undefined,
+          current_official_name: undefined,
           is_vacant: false,
           term_start: '2024-11-05',
           term_end: '2028-11-07',
           next_election_date: '2028-11-07',
           in_active_election_cycle: false,
-          completeness_percentage: 100,
-          coverage_status: 'BASELINE_COMPLETE',
+          completeness_percentage: 0,
+          coverage_status: 'RESEARCH_IN_PROGRESS',
           last_updated_at: new Date().toISOString()
         }
       ];
 
       this.db.seat_coverage_status = prioritySeats;
       modified = true;
+    } else {
+      // Sanitize legacy loaded records
+      for (const seat of this.db.seat_coverage_status) {
+        if (seat.coverage_status === ('BASELINE_COMPLETE' as any)) {
+          seat.coverage_status = 'RESEARCH_IN_PROGRESS';
+          seat.completeness_percentage = 0;
+          modified = true;
+        }
+        if (seat.current_official_name) {
+          seat.current_official_name = undefined;
+          seat.current_official_person_uuid = undefined;
+          modified = true;
+        }
+      }
     }
 
     if (modified) {
@@ -836,7 +855,7 @@ class HermesBackendStore {
     const deadLetterCount = this.db.dead_letter_jobs.length;
     const evidenceCount = this.db.raw_evidence_objects.length;
     const seatsTotal = this.db.seat_coverage_status.length;
-    const seatsComplete = this.db.seat_coverage_status.filter(s => s.coverage_status === 'BASELINE_COMPLETE' || s.coverage_status === 'MONITORING').length;
+    const seatsComplete = this.db.seat_coverage_status.filter(s => s.coverage_status === 'UNREVIEWED_RESEARCH_INGESTED' || s.coverage_status === 'MONITORING').length;
 
     return {
       version: this.db.version,

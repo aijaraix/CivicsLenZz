@@ -69,12 +69,12 @@ export class HermesWorkerDaemonEngine {
       console.log('[HERMES WORKER DAEMON] Queue empty. Scheduling Florida Priority Research Jobs...');
       
       const priorityJobs = [
-        { agent_id: 'H1', job_type: 'INGEST_CANDIDATE_FILINGS', seat_uuid: 'fl_us_senate_seat_01', person_uuid: 'person_rick_scott', priority: 10 },
-        { agent_id: 'H13', job_type: 'INGEST_LEGISLATIVE_ROSTER', seat_uuid: 'fl_senate_dist_34', person_uuid: 'person_shevrin_jones', priority: 9 },
-        { agent_id: 'H13', job_type: 'INGEST_LEGISLATIVE_ROSTER', seat_uuid: 'fl_senate_dist_35', person_uuid: 'person_barbara_sharief', priority: 9 },
-        { agent_id: 'H2', job_type: 'INGEST_COUNTY_ELECTION_DATA', seat_uuid: 'fl_miami_dade_mayor_seat_01', person_uuid: 'person_daniella_levine_cava', priority: 8 },
-        { agent_id: 'H11', job_type: 'INGEST_EXECUTIVE_ORDERS', seat_uuid: 'fl_governor_seat_01', person_uuid: 'person_ron_desantis', priority: 8 },
-        { agent_id: 'Q1', job_type: 'COMPLETENESS_AUDIT_SCAN', seat_uuid: 'fl_us_senate_seat_02', person_uuid: 'person_marco_rubio', priority: 7 }
+        { agent_id: 'H1', job_type: 'INGEST_CANDIDATE_FILINGS', seat_uuid: 'fl_us_senate_seat_01', priority: 10 },
+        { agent_id: 'H13', job_type: 'INGEST_LEGISLATIVE_ROSTER', seat_uuid: 'fl_senate_dist_34', priority: 9 },
+        { agent_id: 'H13', job_type: 'INGEST_LEGISLATIVE_ROSTER', seat_uuid: 'fl_senate_dist_35', priority: 9 },
+        { agent_id: 'H2', job_type: 'INGEST_COUNTY_ELECTION_DATA', seat_uuid: 'fl_miami_dade_mayor_seat_01', priority: 8 },
+        { agent_id: 'H11', job_type: 'INGEST_EXECUTIVE_ORDERS', seat_uuid: 'fl_governor_seat_01', priority: 8 },
+        { agent_id: 'Q1', job_type: 'COMPLETENESS_AUDIT_SCAN', seat_uuid: 'fl_us_senate_seat_02', priority: 7 }
       ];
 
       priorityJobs.forEach(job => {
@@ -86,6 +86,18 @@ export class HermesWorkerDaemonEngine {
   public async executeDaemonCycle() {
     // Check up to available worker concurrency capacity
     const agentsToRun = ['H1', 'H2', 'H13', 'H11', 'Q1'];
+
+    // Supervisor check: Detect jobs queued with unregistered agents and move to DEAD_LETTER
+    const unroutableJobs = hermesBackendStore.getJobs().filter(j => j.status === 'QUEUED' && !agentsToRun.includes(j.agent_id) && j.agent_id !== '*');
+    for (const unroutable of unroutableJobs) {
+      console.warn(`[HERMES DAEMON] Unroutable job detected: [${unroutable.job_uuid}] Agent: ${unroutable.agent_id} Type: ${unroutable.job_type}`);
+      hermesBackendStore.failJob(
+        unroutable.job_uuid,
+        'SUPERVISOR-unroutable',
+        `UNSUPPORTED_AGENT: Agent "${unroutable.agent_id}" is not registered in the producer worker roster.`,
+        true
+      );
+    }
 
     for (const agentId of agentsToRun) {
       const workerInstance = `${agentId}-worker-${Date.now().toString(36).slice(-4)}`;
@@ -135,12 +147,10 @@ export class HermesWorkerDaemonEngine {
           office_type: 'FEDERAL_LEGISLATOR',
           jurisdiction: 'State of Florida',
           government_level: 'Federal',
-          current_official_person_uuid: 'person_rick_scott',
-          current_official_name: 'Rick Scott',
           is_vacant: false,
           in_active_election_cycle: true,
-          completeness_percentage: 100,
-          coverage_status: 'BASELINE_COMPLETE',
+          completeness_percentage: resultRecords > 0 ? 50 : 10,
+          coverage_status: resultRecords > 0 ? 'UNREVIEWED_RESEARCH_INGESTED' : 'RESEARCH_IN_PROGRESS',
           last_updated_at: new Date().toISOString()
         });
       }
@@ -162,12 +172,10 @@ export class HermesWorkerDaemonEngine {
           jurisdiction: isSD35 ? 'Broward County' : 'Miami-Dade & Broward',
           district_number: isSD35 ? '35' : '34',
           government_level: 'State',
-          current_official_person_uuid: isSD35 ? 'person_barbara_sharief' : 'person_shevrin_jones',
-          current_official_name: isSD35 ? 'Barbara Sharief' : 'Shevrin D. "Shev" Jones',
           is_vacant: false,
           in_active_election_cycle: !isSD35,
-          completeness_percentage: 100,
-          coverage_status: 'BASELINE_COMPLETE',
+          completeness_percentage: resultRecords > 0 ? 50 : 10,
+          coverage_status: resultRecords > 0 ? 'UNREVIEWED_RESEARCH_INGESTED' : 'RESEARCH_IN_PROGRESS',
           last_updated_at: new Date().toISOString()
         });
       }
@@ -187,12 +195,10 @@ export class HermesWorkerDaemonEngine {
           office_type: 'COUNTY_EXECUTIVE',
           jurisdiction: 'Miami-Dade County',
           government_level: 'County',
-          current_official_person_uuid: 'person_daniella_levine_cava',
-          current_official_name: 'Daniella Levine Cava',
           is_vacant: false,
           in_active_election_cycle: true,
-          completeness_percentage: 100,
-          coverage_status: 'BASELINE_COMPLETE',
+          completeness_percentage: resultRecords > 0 ? 50 : 10,
+          coverage_status: resultRecords > 0 ? 'UNREVIEWED_RESEARCH_INGESTED' : 'RESEARCH_IN_PROGRESS',
           last_updated_at: new Date().toISOString()
         });
       }
@@ -212,12 +218,10 @@ export class HermesWorkerDaemonEngine {
           office_type: 'STATE_EXECUTIVE',
           jurisdiction: 'State of Florida',
           government_level: 'State',
-          current_official_person_uuid: 'person_ron_desantis',
-          current_official_name: 'Ron DeSantis',
           is_vacant: false,
           in_active_election_cycle: true,
-          completeness_percentage: 100,
-          coverage_status: 'BASELINE_COMPLETE',
+          completeness_percentage: resultRecords > 0 ? 50 : 10,
+          coverage_status: resultRecords > 0 ? 'UNREVIEWED_RESEARCH_INGESTED' : 'RESEARCH_IN_PROGRESS',
           last_updated_at: new Date().toISOString()
         });
       }
@@ -262,7 +266,7 @@ export class HermesWorkerDaemonEngine {
 
     // Record durable autonomous proof record
     const nextQueued = hermesBackendStore.getJobs().find(j => j.status === 'QUEUED');
-    const nextWorkId = nextQueued ? nextQueued.job_uuid : `next_${Date.now().toString(36)}`;
+    const nextWorkId = nextQueued ? nextQueued.job_uuid : 'NO_QUEUED_WORK';
     hermesBackendStore.recordAutonomousProof({
       work_id: job.job_uuid,
       lease_id: leaseUuid || `lease_${job.job_uuid}`,

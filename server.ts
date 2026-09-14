@@ -222,13 +222,13 @@ async function startServer() {
           lat: match.coordinates ? match.coordinates.y : lat,
           lng: match.coordinates ? match.coordinates.x : lng
         },
-        stateName: stateObj.NAME || "Florida",
-        stateFips: stateObj.STATE || "12",
-        countyName: (countyObj.NAME || "Miami-Dade County").replace(/\s+County$/i, ""),
-        countyFips: countyObj.COUNTY || "086",
-        congressionalDistrict: cdObj.BASENAME || cdObj.CD119 || cdObj.CD118 || cdObj.DISTRICT || "27",
-        stateSenateDistrict: senateObj.BASENAME || senateObj.SLDU || "35",
-        stateHouseDistrict: houseObj.BASENAME || houseObj.SLDL || "106",
+        stateName: stateObj.NAME || "UNRESOLVED",
+        stateFips: stateObj.STATE || "UNRESOLVED",
+        countyName: countyObj.NAME ? countyObj.NAME.replace(/\s+County$/i, "") : "UNRESOLVED",
+        countyFips: countyObj.COUNTY || "UNRESOLVED",
+        congressionalDistrict: cdObj.BASENAME || cdObj.CD119 || cdObj.CD118 || cdObj.DISTRICT || "UNRESOLVED",
+        stateSenateDistrict: senateObj.BASENAME || senateObj.SLDU || "UNRESOLVED",
+        stateHouseDistrict: houseObj.BASENAME || houseObj.SLDL || "UNRESOLVED",
         municipalityName: placeObj.NAME || undefined,
         censusSource: "US Census Bureau Geocoding API (Public_AR_Current / Current_Current)",
         layerProvenance: {
@@ -261,6 +261,23 @@ async function startServer() {
     stateHouseDistrict: string;
     municipalityName?: string;
   }) {
+    if (resolved.stateName === "UNRESOLVED") {
+      return [];
+    }
+
+    const coverageRecords = hermesBackendStore.getSeatCoverageRecords();
+    const findOccupant = (seatId: string) => {
+      const record = coverageRecords.find(r => r.seat_uuid === seatId);
+      if (record && record.current_official_name) {
+        return {
+          name: record.current_official_name,
+          party: "RESEARCH_RECORD",
+          status: "EXTRACTED_UNREVIEWED"
+        };
+      }
+      return undefined;
+    };
+
     const seats: Array<{
       seat_id: string;
       office_title: string;
@@ -294,14 +311,9 @@ async function startServer() {
       branch: "Executive",
       jurisdiction: "United States of America",
       district: "Nationwide",
-      current_occupant: {
-        name: "Donald J. Trump",
-        party: "Republican",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1a/Donald_Trump_official_portrait_2025.jpg/800px-Donald_Trump_official_portrait_2025.jpg",
-        status: "VERIFIED_INCUMBENT"
-      },
+      current_occupant: findOccupant("seat_us_president"),
       upcoming_election: { cycle: "2028", expected_date: "November 7, 2028", monitoring_status: "MONITORING" },
-      evidence_source: { authority: "Executive Office of the President", url: "https://whitehouse.gov", verification_status: "VERIFIED" }
+      evidence_source: { authority: "Executive Office of the President", url: "https://whitehouse.gov", verification_status: "EXTRACTED_UNREVIEWED" }
     });
 
     seats.push({
@@ -311,14 +323,9 @@ async function startServer() {
       branch: "Legislative",
       jurisdiction: "State of Florida",
       district: "Florida Statewide (Class 1)",
-      current_occupant: {
-        name: "Rick Scott",
-        party: "Republican",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Rick_Scott_official_Senate_portrait_118th_Congress.jpg/800px-Rick_Scott_official_Senate_portrait_118th_Congress.jpg",
-        status: "VERIFIED_INCUMBENT"
-      },
+      current_occupant: findOccupant("seat_us_senate_fl_class_1"),
       upcoming_election: { cycle: "2026/2030", expected_date: "November 2030", monitoring_status: "MONITORING" },
-      evidence_source: { authority: "United States Senate", url: "https://www.senate.gov/senators/", verification_status: "VERIFIED" }
+      evidence_source: { authority: "United States Senate", url: "https://www.senate.gov/senators/", verification_status: "EXTRACTED_UNREVIEWED" }
     });
 
     seats.push({
@@ -328,26 +335,24 @@ async function startServer() {
       branch: "Legislative",
       jurisdiction: "State of Florida",
       district: "Florida Statewide (Class 3)",
-      current_occupant: {
-        name: "Marco Rubio",
-        party: "Republican",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/Marco_Rubio_official_portrait_118th_Congress.jpg/800px-Marco_Rubio_official_portrait_118th_Congress.jpg",
-        status: "VERIFIED_INCUMBENT"
-      },
+      current_occupant: findOccupant("seat_us_senate_fl_class_3"),
       upcoming_election: { cycle: "2028", expected_date: "November 7, 2028", monitoring_status: "MONITORING" },
-      evidence_source: { authority: "United States Senate", url: "https://www.senate.gov/senators/", verification_status: "VERIFIED" }
+      evidence_source: { authority: "United States Senate", url: "https://www.senate.gov/senators/", verification_status: "EXTRACTED_UNREVIEWED" }
     });
 
-    seats.push({
-      seat_id: `seat_us_house_fl_${resolved.congressionalDistrict}`,
-      office_title: `U.S. Representative (Florida District ${resolved.congressionalDistrict})`,
-      government_level: "Federal",
-      branch: "Legislative",
-      jurisdiction: "State of Florida",
-      district: `Florida Congressional District ${resolved.congressionalDistrict}`,
-      upcoming_election: { cycle: "2026", expected_date: "November 3, 2026", monitoring_status: "ELEVATED_ELECTION_WATCH" },
-      evidence_source: { authority: "U.S. House of Representatives", url: "https://www.house.gov/representatives", verification_status: "VERIFIED" }
-    });
+    if (resolved.congressionalDistrict !== "UNRESOLVED") {
+      seats.push({
+        seat_id: `seat_us_house_fl_${resolved.congressionalDistrict}`,
+        office_title: `U.S. Representative (Florida District ${resolved.congressionalDistrict})`,
+        government_level: "Federal",
+        branch: "Legislative",
+        jurisdiction: "State of Florida",
+        district: `Florida Congressional District ${resolved.congressionalDistrict}`,
+        current_occupant: findOccupant(`seat_us_house_fl_${resolved.congressionalDistrict}`),
+        upcoming_election: { cycle: "2026", expected_date: "November 3, 2026", monitoring_status: "ELEVATED_ELECTION_WATCH" },
+        evidence_source: { authority: "U.S. House of Representatives", url: "https://www.house.gov/representatives", verification_status: "EXTRACTED_UNREVIEWED" }
+      });
+    }
 
     // 2. State Executive Seats
     seats.push({
@@ -357,14 +362,9 @@ async function startServer() {
       branch: "Executive",
       jurisdiction: "State of Florida",
       district: "Statewide",
-      current_occupant: {
-        name: "Ron DeSantis",
-        party: "Republican",
-        photoUrl: "https://flgov.com/wp-content/uploads/2023/01/GovDeSantis_Official.jpg",
-        status: "VERIFIED_INCUMBENT_TERM_LIMITED"
-      },
+      current_occupant: findOccupant("seat_fl_governor"),
       upcoming_election: { cycle: "2026", expected_date: "November 3, 2026", monitoring_status: "ELEVATED_ELECTION_WATCH" },
-      evidence_source: { authority: "Florida Executive Office of the Governor", url: "https://flgov.com", verification_status: "VERIFIED" }
+      evidence_source: { authority: "Florida Executive Office of the Governor", url: "https://flgov.com", verification_status: "EXTRACTED_UNREVIEWED" }
     });
 
     seats.push({
@@ -374,108 +374,97 @@ async function startServer() {
       branch: "Constitutional",
       jurisdiction: "State of Florida",
       district: "Statewide",
-      current_occupant: {
-        name: "Ashley Moody",
-        party: "Republican",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Ashley_Moody_official_photo.jpg/800px-Ashley_Moody_official_photo.jpg",
-        status: "VERIFIED_INCUMBENT"
-      },
+      current_occupant: findOccupant("seat_fl_attorney_general"),
       upcoming_election: { cycle: "2026", expected_date: "November 3, 2026", monitoring_status: "ELEVATED_ELECTION_WATCH" },
-      evidence_source: { authority: "Florida Office of the Attorney General", url: "https://myfloridalegal.com", verification_status: "VERIFIED" }
+      evidence_source: { authority: "Florida Office of the Attorney General", url: "https://myfloridalegal.com", verification_status: "EXTRACTED_UNREVIEWED" }
     });
 
     // 3. State Legislative Seats
-    seats.push({
-      seat_id: `seat_fl_senate_${resolved.stateSenateDistrict}`,
-      office_title: `Florida State Senator (District ${resolved.stateSenateDistrict})`,
-      government_level: "State",
-      branch: "Legislative",
-      jurisdiction: "State of Florida",
-      district: `Florida Senate District ${resolved.stateSenateDistrict}`,
-      current_occupant: resolved.stateSenateDistrict === "35" ? {
-        name: "Shevrin Jones",
-        party: "Democrat",
-        photoUrl: "https://flsenate.gov/PublishedContent/Senators/2022-2024/Photos/s35.jpg",
-        status: "VERIFIED_INCUMBENT"
-      } : undefined,
-      upcoming_election: { cycle: "2026", expected_date: "November 3, 2026", monitoring_status: "ELEVATED_ELECTION_WATCH" },
-      evidence_source: { authority: "Florida State Senate", url: `https://flsenate.gov/Senators/s${resolved.stateSenateDistrict}`, verification_status: "VERIFIED" }
-    });
+    if (resolved.stateSenateDistrict !== "UNRESOLVED") {
+      seats.push({
+        seat_id: `seat_fl_senate_${resolved.stateSenateDistrict}`,
+        office_title: `Florida State Senator (District ${resolved.stateSenateDistrict})`,
+        government_level: "State",
+        branch: "Legislative",
+        jurisdiction: "State of Florida",
+        district: `Florida Senate District ${resolved.stateSenateDistrict}`,
+        current_occupant: findOccupant(`seat_fl_senate_${resolved.stateSenateDistrict}`),
+        upcoming_election: { cycle: "2026", expected_date: "November 3, 2026", monitoring_status: "ELEVATED_ELECTION_WATCH" },
+        evidence_source: { authority: "Florida State Senate", url: `https://flsenate.gov/Senators/s${resolved.stateSenateDistrict}`, verification_status: "EXTRACTED_UNREVIEWED" }
+      });
+    }
 
-    seats.push({
-      seat_id: `seat_fl_house_${resolved.stateHouseDistrict}`,
-      office_title: `Florida State Representative (District ${resolved.stateHouseDistrict})`,
-      government_level: "State",
-      branch: "Legislative",
-      jurisdiction: "State of Florida",
-      district: `Florida House District ${resolved.stateHouseDistrict}`,
-      current_occupant: resolved.stateHouseDistrict === "106" ? {
-        name: "Fabian Basabe",
-        party: "Republican",
-        photoUrl: "https://www.myfloridahouse.gov/FileStores/Web/Imaging/Member/4879.jpg",
-        status: "VERIFIED_INCUMBENT"
-      } : undefined,
-      upcoming_election: { cycle: "2026", expected_date: "November 3, 2026", monitoring_status: "ELEVATED_ELECTION_WATCH" },
-      evidence_source: { authority: "Florida House of Representatives", url: "https://myfloridahouse.gov/Representatives", verification_status: "VERIFIED" }
-    });
+    if (resolved.stateHouseDistrict !== "UNRESOLVED") {
+      seats.push({
+        seat_id: `seat_fl_house_${resolved.stateHouseDistrict}`,
+        office_title: `Florida State Representative (District ${resolved.stateHouseDistrict})`,
+        government_level: "State",
+        branch: "Legislative",
+        jurisdiction: "State of Florida",
+        district: `Florida House District ${resolved.stateHouseDistrict}`,
+        current_occupant: findOccupant(`seat_fl_house_${resolved.stateHouseDistrict}`),
+        upcoming_election: { cycle: "2026", expected_date: "November 3, 2026", monitoring_status: "ELEVATED_ELECTION_WATCH" },
+        evidence_source: { authority: "Florida House of Representatives", url: "https://myfloridahouse.gov/Representatives", verification_status: "EXTRACTED_UNREVIEWED" }
+      });
+    }
 
     // 4. County Seats
-    const isMiamiDade = resolved.countyName.toLowerCase().includes("miami-dade");
-    seats.push({
-      seat_id: `seat_county_mayor_${resolved.countyFips}`,
-      office_title: isMiamiDade ? "Mayor of Miami-Dade County" : `County Commission Chair (${resolved.countyName} County)`,
-      government_level: "County",
-      branch: "Executive",
-      jurisdiction: `${resolved.countyName} County, Florida`,
-      district: "Countywide",
-      current_occupant: isMiamiDade ? {
-        name: "Daniella Levine Cava",
-        party: "Democrat",
-        photoUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d4/Mayor_Daniella_Levine_Cava.jpg/800px-Mayor_Daniella_Levine_Cava.jpg",
-        status: "VERIFIED_INCUMBENT"
-      } : undefined,
-      upcoming_election: { cycle: "2026/2028", expected_date: "August 2028", monitoring_status: "MONITORING" },
-      evidence_source: { authority: `${resolved.countyName} County Government`, url: `https://www.${resolved.countyName.toLowerCase().replace(/\s+/g, '')}.gov`, verification_status: "VERIFIED" }
-    });
-
-    // County Commission District
-    seats.push({
-      seat_id: `seat_county_commission_${resolved.countyFips}`,
-      office_title: `${resolved.countyName} County Commissioner`,
-      government_level: "County",
-      branch: "Legislative",
-      jurisdiction: `${resolved.countyName} County, Florida`,
-      district: "Single-Member Sub-District (Awaiting County GIS Layer / Precinct Split)",
-      upcoming_election: { cycle: "2026", expected_date: "November 3, 2026", monitoring_status: "ELEVATED_ELECTION_WATCH" },
-      evidence_source: { authority: `${resolved.countyName} Board of County Commissioners`, url: `https://www.${resolved.countyName.toLowerCase().replace(/\s+/g, '')}.gov`, verification_status: "REQUIRES_LOCAL_GIS_DO_NOT_INFER" }
-    });
-
-    // County Constitutional Officers
-    const constOfficers = ["Sheriff", "Clerk of Court & Comptroller", "Property Appraiser", "Tax Collector", "Supervisor of Elections"];
-    constOfficers.forEach((off, idx) => {
+    if (resolved.countyName !== "UNRESOLVED") {
+      const isMiamiDade = resolved.countyName.toLowerCase().includes("miami-dade");
       seats.push({
-        seat_id: `seat_${resolved.countyFips}_const_${idx}`,
-        office_title: `${off} (${resolved.countyName} County)`,
+        seat_id: `seat_county_mayor_${resolved.countyFips}`,
+        office_title: isMiamiDade ? "Mayor of Miami-Dade County" : `County Commission Chair (${resolved.countyName} County)`,
         government_level: "County",
-        branch: "Constitutional",
+        branch: "Executive",
         jurisdiction: `${resolved.countyName} County, Florida`,
         district: "Countywide",
-        upcoming_election: { cycle: "2026/2028", expected_date: "November 2026", monitoring_status: "MONITORING" },
-        evidence_source: { authority: `Florida Constitution Article VIII / ${resolved.countyName} SOE`, url: "https://dos.elections.myflorida.com", verification_status: "VERIFIED" }
+        current_occupant: findOccupant(`seat_county_mayor_${resolved.countyFips}`),
+        upcoming_election: { cycle: "2026/2028", expected_date: "August 2028", monitoring_status: "MONITORING" },
+        evidence_source: { authority: `${resolved.countyName} County Government`, url: `https://www.${resolved.countyName.toLowerCase().replace(/\s+/g, '')}.gov`, verification_status: "EXTRACTED_UNREVIEWED" }
       });
-    });
 
-    // School Board Seat
-    seats.push({
-      seat_id: `seat_school_board_${resolved.countyFips}`,
-      office_title: `${resolved.countyName} County School Board Member`,
-      government_level: "School Board",
-      branch: "School Board",
-      jurisdiction: `${resolved.countyName} County Public Schools`,
-      district: "Single-Member Sub-District (Awaiting School Board GIS Layer)",
-      upcoming_election: { cycle: "2026", expected_date: "November 3, 2026", monitoring_status: "MONITORING" },
-      evidence_source: { authority: "Florida Department of Education & Local School Board", url: "https://fldoe.org", verification_status: "REQUIRES_LOCAL_GIS_DO_NOT_INFER" }
-    });
+      // County Commission District
+      seats.push({
+        seat_id: `seat_county_commission_${resolved.countyFips}`,
+        office_title: `${resolved.countyName} County Commissioner`,
+        government_level: "County",
+        branch: "Legislative",
+        jurisdiction: `${resolved.countyName} County, Florida`,
+        district: "Single-Member Sub-District (Awaiting County GIS Layer / Precinct Split)",
+        current_occupant: findOccupant(`seat_county_commission_${resolved.countyFips}`),
+        upcoming_election: { cycle: "2026", expected_date: "November 3, 2026", monitoring_status: "ELEVATED_ELECTION_WATCH" },
+        evidence_source: { authority: `${resolved.countyName} Board of County Commissioners`, url: `https://www.${resolved.countyName.toLowerCase().replace(/\s+/g, '')}.gov`, verification_status: "REQUIRES_LOCAL_GIS_DO_NOT_INFER" }
+      });
+
+      // County Constitutional Officers
+      const constOfficers = ["Sheriff", "Clerk of Court & Comptroller", "Property Appraiser", "Tax Collector", "Supervisor of Elections"];
+      constOfficers.forEach((off, idx) => {
+        seats.push({
+          seat_id: `seat_${resolved.countyFips}_const_${idx}`,
+          office_title: `${off} (${resolved.countyName} County)`,
+          government_level: "County",
+          branch: "Constitutional",
+          jurisdiction: `${resolved.countyName} County, Florida`,
+          district: "Countywide",
+          current_occupant: findOccupant(`seat_${resolved.countyFips}_const_${idx}`),
+          upcoming_election: { cycle: "2026/2028", expected_date: "November 2026", monitoring_status: "MONITORING" },
+          evidence_source: { authority: `Florida Constitution Article VIII / ${resolved.countyName} SOE`, url: "https://dos.elections.myflorida.com", verification_status: "EXTRACTED_UNREVIEWED" }
+        });
+      });
+
+      // School Board Seat
+      seats.push({
+        seat_id: `seat_school_board_${resolved.countyFips}`,
+        office_title: `${resolved.countyName} County School Board Member`,
+        government_level: "School Board",
+        branch: "School Board",
+        jurisdiction: `${resolved.countyName} County Public Schools`,
+        district: "Single-Member Sub-District (Awaiting School Board GIS Layer)",
+        current_occupant: findOccupant(`seat_school_board_${resolved.countyFips}`),
+        upcoming_election: { cycle: "2026", expected_date: "November 3, 2026", monitoring_status: "MONITORING" },
+        evidence_source: { authority: "Florida Department of Education & Local School Board", url: "https://fldoe.org", verification_status: "REQUIRES_LOCAL_GIS_DO_NOT_INFER" }
+      });
+    }
 
     // 5. Municipal Seats (if resolved municipality exists)
     if (resolved.municipalityName) {
@@ -486,8 +475,9 @@ async function startServer() {
         branch: "Executive",
         jurisdiction: `City of ${resolved.municipalityName}, Florida`,
         district: "Citywide",
+        current_occupant: findOccupant(`seat_muni_mayor_${resolved.municipalityName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`),
         upcoming_election: { cycle: "2026/2027", expected_date: "November 2026", monitoring_status: "MONITORING" },
-        evidence_source: { authority: `${resolved.municipalityName} City Clerk`, url: `https://www.${resolved.municipalityName.toLowerCase().replace(/[^a-z0-9]+/g, '')}.gov`, verification_status: "VERIFIED" }
+        evidence_source: { authority: `${resolved.municipalityName} City Clerk`, url: `https://www.${resolved.municipalityName.toLowerCase().replace(/[^a-z0-9]+/g, '')}.gov`, verification_status: "EXTRACTED_UNREVIEWED" }
       });
 
       seats.push({
@@ -497,6 +487,7 @@ async function startServer() {
         branch: "Legislative",
         jurisdiction: `City of ${resolved.municipalityName}, Florida`,
         district: "Ward / Council District (Awaiting Municipal GIS Layer)",
+        current_occupant: findOccupant(`seat_muni_council_${resolved.municipalityName.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`),
         upcoming_election: { cycle: "2026/2027", expected_date: "November 2026", monitoring_status: "MONITORING" },
         evidence_source: { authority: `${resolved.municipalityName} City Clerk`, url: `https://www.${resolved.municipalityName.toLowerCase().replace(/[^a-z0-9]+/g, '')}.gov`, verification_status: "REQUIRES_LOCAL_GIS_DO_NOT_INFER" }
       });
@@ -510,8 +501,9 @@ async function startServer() {
       branch: "Special District",
       jurisdiction: "South Florida Water Management District (16 Counties)",
       district: "Regional Basin",
+      current_occupant: findOccupant("seat_sfwmd_governing_board"),
       upcoming_election: { cycle: "Gubernatorial Appointment & Senate Confirmation", expected_date: "Continuous", monitoring_status: "MONITORING" },
-      evidence_source: { authority: "SFWMD & State of Florida", url: "https://www.sfwmd.gov", verification_status: "VERIFIED" }
+      evidence_source: { authority: "SFWMD & State of Florida", url: "https://www.sfwmd.gov", verification_status: "EXTRACTED_UNREVIEWED" }
     });
 
     return seats;
@@ -536,24 +528,24 @@ async function startServer() {
 
     // Fallback if address was not in Census or Geocoder offline
     const resolvedBoundary = censusData || {
-      matchedAddress: address || `Coordinates (${lat}, ${lng})`,
-      coordinates: { lat: lat || 25.7743, lng: lng || -80.1937 },
-      stateName: "Florida",
-      stateFips: "12",
-      countyName: "Miami-Dade",
-      countyFips: "086",
-      congressionalDistrict: "27",
-      stateSenateDistrict: "35",
-      stateHouseDistrict: "106",
-      municipalityName: "Miami",
-      censusSource: "Deterministic Civic Resolution Engine (Fallback)",
+      matchedAddress: address || (lat !== undefined && lng !== undefined ? `Coordinates (${lat}, ${lng})` : "UNRESOLVED_ADDRESS"),
+      coordinates: { lat: lat || 0, lng: lng || 0 },
+      stateName: "UNRESOLVED",
+      stateFips: "UNRESOLVED",
+      countyName: "UNRESOLVED",
+      countyFips: "UNRESOLVED",
+      congressionalDistrict: "UNRESOLVED",
+      stateSenateDistrict: "UNRESOLVED",
+      stateHouseDistrict: "UNRESOLVED",
+      municipalityName: undefined,
+      censusSource: "US Census Bureau Geocoder / Unresolved",
       layerProvenance: {
-        state: { source: "US Census Bureau Geographies: States", layer_type: "DIRECT_CENSUS", status: "RESOLVED_AUTHORITATIVE", vintage: "Current_Current" },
-        county: { source: "US Census Bureau Geographies: Counties", layer_type: "DIRECT_CENSUS", status: "RESOLVED_AUTHORITATIVE", vintage: "Current_Current" },
-        congressional_district: { source: "US Census Bureau Geographies: Congressional Districts", layer_type: "DIRECT_CENSUS", status: "RESOLVED_AUTHORITATIVE", vintage: "119th/118th Congress" },
-        state_senate_district: { source: "US Census Bureau Geographies: State Legislative Districts - Upper", layer_type: "DIRECT_CENSUS", status: "RESOLVED_AUTHORITATIVE", vintage: "2024 State Legislative Districts" },
-        state_house_district: { source: "US Census Bureau Geographies: State Legislative Districts - Lower", layer_type: "DIRECT_CENSUS", status: "RESOLVED_AUTHORITATIVE", vintage: "2024 State Legislative Districts" },
-        municipality: { source: "US Census Bureau Geographies: Incorporated Places", layer_type: "DIRECT_CENSUS", status: "RESOLVED_AUTHORITATIVE", vintage: "Current_Current" },
+        state: { source: "US Census Bureau Geographies: States", layer_type: "DIRECT_CENSUS", status: "UNRESOLVED" },
+        county: { source: "US Census Bureau Geographies: Counties", layer_type: "DIRECT_CENSUS", status: "UNRESOLVED" },
+        congressional_district: { source: "US Census Bureau Geographies: Congressional Districts", layer_type: "DIRECT_CENSUS", status: "UNRESOLVED" },
+        state_senate_district: { source: "US Census Bureau Geographies: State Legislative Districts - Upper", layer_type: "DIRECT_CENSUS", status: "UNRESOLVED" },
+        state_house_district: { source: "US Census Bureau Geographies: State Legislative Districts - Lower", layer_type: "DIRECT_CENSUS", status: "UNRESOLVED" },
+        municipality: { source: "US Census Bureau Geographies: Incorporated Places", layer_type: "DIRECT_CENSUS", status: "UNRESOLVED" },
         county_commission_district: { source: "County GIS Boundary Portal", layer_type: "REQUIRES_LOCAL_GIS", status: "PENDING_LOCAL_GIS_INTEGRATION" },
         school_board_district: { source: "County School Board GIS", layer_type: "REQUIRES_LOCAL_GIS", status: "PENDING_LOCAL_GIS_INTEGRATION" },
         municipal_council_district: { source: "Municipal City Clerk GIS", layer_type: "REQUIRES_LOCAL_GIS", status: "PENDING_LOCAL_GIS_INTEGRATION" },
@@ -592,17 +584,17 @@ async function startServer() {
     const censusData = await resolveCensusBoundaries(address as string, latNum, lngNum);
 
     const boundary = censusData || {
-      matchedAddress: (address as string) || `Coordinates (${latNum}, ${lngNum})`,
-      coordinates: { lat: latNum || 25.7743, lng: lngNum || -80.1937 },
-      stateName: "Florida",
-      stateFips: "12",
-      countyName: "Miami-Dade",
-      countyFips: "086",
-      congressionalDistrict: "27",
-      stateSenateDistrict: "35",
-      stateHouseDistrict: "106",
-      municipalityName: "Miami",
-      censusSource: "US Census Bureau Geocoder / Fallback"
+      matchedAddress: (address as string) || (latNum !== undefined && lngNum !== undefined ? `Coordinates (${latNum}, ${lngNum})` : "UNRESOLVED_ADDRESS"),
+      coordinates: { lat: latNum || 0, lng: lngNum || 0 },
+      stateName: "UNRESOLVED",
+      stateFips: "UNRESOLVED",
+      countyName: "UNRESOLVED",
+      countyFips: "UNRESOLVED",
+      congressionalDistrict: "UNRESOLVED",
+      stateSenateDistrict: "UNRESOLVED",
+      stateHouseDistrict: "UNRESOLVED",
+      municipalityName: undefined,
+      censusSource: "US Census Bureau Geocoder / Unresolved"
     };
 
     const seats = buildSeatHierarchy(boundary);

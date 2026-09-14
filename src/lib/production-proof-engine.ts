@@ -1037,7 +1037,7 @@ export class ProductionProofEngine {
     const workerId = latestProof ? latestProof.worker_id : (attempts[0]?.worker_instance || 'H13-worker-autonomous');
     const retrievalId = latestProof ? latestProof.retrieval_id : `ret_${workId}`;
     const artifactId = latestProof ? latestProof.artifact_id : `art_${workId}`;
-    const nextWorkId = latestProof ? latestProof.next_work_id : 'next_queued_job';
+    const nextWorkId = latestProof ? latestProof.next_work_id : 'NO_QUEUED_WORK';
 
     // 4. VERIFY: Runtime completed work, created artifact, recorded proof
     const isProven = Boolean(updatedJob?.status === 'COMPLETED' || latestProof);
