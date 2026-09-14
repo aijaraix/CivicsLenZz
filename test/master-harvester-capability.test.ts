@@ -271,12 +271,13 @@ async function runMasterCapabilityTests() {
 
   // 16. Endpoint Source Health Monitor
   runTest("Endpoint source health monitor tracks physical availability, latency, and schema fingerprint", () => {
+    harvesterCapabilityMatrixEngine.recordEndpointPing("ep_fl_senate_roster", true, 118, "sha256_flsenate_roster_v2");
     const registry = harvesterCapabilityMatrixEngine.getSourceHealthRegistry();
     assert.ok(registry.length >= 5);
     const senateEp = registry.find(r => r.endpoint_id === "ep_fl_senate_roster")!;
     assert.strictEqual(senateEp.parser_compatibility, "COMPATIBLE");
     assert.strictEqual(senateEp.access_state, "PUBLIC_ACCESSIBLE");
-    assert.ok(senateEp.schema_fingerprint.includes("flsenate"));
+    assert.ok(senateEp.schema_fingerprint && senateEp.schema_fingerprint.includes("flsenate"));
   });
 
   // 17. Physical Research Pass: Florida Governor (Executive Branch & Term Limits)

@@ -1,0 +1,9 @@
+{
+  "snapshotId": "snap_person_francis_suarez",
+  "sourceUrl": "https://www.miamigov.com/",
+  "fetchedAt": "2026-09-01T12:00:00Z",
+  "sha256": "8cc2c39797e031ef6106837ba9db62494184837ffc88e0e90518ef2c42c2c6a5",
+  "bytes": 536,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Francis Suarez</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Francis Suarez</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.miamigov.com/\">https://www.miamigov.com/</a></p>\n        <p>Extraction Payload: Official public record for Francis Suarez (Republican) extracted from https://www.miamigov.com/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
+  "extractionStatus": "extracted_unreviewed"
+}

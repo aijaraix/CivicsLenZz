@@ -1,0 +1,9 @@
+{
+  "snapshotId": "snap_person_ashley_moody",
+  "sourceUrl": "https://www.myfloridalegal.com/",
+  "fetchedAt": "2026-09-01T12:00:00Z",
+  "sha256": "0a644677472f52b6d4c74ec67cfdd1431793d0a034bff7dbc15f0f5a501e683a",
+  "bytes": 548,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Ashley Moody</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Ashley Moody</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.myfloridalegal.com/\">https://www.myfloridalegal.com/</a></p>\n        <p>Extraction Payload: Official public record for Ashley Moody (Republican) extracted from https://www.myfloridalegal.com/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
+  "extractionStatus": "extracted_unreviewed"
+}

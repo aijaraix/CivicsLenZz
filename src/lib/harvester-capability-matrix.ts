@@ -1266,15 +1266,16 @@ export interface EndpointSourceHealth {
   endpoint_id: string;
   endpoint_url: string;
   agency_name: string;
+  observation_state: 'UNKNOWN' | 'CHECKED_HEALTHY' | 'CHECKED_DEGRADED' | 'CHECKED_UNAVAILABLE' | 'CHECKED_RATE_LIMITED';
   last_success_at: string | null;
   last_failure_at: string | null;
   consecutive_failures: number;
-  latency_ms: number;
-  schema_fingerprint: string;
-  parser_compatibility: 'COMPATIBLE' | 'DEGRADED' | 'DRIFT_DETECTED';
-  rate_limit_state: 'NORMAL' | 'THROTTLED' | 'BLOCKED';
-  access_state: 'PUBLIC_ACCESSIBLE' | 'CAPTCHA_BLOCKED' | 'REQUIRES_ESCALATION';
-  next_check_due: string;
+  latency_ms: number | null;
+  schema_fingerprint: string | null;
+  parser_compatibility: 'COMPATIBLE' | 'DEGRADED' | 'DRIFT_DETECTED' | 'UNCHECKED';
+  rate_limit_state: 'NORMAL' | 'THROTTLED' | 'BLOCKED' | 'UNCHECKED';
+  access_state: 'PUBLIC_ACCESSIBLE' | 'CAPTCHA_BLOCKED' | 'REQUIRES_ESCALATION' | 'UNCHECKED';
+  next_check_due: string | null;
 }
 
 // ============================================================================
@@ -1471,70 +1472,49 @@ export class HarvesterCapabilityMatrixEngine {
   }
 
   private initializeAuthoritativeEndpoints() {
-    const defaultEndpoints: Omit<EndpointSourceHealth, 'last_success_at' | 'last_failure_at' | 'consecutive_failures'>[] = [
+    const registeredEndpoints = [
       {
         endpoint_id: "ep_fl_senate_roster",
         endpoint_url: "https://www.flsenate.gov/Senators",
-        agency_name: "Florida Senate Office of the Secretary",
-        latency_ms: 120,
-        schema_fingerprint: "sha256_flsenate_roster_v2",
-        parser_compatibility: "COMPATIBLE",
-        rate_limit_state: "NORMAL",
-        access_state: "PUBLIC_ACCESSIBLE",
-        next_check_due: new Date(Date.now() + 3600000).toISOString()
+        agency_name: "Florida Senate Office of the Secretary"
       },
       {
         endpoint_id: "ep_fl_house_roster",
         endpoint_url: "https://www.myfloridahouse.gov/Representatives",
-        agency_name: "Florida House Clerk Office",
-        latency_ms: 140,
-        schema_fingerprint: "sha256_myflhouse_roster_v2",
-        parser_compatibility: "COMPATIBLE",
-        rate_limit_state: "NORMAL",
-        access_state: "PUBLIC_ACCESSIBLE",
-        next_check_due: new Date(Date.now() + 3600000).toISOString()
+        agency_name: "Florida House Clerk Office"
       },
       {
         endpoint_id: "ep_fl_dos_candidate_list",
         endpoint_url: "https://dos.elections.myflorida.com/candidates/canlist.asp",
-        agency_name: "Florida Division of Elections",
-        latency_ms: 210,
-        schema_fingerprint: "sha256_dos_candidate_list_v1",
-        parser_compatibility: "COMPATIBLE",
-        rate_limit_state: "NORMAL",
-        access_state: "PUBLIC_ACCESSIBLE",
-        next_check_due: new Date(Date.now() + 1800000).toISOString()
+        agency_name: "Florida Division of Elections"
       },
       {
         endpoint_id: "ep_census_tigerweb_legislative",
         endpoint_url: "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Legislative/MapServer",
-        agency_name: "U.S. Census Bureau Geography Division",
-        latency_ms: 310,
-        schema_fingerprint: "sha256_tigerweb_leg_v1",
-        parser_compatibility: "COMPATIBLE",
-        rate_limit_state: "NORMAL",
-        access_state: "PUBLIC_ACCESSIBLE",
-        next_check_due: new Date(Date.now() + 86400000).toISOString()
+        agency_name: "U.S. Census Bureau Geography Division"
       },
       {
         endpoint_id: "ep_fl_transparency_finance",
         endpoint_url: "https://transparencyflorida.gov/",
-        agency_name: "Florida Department of Financial Services",
-        latency_ms: 180,
-        schema_fingerprint: "sha256_transparency_fl_v1",
-        parser_compatibility: "COMPATIBLE",
-        rate_limit_state: "NORMAL",
-        access_state: "PUBLIC_ACCESSIBLE",
-        next_check_due: new Date(Date.now() + 86400000).toISOString()
+        agency_name: "Florida Department of Financial Services"
       }
     ];
 
-    for (const ep of defaultEndpoints) {
+    for (const ep of registeredEndpoints) {
       this.endpointHealthMap.set(ep.endpoint_id, {
-        ...ep,
-        last_success_at: new Date(Date.now() - 300000).toISOString(),
+        endpoint_id: ep.endpoint_id,
+        endpoint_url: ep.endpoint_url,
+        agency_name: ep.agency_name,
+        observation_state: 'UNKNOWN',
+        last_success_at: null,
         last_failure_at: null,
-        consecutive_failures: 0
+        consecutive_failures: 0,
+        latency_ms: null,
+        schema_fingerprint: null,
+        parser_compatibility: 'UNCHECKED',
+        rate_limit_state: 'UNCHECKED',
+        access_state: 'UNCHECKED',
+        next_check_due: null
       });
     }
   }
@@ -1777,21 +1757,28 @@ export class HarvesterCapabilityMatrixEngine {
     return Array.from(this.endpointHealthMap.values());
   }
 
-  public recordEndpointPing(endpoint_id: string, success: boolean, latency_ms: number) {
+  public recordEndpointPing(endpoint_id: string, success: boolean, latency_ms: number, schema_fingerprint?: string) {
     const ep = this.endpointHealthMap.get(endpoint_id);
     if (!ep) return;
     const now = new Date().toISOString();
     if (success) {
+      ep.observation_state = 'CHECKED_HEALTHY';
       ep.last_success_at = now;
       ep.consecutive_failures = 0;
       ep.latency_ms = latency_ms;
+      ep.schema_fingerprint = schema_fingerprint || ep.schema_fingerprint || `sha256_${endpoint_id}_v1`;
+      ep.parser_compatibility = 'COMPATIBLE';
       ep.rate_limit_state = 'NORMAL';
+      ep.access_state = 'PUBLIC_ACCESSIBLE';
+      ep.next_check_due = new Date(Date.now() + 3600000).toISOString();
     } else {
+      ep.observation_state = ep.consecutive_failures >= 2 ? 'CHECKED_UNAVAILABLE' : 'CHECKED_DEGRADED';
       ep.last_failure_at = now;
       ep.consecutive_failures++;
       ep.latency_ms = latency_ms;
       if (ep.consecutive_failures >= 3) {
         ep.rate_limit_state = 'THROTTLED';
+        ep.access_state = 'REQUIRES_ESCALATION';
       }
     }
   }

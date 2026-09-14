@@ -1,0 +1,9 @@
+{
+  "snapshotId": "snap_person_daniella_levine_cava",
+  "sourceUrl": "https://www.miamidade.gov/global/government/mayor/home.page",
+  "fetchedAt": "2026-09-01T12:00:00Z",
+  "sha256": "3a7e2d8385d880a15075b4c5f51fb7f802a234ea4981bb6f62c48edc65d13f26",
+  "bytes": 656,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Daniella Levine Cava</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Daniella Levine Cava</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.miamidade.gov/global/government/mayor/home.page\">https://www.miamidade.gov/global/government/mayor/home.page</a></p>\n        <p>Extraction Payload: Official public record for Daniella Levine Cava (Democratic) extracted from https://www.miamidade.gov/global/government/mayor/home.page</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
+  "extractionStatus": "extracted_unreviewed"
+}

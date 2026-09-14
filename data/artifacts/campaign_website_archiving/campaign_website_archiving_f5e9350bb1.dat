@@ -1,0 +1,9 @@
+{
+  "snapshotId": "snap_person_jason_pizzo",
+  "sourceUrl": "https://www.flsenate.gov/",
+  "fetchedAt": "2026-09-01T12:00:00Z",
+  "sha256": "407e901fce310321474c9fb0b6257bb7674aa7a808c8ceae9564f6d3bd3d477e",
+  "bytes": 527,
+  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Jason Pizzo</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Jason Pizzo</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://www.flsenate.gov/\">https://www.flsenate.gov/</a></p>\n        <p>Extraction Payload: Official public record for Jason Pizzo (Democratic) extracted from https://www.flsenate.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
+  "extractionStatus": "extracted_unreviewed"
+}
