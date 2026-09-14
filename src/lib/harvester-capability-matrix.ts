@@ -1238,6 +1238,9 @@ export interface ScopeMonitoringSchedule {
   source_health: 'HEALTHY' | 'DEGRADED' | 'DOWN';
   last_change: string | null;
   consecutive_failures: number;
+  previous_content_hash?: string;
+  last_comparison_event?: string;
+  last_comparison_id?: string;
 }
 
 export interface PersistentFailureRecord {
@@ -1814,6 +1817,14 @@ export class HarvesterCapabilityMatrixEngine {
 
     this.pendingGaps.push(...gaps);
     return gaps;
+  }
+
+  public getPendingGaps(): any[] {
+    return this.pendingGaps;
+  }
+
+  public getPendingGapsCount(): number {
+    return this.pendingGaps.length;
   }
 
   // Contradiction Candidate Detector (Section 23)

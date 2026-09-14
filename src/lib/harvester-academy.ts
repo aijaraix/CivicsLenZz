@@ -5,6 +5,8 @@
  * fallback frequencies, and promotes successful patterns into deterministic parsers.
  */
 
+import crypto from 'crypto';
+
 export interface AdapterPerformanceMetric {
   adapter_id: string;
   source_name: string;
@@ -24,11 +26,96 @@ export interface AdapterPerformanceMetric {
   status: 'OPTIMAL' | 'DEGRADED' | 'STAGED';
 }
 
+export interface AcademyObservation {
+  observation_id: string;
+  source_id: string;
+  parser_id: string;
+  incident_type: 'SCHEMA_DRIFT' | 'PARSER_FAILURE' | 'RATE_LIMIT' | 'ROSTER_DISCREPANCY' | 'FORMAT_CHANGE';
+  observed_payload_sample: string;
+  observed_sha256: string;
+  error_message?: string;
+  created_at: string;
+}
+
+export interface AcademyCase {
+  case_id: string;
+  observation_id: string;
+  case_title: string;
+  state: 'OBSERVED' | 'PROPOSAL_GENERATED' | 'TESTING' | 'PROMOTED' | 'REJECTED';
+  proposed_rule?: string;
+  test_result?: 'PASS' | 'FAIL';
+  created_at: string;
+  promoted_at?: string;
+}
+
 export class HarvesterAcademy {
   private metrics: Map<string, AdapterPerformanceMetric> = new Map();
+  private observations: Map<string, AcademyObservation> = new Map();
+  private cases: Map<string, AcademyCase> = new Map();
 
   constructor() {
     this.initDefaultMetrics();
+  }
+
+  public recordObservation(obs: Omit<AcademyObservation, 'observation_id' | 'created_at'>): AcademyObservation {
+    const observationId = `obs_${Date.now().toString(36)}_${crypto.randomBytes(3).toString('hex')}`;
+    const fullObs: AcademyObservation = {
+      ...obs,
+      observation_id: observationId,
+      created_at: new Date().toISOString()
+    };
+    this.observations.set(observationId, fullObs);
+    return fullObs;
+  }
+
+  public createCase(observationId: string, caseTitle: string, proposedRule?: string): AcademyCase {
+    const caseId = `case_${Date.now().toString(36)}_${crypto.randomBytes(3).toString('hex')}`;
+    const newCase: AcademyCase = {
+      case_id: caseId,
+      observation_id: observationId,
+      case_title: caseTitle,
+      state: proposedRule ? 'PROPOSAL_GENERATED' : 'OBSERVED',
+      proposed_rule: proposedRule,
+      created_at: new Date().toISOString()
+    };
+    this.cases.set(caseId, newCase);
+    return newCase;
+  }
+
+  public testAndPromoteCase(caseId: string, testFn: () => boolean): AcademyCase {
+    const academyCase = this.cases.get(caseId);
+    if (!academyCase) {
+      throw new Error(`Academy case ${caseId} not found`);
+    }
+
+    academyCase.state = 'TESTING';
+    const passed = testFn();
+    academyCase.test_result = passed ? 'PASS' : 'FAIL';
+
+    if (passed) {
+      academyCase.state = 'PROMOTED';
+      academyCase.promoted_at = new Date().toISOString();
+    } else {
+      academyCase.state = 'REJECTED';
+    }
+
+    return academyCase;
+  }
+
+  public getObservationsCount(): number {
+    return this.observations.size;
+  }
+
+  public getCasesCount(): number {
+    return this.cases.size;
+  }
+
+  public getAllObservations(): AcademyObservation[] {
+    return Array.from(this.observations.values());
+  }
+
+  public getAllCases(): AcademyCase[] {
+    return Array.from(this.cases.values());
   }
 
   private initDefaultMetrics() {
