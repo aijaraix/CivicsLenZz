@@ -90,14 +90,17 @@ export interface SourceRegistryEntry {
   base_url: string;
   jurisdiction: string;
   rate_limit_req_per_sec: number;
-  status: 'HEALTHY' | 'DEGRADED' | 'BLOCKED_SOURCE' | 'CIRCUIT_OPEN';
+  status: 'HEALTHY' | 'DEGRADED' | 'BLOCKED_SOURCE' | 'CIRCUIT_OPEN' | 'UNKNOWN';
   consecutive_failures: number;
   circuit_opens_count: number;
   circuit_reopen_at?: string;
   last_success_at?: string;
   last_failure_at?: string;
   last_error?: string;
+  last_checked_at?: string;
 }
+
+export type EvidenceProvenance = 'REAL_PROVEN' | 'LEGACY_UNPROVEN' | 'LEGACY_SYNTHETIC' | 'TEST_FIXTURE' | 'UNKNOWN';
 
 export interface RawSourceSnapshot {
   snapshot_uuid: string;
@@ -112,6 +115,7 @@ export interface RawSourceSnapshot {
   raw_bytes_path: string;
   retrieved_at: string;
   parser_version: string;
+  provenance_classification?: EvidenceProvenance;
 }
 
 export interface RawEvidenceObject {
@@ -136,6 +140,7 @@ export interface RawEvidenceObject {
   person_uuid?: string;
   field_key?: string;
   extracted_value?: string;
+  provenance_classification?: EvidenceProvenance;
 }
 
 export interface ResearchContractStatus {
@@ -323,6 +328,7 @@ class HermesBackendStore {
     this.dbFilePath = path.join(this.dataDir, 'hermes_persistent_db.json');
     this.db = this.loadDatabase();
     this.seedInitialFloridaSourcesAndSeats();
+    this.ensureProvenanceClassifications();
   }
 
   public reinitialize(customDataDir?: string) {
@@ -333,6 +339,7 @@ class HermesBackendStore {
     this.dbFilePath = path.join(this.dataDir, 'hermes_persistent_db.json');
     this.db = this.loadDatabase();
     this.seedInitialFloridaSourcesAndSeats();
+    this.ensureProvenanceClassifications();
   }
 
   public getDataDir(): string {
@@ -916,7 +923,8 @@ class HermesBackendStore {
       payload_sha256: hash,
       raw_bytes_path: rawFilePath,
       retrieved_at: nowIso,
-      parser_version: snapshot.parser_version
+      parser_version: snapshot.parser_version,
+      provenance_classification: snapshot.parser_version === 'v2.1' ? 'LEGACY_SYNTHETIC' : 'REAL_PROVEN'
     };
 
     this.db.raw_source_snapshots.push(record);
@@ -932,6 +940,99 @@ class HermesBackendStore {
     const snap = this.db.raw_source_snapshots.find(s => s.snapshot_uuid === snapshotUuid);
     if (!snap || !snap.raw_bytes_path || !fs.existsSync(snap.raw_bytes_path)) return null;
     return fs.readFileSync(snap.raw_bytes_path);
+  }
+
+  public classifySnapshot(snap: RawSourceSnapshot): EvidenceProvenance {
+    if (!snap) return 'UNKNOWN';
+    if (snap.provenance_classification && snap.provenance_classification !== 'UNKNOWN') {
+      return snap.provenance_classification;
+    }
+    if (snap.parser_version === 'v2.1' || snap.target_url?.includes('synthetic') || snap.target_url?.includes('mock')) {
+      return 'LEGACY_SYNTHETIC';
+    }
+    if (snap.target_url?.includes('fixture') || snap.target_url?.includes('test')) {
+      return 'TEST_FIXTURE';
+    }
+    if (
+      snap.raw_bytes_path &&
+      fs.existsSync(snap.raw_bytes_path) &&
+      snap.target_url &&
+      snap.http_status &&
+      snap.retrieved_at &&
+      snap.parser_version &&
+      snap.parser_version !== 'v2.1'
+    ) {
+      try {
+        const fileBytes = fs.readFileSync(snap.raw_bytes_path);
+        const computedSha = crypto.createHash('sha256').update(fileBytes).digest('hex');
+        const lengthMatches = snap.byte_length !== undefined ? fileBytes.length === snap.byte_length : true;
+        if (computedSha === snap.payload_sha256 && lengthMatches) {
+          return 'REAL_PROVEN';
+        }
+      } catch {
+        return 'LEGACY_UNPROVEN';
+      }
+    }
+    return 'LEGACY_UNPROVEN';
+  }
+
+  public classifyEvidence(ev: RawEvidenceObject, snapClass?: EvidenceProvenance): EvidenceProvenance {
+    if (!ev) return 'UNKNOWN';
+    if (ev.provenance_classification && ev.provenance_classification !== 'UNKNOWN') {
+      return ev.provenance_classification;
+    }
+    if (
+      ev.parser_version === 'v2.1' ||
+      ev.extraction_method === 'DETERMINISTIC_PARSER_V2' ||
+      ev.source_url?.includes('synthetic') ||
+      ev.source_url?.includes('mock') ||
+      (ev as any).content_to_hash
+    ) {
+      return 'LEGACY_SYNTHETIC';
+    }
+    if (ev.source_url?.includes('fixture') || ev.source_url?.includes('test')) {
+      return 'TEST_FIXTURE';
+    }
+    if (snapClass) {
+      if (snapClass === 'REAL_PROVEN') return 'REAL_PROVEN';
+      if (snapClass === 'LEGACY_SYNTHETIC') return 'LEGACY_SYNTHETIC';
+      if (snapClass === 'TEST_FIXTURE') return 'TEST_FIXTURE';
+      return 'LEGACY_UNPROVEN';
+    }
+    if (ev.raw_snapshot_uuid) {
+      const snap = this.db.raw_source_snapshots.find(s => s.snapshot_uuid === ev.raw_snapshot_uuid);
+      if (snap) {
+        const sClass = this.classifySnapshot(snap);
+        return sClass === 'REAL_PROVEN' ? 'REAL_PROVEN' : sClass;
+      }
+    }
+    return 'LEGACY_UNPROVEN';
+  }
+
+  public ensureProvenanceClassifications() {
+    let modified = false;
+    for (const snap of this.db.raw_source_snapshots) {
+      const classification = this.classifySnapshot(snap);
+      if (snap.provenance_classification !== classification) {
+        snap.provenance_classification = classification;
+        modified = true;
+      }
+    }
+    for (const ev of this.db.raw_evidence_objects) {
+      let snapClass: EvidenceProvenance | undefined;
+      if (ev.raw_snapshot_uuid) {
+        const snap = this.db.raw_source_snapshots.find(s => s.snapshot_uuid === ev.raw_snapshot_uuid);
+        if (snap) snapClass = snap.provenance_classification || this.classifySnapshot(snap);
+      }
+      const classification = this.classifyEvidence(ev, snapClass);
+      if (ev.provenance_classification !== classification) {
+        ev.provenance_classification = classification;
+        modified = true;
+      }
+    }
+    if (modified) {
+      this.saveDatabase();
+    }
   }
 
   public createEvidenceObject(evidenceData: Omit<RawEvidenceObject, 'evidence_uuid' | 'retrieved_at' | 'content_hash'> & {
@@ -951,6 +1052,13 @@ class HermesBackendStore {
     const claimFingerprint = evidenceData.claim_fingerprint || 
       crypto.createHash('sha256').update(`${evidenceData.source_url}_${evidenceData.seat_uuid || ''}_${evidenceData.field_key || ''}_${evidenceData.extracted_value || ''}`).digest('hex');
 
+    let snapClass: EvidenceProvenance | undefined;
+    if (evidenceData.raw_snapshot_uuid) {
+      const snap = this.db.raw_source_snapshots.find(s => s.snapshot_uuid === evidenceData.raw_snapshot_uuid);
+      if (snap) snapClass = this.classifySnapshot(snap);
+    }
+    const provenanceClass = evidenceData.provenance_classification || this.classifyEvidence(evidenceData as any, snapClass);
+
     const evidence: RawEvidenceObject = {
       ...evidenceData,
       evidence_uuid: `evi_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
@@ -958,7 +1066,8 @@ class HermesBackendStore {
       claim_fingerprint: claimFingerprint,
       content_hash: retrievalSha256, // Stable backward compatible field representing exact raw bytes hash
       verification_state: 'EXTRACTED_UNREVIEWED', // Producer evidence is strictly unreviewed!
-      retrieved_at: nowIso
+      retrieved_at: nowIso,
+      provenance_classification: provenanceClass
     };
 
     this.db.raw_evidence_objects.push(evidence);
@@ -1047,6 +1156,100 @@ class HermesBackendStore {
 
   public getRawSnapshots(): RawSourceSnapshot[] {
     return [...this.db.raw_source_snapshots];
+  }
+
+  public getRealProvenSnapshots(): RawSourceSnapshot[] {
+    return this.db.raw_source_snapshots.filter(s => this.classifySnapshot(s) === 'REAL_PROVEN');
+  }
+
+  public getLegacyUnprovenSnapshots(): RawSourceSnapshot[] {
+    return this.db.raw_source_snapshots.filter(s => this.classifySnapshot(s) === 'LEGACY_UNPROVEN');
+  }
+
+  public getLegacySyntheticSnapshots(): RawSourceSnapshot[] {
+    return this.db.raw_source_snapshots.filter(s => this.classifySnapshot(s) === 'LEGACY_SYNTHETIC');
+  }
+
+  public getTestFixtureSnapshots(): RawSourceSnapshot[] {
+    return this.db.raw_source_snapshots.filter(s => this.classifySnapshot(s) === 'TEST_FIXTURE');
+  }
+
+  public getUnknownSnapshots(): RawSourceSnapshot[] {
+    return this.db.raw_source_snapshots.filter(s => this.classifySnapshot(s) === 'UNKNOWN');
+  }
+
+  public getRealProvenEvidence(): RawEvidenceObject[] {
+    return this.db.raw_evidence_objects.filter(e => {
+      let snapClass: EvidenceProvenance | undefined;
+      if (e.raw_snapshot_uuid) {
+        const snap = this.db.raw_source_snapshots.find(s => s.snapshot_uuid === e.raw_snapshot_uuid);
+        if (snap) snapClass = this.classifySnapshot(snap);
+      }
+      return this.classifyEvidence(e, snapClass) === 'REAL_PROVEN';
+    });
+  }
+
+  public getLegacySyntheticEvidence(): RawEvidenceObject[] {
+    return this.db.raw_evidence_objects.filter(e => {
+      let snapClass: EvidenceProvenance | undefined;
+      if (e.raw_snapshot_uuid) {
+        const snap = this.db.raw_source_snapshots.find(s => s.snapshot_uuid === e.raw_snapshot_uuid);
+        if (snap) snapClass = this.classifySnapshot(snap);
+      }
+      return this.classifyEvidence(e, snapClass) === 'LEGACY_SYNTHETIC';
+    });
+  }
+
+  public getLegacyUnprovenEvidence(): RawEvidenceObject[] {
+    return this.db.raw_evidence_objects.filter(e => {
+      let snapClass: EvidenceProvenance | undefined;
+      if (e.raw_snapshot_uuid) {
+        const snap = this.db.raw_source_snapshots.find(s => s.snapshot_uuid === e.raw_snapshot_uuid);
+        if (snap) snapClass = this.classifySnapshot(snap);
+      }
+      return this.classifyEvidence(e, snapClass) === 'LEGACY_UNPROVEN';
+    });
+  }
+
+  public getTestFixtureEvidence(): RawEvidenceObject[] {
+    return this.db.raw_evidence_objects.filter(e => {
+      let snapClass: EvidenceProvenance | undefined;
+      if (e.raw_snapshot_uuid) {
+        const snap = this.db.raw_source_snapshots.find(s => s.snapshot_uuid === e.raw_snapshot_uuid);
+        if (snap) snapClass = this.classifySnapshot(snap);
+      }
+      return this.classifyEvidence(e, snapClass) === 'TEST_FIXTURE';
+    });
+  }
+
+  public getUnknownEvidence(): RawEvidenceObject[] {
+    return this.db.raw_evidence_objects.filter(e => {
+      let snapClass: EvidenceProvenance | undefined;
+      if (e.raw_snapshot_uuid) {
+        const snap = this.db.raw_source_snapshots.find(s => s.snapshot_uuid === e.raw_snapshot_uuid);
+        if (snap) snapClass = this.classifySnapshot(snap);
+      }
+      return this.classifyEvidence(e, snapClass) === 'UNKNOWN';
+    });
+  }
+
+  public getPublicEligibleEvidence(): RawEvidenceObject[] {
+    return this.getRealProvenEvidence();
+  }
+
+  public getBridgeEligibleEvidence(): RawEvidenceObject[] {
+    return this.getRealProvenEvidence();
+  }
+
+  public getQuarantinedEvidence(): RawEvidenceObject[] {
+    return this.db.raw_evidence_objects.filter(e => {
+      let snapClass: EvidenceProvenance | undefined;
+      if (e.raw_snapshot_uuid) {
+        const snap = this.db.raw_source_snapshots.find(s => s.snapshot_uuid === e.raw_snapshot_uuid);
+        if (snap) snapClass = this.classifySnapshot(snap);
+      }
+      return this.classifyEvidence(e, snapClass) !== 'REAL_PROVEN';
+    });
   }
 
   public getDeadLetterJobs(): DeadLetterJobRecord[] {

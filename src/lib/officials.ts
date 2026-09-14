@@ -292,17 +292,23 @@ type BaselineRecord = {
   serviceEndDateText?: string | null;
 };
 
-const canonicalDataRoot = path.join(process.cwd(), 'data', 'officials');
-const baselineRoots = [
-  path.join(process.cwd(), 'data', 'staging', 'florida', 'state-house'),
-  path.join(process.cwd(), 'data', 'staging', 'florida', 'state-senate'),
-  path.join(process.cwd(), 'data', 'staging', 'florida', 'statewide-executive'),
-  path.join(process.cwd(), 'data', 'staging', 'federal', 'us-house'),
-  path.join(process.cwd(), 'data', 'staging', 'federal', 'us-senate'),
-];
+function getCanonicalDataRoot(): string {
+  return typeof process !== 'undefined' && process.cwd && path ? path.join(process.cwd(), 'data', 'officials') : '';
+}
+
+function getBaselineRoots(): string[] {
+  if (typeof process === 'undefined' || !process.cwd || !path) return [];
+  return [
+    path.join(process.cwd(), 'data', 'staging', 'florida', 'state-house'),
+    path.join(process.cwd(), 'data', 'staging', 'florida', 'state-senate'),
+    path.join(process.cwd(), 'data', 'staging', 'florida', 'statewide-executive'),
+    path.join(process.cwd(), 'data', 'staging', 'federal', 'us-house'),
+    path.join(process.cwd(), 'data', 'staging', 'federal', 'us-senate'),
+  ];
+}
 
 function findJsonFiles(directory: string): string[] {
-  if (!fs.existsSync(directory)) return [];
+  if (typeof fs === 'undefined' || !fs.existsSync || !directory || !fs.existsSync(directory)) return [];
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const entryPath = path.join(directory, entry.name);
     if (entry.isDirectory()) return findJsonFiles(entryPath);
@@ -475,13 +481,13 @@ function dedupeKey(official: OfficialProfile): string {
 }
 
 export function getAllOfficials(): OfficialProfile[] {
-  const canonical = findJsonFiles(canonicalDataRoot)
+  const canonical = findJsonFiles(getCanonicalDataRoot())
     .map((filePath) => JSON.parse(fs.readFileSync(filePath, 'utf8')) as OfficialProfile)
     .filter((official) => official.recordStatus !== 'duplicate' && official.recordStatus !== 'archived')
     .map((official) => ({ ...official, publicationStage: 'reviewed_profile' as const }));
 
   const canonicalKeys = new Set(canonical.map(dedupeKey));
-  const baseline = baselineRoots
+  const baseline = getBaselineRoots()
     .flatMap(findJsonFiles)
     .map((filePath) => JSON.parse(fs.readFileSync(filePath, 'utf8')) as BaselineRecord)
     .map(baselineToOfficial)

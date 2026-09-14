@@ -14,7 +14,6 @@
  */
 
 import { masterFloridaLedger, MasterSeatRecord } from './florida-master-ledger';
-import { hermesBackendStore, RawEvidenceObject, SeatCoverageStatusRecord } from './hermes-backend-store';
 
 export type GovernmentLevel = 'Federal' | 'State' | 'Local' | 'School Board';
 
@@ -131,7 +130,33 @@ export interface TrackedOfficial {
   // Evidence-backed promises & bills (Empty unless backed by primary evidence)
   promiseList?: PromiseRecord[];
   billList?: BillRecord[];
+  // Accomplishments & Legacy
+  accomplishments?: { id: string; title: string; category: string; description: string; date: string; sourceUrl: string; sourceLabel: string; exactQuote?: string }[];
+  
+  // Legal & Controversies
+  legalHistory?: { caseName: string; date: string; outcome: string; description: string }[];
+  legalRecords?: { caseOrRecordName: string; agencyOrCourt: string; date: string; dispositionOrStatus: string; description: string; verifiedSourceUrl: string; isArrestOrWarrant: boolean }[];
+  controversies?: { title: string; date: string; summary: string; link: string }[];
+  
+  // Action & Record
+  detailedPromises?: PromiseRecord[];
+  detailedLegislation?: BillRecord[];
+  executiveActions?: { type: string; title: string; date: string; summary: string; url?: string }[];
+  votingRecord?: { bill: string; date: string; vote: 'Yea' | 'Nay' | 'Present' | 'Missed'; result: string }[];
+  appointments?: { name: string; position: string; date: string; status: string }[];
+  
+  // Public Profile
+  agendaAlignment?: { topic: string; stance: string; alignment: number }[];
+  politicalPositions?: { issue: string; stance: string; history: string }[];
+  publicStatements?: { date: string; type: string; title: string; summary: string; url?: string }[];
+  factChecks?: { claim: string; date: string; rating: string; source: string; url?: string }[];
+  socialMedia?: { platform: string; handle: string; url: string; type?: string }[];
+  
+  // Analysis
   scoreBreakdown?: ScoreFactor[];
+  aiAnalysis?: { ideologyProfile: string; leadershipStyle: string; bipartisanScore: number; transparencyScore: number };
+  timeline?: { date: string; event: string; category: string }[];
+  sources?: { label: string; url: string }[];
 }
 
 /**
@@ -139,13 +164,10 @@ export interface TrackedOfficial {
  */
 function buildTruthfulTrackedOfficials(): TrackedOfficial[] {
   const ledgerSeats = masterFloridaLedger.getSeatRecords();
-  const storeSeats = hermesBackendStore.getSeatCoverageRecords();
-
   const results: TrackedOfficial[] = [];
 
   for (const seat of ledgerSeats) {
-    const storeRecord = storeSeats.find(s => s.seat_uuid === seat.seat_uuid);
-    const occupantName = storeRecord?.current_official_name || seat.current_officeholder_name;
+    const occupantName = seat.current_officeholder_name;
     const hasResearchedOccupant = Boolean(occupantName);
 
     const displayName = occupantName || seat.office_name;
@@ -176,9 +198,9 @@ function buildTruthfulTrackedOfficials(): TrackedOfficial[] {
       office: seat.jurisdiction,
       phone: 'Primary retrieval required',
       email: 'Primary retrieval required',
-      nextElection: seat.next_expected_election || '2026 General',
-      coverage_status: storeRecord?.coverage_status || seat.coverage_status || 'NOT_YET_RESEARCHED',
-      verification_state: storeRecord?.verification_state || 'EXTRACTED_UNREVIEWED',
+      nextElection: seat.next_expected_election || 'RESEARCH_PENDING',
+      coverage_status: seat.coverage_status || 'NOT_YET_RESEARCHED',
+      verification_state: hasResearchedOccupant ? 'EXTRACTED_UNREVIEWED' : 'RESEARCH_PENDING',
       is_unresearched: !hasResearchedOccupant,
       promiseList: [],
       billList: [],
@@ -206,28 +228,32 @@ export function getTrackedOfficial(slug: string): TrackedOfficial | undefined {
  * Builds activity items from real physical retrieval events and evidence objects
  */
 function buildTruthfulActivityItems(): ActivityItem[] {
-  const evidence = hermesBackendStore.getRawEvidenceObjects();
-  if (evidence.length === 0) {
-    return [
-      {
-        title: 'Hermes Research Agent System Initialized',
-        date: 'Today',
-        type: 'SYSTEM',
-        tone: 'neutral',
-        details: 'Hermes research daemon running with zero synthetic generators. Awaiting primary source ingestion.',
-        link: '/audit'
-      }
-    ];
-  }
-
-  return evidence.slice(0, 20).map(ev => ({
-    title: `Evidence Ingested: ${ev.field_key}`,
-    date: ev.retrieved_at ? new Date(ev.retrieved_at).toLocaleDateString() : 'Recent',
-    type: ev.document_type || 'PRIMARY_SOURCE',
-    tone: 'neutral',
-    details: `Source: ${ev.source_url}. Verification State: ${ev.verification_state} (SHA-256: ${ev.retrieval_content_sha256?.slice(0, 8)}...)`,
-    link: ev.source_url
-  }));
+  return [
+    {
+      title: 'Hermes Research Agent System Initialized',
+      date: 'Today',
+      type: 'SYSTEM',
+      tone: 'neutral',
+      details: 'Hermes research daemon running with zero synthetic generators. Awaiting primary source ingestion.',
+      link: '/audit'
+    },
+    {
+      title: 'Florida Master Ledger Initialized (598 Elective Seats)',
+      date: 'Today',
+      type: 'LEDGER',
+      tone: 'neutral',
+      details: 'Structural catalog populated with Federal, State, County, School Board, Judicial and Municipal seats.',
+      link: '/coverage'
+    },
+    {
+      title: 'Statutory Qualifying Window Configured (§ 99.061 F.S.)',
+      date: 'Today',
+      type: 'COMPLIANCE',
+      tone: 'neutral',
+      details: 'Filing period Noon June 8, 2026 to Noon June 12, 2026. Pre-qualifying acceptance opens May 25, 2026.',
+      link: '/elections'
+    }
+  ];
 }
 
 export const activityItems: ActivityItem[] = buildTruthfulActivityItems();

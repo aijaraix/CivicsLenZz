@@ -231,66 +231,131 @@ export function ProfileExperience() {
       </div>
       
       <div className="site-width mt-8">
-        {/* Defensible Verification Badge (Section XI & XXVIII Contract Rule) */}
-        <div className="bg-slate-900 border border-emerald-500/40 rounded-2xl p-5 shadow-sm mb-6 space-y-4">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500 text-emerald-400 flex items-center justify-center font-black text-xl shrink-0">
-                ✓
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400">
-                    CIVICLENZ VERIFIED PROFILE
-                  </span>
-                  <span className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-mono text-[10px] px-2 py-0.5 rounded font-bold">
-                    100% REQUIRED CHECKS COMPLETE
-                  </span>
+        {/* State-Aware Research Status Banner (Derived strictly from record authority) */}
+        {official.verification_state === 'CANONICAL_VALIDATED' ? (
+          <div className="bg-slate-900 border border-emerald-500/40 rounded-2xl p-5 shadow-sm mb-6 space-y-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500 text-emerald-400 flex items-center justify-center font-black text-xl shrink-0">
+                  ✓
                 </div>
-                <h2 className="text-sm sm:text-base font-extrabold text-white mt-0.5">
-                  1,012 / 1,012 Required Data Checks Completed & Verified
-                </h2>
-                <p className="text-xs text-slate-300 mt-0.5">
-                  Evaluated across Core Identity, Office Seat, Campaign Finance, Legislation, Votes, and Disclosures. Zero unverified assertions.
-                </p>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-400">
+                      CANONICAL VALIDATED PROFILE
+                    </span>
+                  </div>
+                  <h2 className="text-sm sm:text-base font-extrabold text-white mt-0.5">
+                    Authoritative Record Validated
+                  </h2>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Independently reviewed and verified against authoritative primary sources.
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={() => setShowCompletenessModal(true)}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-xs shrink-0 cursor-pointer"
+              >
+                Inspect Fact Checklist & Audit Provenance →
+              </button>
             </div>
-            <button
-              onClick={() => setShowCompletenessModal(true)}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-xs shrink-0 cursor-pointer"
-            >
-              Inspect Fact Checklist & Audit Provenance →
-            </button>
           </div>
+        ) : official.verification_state === 'EXTRACTED_UNREVIEWED' ? (
+          <div className="bg-slate-900 border border-amber-500/40 rounded-2xl p-5 shadow-sm mb-6 space-y-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500 text-amber-400 flex items-center justify-center font-black text-xl shrink-0">
+                  ⚡
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-amber-400">
+                      EXTRACTED_UNREVIEWED • PRODUCER RESEARCH ONLY
+                    </span>
+                    <span className="bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[10px] px-2 py-0.5 rounded font-bold">
+                      AWAITING CANONICAL INGEST
+                    </span>
+                  </div>
+                  <h2 className="text-sm sm:text-base font-extrabold text-white mt-0.5">
+                    Advance Harvester Extraction — Unreviewed Research State
+                  </h2>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    CivicsLenZz is an untrusted research producer. Entities remain unreviewed until verified by canonical CivicLenZ gatekeepers.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCompletenessModal(true)}
+                className="bg-amber-600 hover:bg-amber-500 text-white font-mono font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-xs shrink-0 cursor-pointer"
+              >
+                Inspect Fact Checklist & Audit Provenance →
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-5 shadow-sm mb-6 space-y-4">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-600 text-slate-400 flex items-center justify-center font-black text-xl shrink-0">
+                  📋
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">
+                      STRUCTURAL SEAT • RESEARCH_PENDING
+                    </span>
+                    <span className="bg-slate-800 border border-slate-700 text-slate-300 font-mono text-[10px] px-2 py-0.5 rounded font-bold">
+                      NOT YET HARVESTED
+                    </span>
+                  </div>
+                  <h2 className="text-sm sm:text-base font-extrabold text-white mt-0.5">
+                    Structural Florida Elective Seat Definition
+                  </h2>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Seat is registered in Florida Master Ledger. Primary source document retrieval and research extraction pending.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCompletenessModal(true)}
+                className="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-mono font-bold text-xs px-4 py-2.5 rounded-xl transition shadow-xs shrink-0 cursor-pointer"
+              >
+                Inspect Seat Structural Definition →
+              </button>
+            </div>
+          </div>
+        )}
 
-          {/* Section XXIV: Drill Down into Raw Underlying Records */}
+        {/* Section XXIV: Drill Down into Raw Underlying Records */}
+        <div className="mb-6">
           <div className="pt-3 border-t border-slate-800 flex flex-wrap items-center gap-2">
             <span className="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider mr-1">
               Section XXIV Record Drill-Downs:
             </span>
             <button
-              onClick={() => setDrillDownTarget({ category: 'VOTES', title: official.title, totalCount: official.votes || 1247 })}
+              onClick={() => setDrillDownTarget({ category: 'VOTES', title: official.title, totalCount: official.votes || 0 })}
               className="bg-slate-800 hover:bg-slate-700 border border-purple-500/40 text-purple-200 text-xs font-mono font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
             >
               <Icon name="check-circle" size={14} className="text-purple-400" />
               {(official.votes || 0).toLocaleString()} Votes
             </button>
             <button
-              onClick={() => setDrillDownTarget({ category: 'BILLS', title: official.title, totalCount: official.bills || 32 })}
+              onClick={() => setDrillDownTarget({ category: 'BILLS', title: official.title, totalCount: official.bills || 0 })}
               className="bg-slate-800 hover:bg-slate-700 border border-blue-500/40 text-blue-200 text-xs font-mono font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
             >
               <Icon name="file-text" size={14} className="text-blue-400" />
               {official.bills || 0} Bills Sponsored
             </button>
             <button
-              onClick={() => setDrillDownTarget({ category: 'PROMISES', title: official.title, totalCount: official.detailedPromises?.length || official.promises || 18 })}
+              onClick={() => setDrillDownTarget({ category: 'PROMISES', title: official.title, totalCount: official.detailedPromises?.length || official.promises || 0 })}
               className="bg-slate-800 hover:bg-slate-700 border border-amber-500/40 text-amber-200 text-xs font-mono font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
             >
               <Icon name="shield" size={14} className="text-amber-400" />
               {official.detailedPromises?.length || official.promises || 0} Promises Tracked
             </button>
             <button
-              onClick={() => setDrillDownTarget({ category: 'DONATIONS', title: official.title, totalCount: official.donors?.length || 850 })}
+              onClick={() => setDrillDownTarget({ category: 'DONATIONS', title: official.title, totalCount: official.donors?.length || 0 })}
               className="bg-slate-800 hover:bg-slate-700 border border-emerald-500/40 text-emerald-200 text-xs font-mono font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
             >
               <Icon name="landmark" size={14} className="text-emerald-400" />
@@ -298,21 +363,21 @@ export function ProfileExperience() {
                 ? (official.campaignFinance.totalRaised >= 1000000 
                     ? `$${(official.campaignFinance.totalRaised / 1000000).toFixed(2)}M` 
                     : `$${(official.campaignFinance.totalRaised / 1000).toFixed(0)}K`)
-                : '$3.85M'} Campaign Contributions
+                : '$0'} Campaign Contributions
             </button>
             <button
-              onClick={() => setDrillDownTarget({ category: 'BUSINESS_INTERESTS', title: official.title, totalCount: official.businessesOwned?.length || 5 })}
+              onClick={() => setDrillDownTarget({ category: 'BUSINESS_INTERESTS', title: official.title, totalCount: official.businessesOwned?.length || 0 })}
               className="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-mono font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
             >
               <Icon name="building" size={14} className="text-slate-400" />
-              {official.businessesOwned?.length || 5} Business Entities
+              {official.businessesOwned?.length || 0} Business Entities
             </button>
             <button
-              onClick={() => setDrillDownTarget({ category: 'ELECTIONS', title: official.title, totalCount: 2 })}
+              onClick={() => setDrillDownTarget({ category: 'ELECTIONS', title: official.title, totalCount: official.electionHistory?.length || 0 })}
               className="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-mono font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 cursor-pointer"
             >
               <Icon name="star" size={14} className="text-slate-400" />
-              2 Certified Elections
+              {official.electionHistory?.length || 0} Certified Elections
             </button>
           </div>
         </div>

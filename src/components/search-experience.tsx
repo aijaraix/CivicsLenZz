@@ -142,10 +142,10 @@ export function SearchExperience() {
                </span>
                <div>
                  <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-widest block">
-                   CURRENT ELECTED OFFICIALS DIRECTORY
+                   FLORIDA CIVIC SEAT & RESEARCH DIRECTORY
                  </span>
                  <p className="text-xs text-slate-200 font-medium">
-                   You are viewing active officeholders, voting records, and current representation.
+                   You are viewing Florida structural seats and advance harvester research status.
                  </p>
                </div>
              </div>
@@ -160,10 +160,10 @@ export function SearchExperience() {
            </div>
 
            <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight mb-4">
-             {search.trim() ? "Your Elected Officials" : "Elected Officials Directory"}
+             {search.trim() ? "Civic Seats & Representation" : "Florida Civic Seat & Research Directory"}
            </h1>
            <p className="text-slate-600 max-w-3xl mb-6 text-sm">
-             Explore our live database of validated elected officials. Search by address, name, or zip code to see who represents you, or use the filters to browse by level of government.
+             Explore our catalog of Florida civic seats and officeholder research. Search by address, name, or zip code to see district seats and unreviewed research packages, or use the filters to browse by level of government.
            </p>
            
            <div className="flex flex-col md:flex-row gap-4">

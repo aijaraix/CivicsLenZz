@@ -18,11 +18,11 @@ export interface MasterSeatRecord {
   elective_status: 'ELECTED' | 'RETENTION' | 'APPOINTED_SPECIAL';
   current_officeholder_uuid?: string;
   current_officeholder_name?: string;
-  vacant_status: boolean;
+  vacant_status?: boolean;
   term_start?: string;
   term_end?: string;
-  next_expected_election: string;
-  election_cycle: string;
+  next_expected_election?: string;
+  election_cycle?: string;
   boundary_uuid?: string;
   source_authority: string;
   research_contract_id: string;
@@ -156,14 +156,14 @@ export class MasterFloridaLedgerEngine {
       elective_status: 'ELECTED',
       current_officeholder_uuid: undefined,
       current_officeholder_name: undefined,
-      vacant_status: false,
-      term_start: '2019-01-08',
-      term_end: '2025-01-03',
-      next_expected_election: '2026-11-03',
-      election_cycle: '2026_MIDTERM',
+      vacant_status: undefined,
+      term_start: undefined,
+      term_end: undefined,
+      next_expected_election: undefined,
+      election_cycle: undefined,
       source_authority: 'https://dos.elections.myflorida.com',
       research_contract_id: 'contract_fl_us_sen_a',
-      coverage_status: 'RESEARCH_IN_PROGRESS',
+      coverage_status: 'NOT_YET_RESEARCHED',
       completeness_percent: 0,
       region: 'SOUTH_FLORIDA'
     });
@@ -178,14 +178,14 @@ export class MasterFloridaLedgerEngine {
       elective_status: 'ELECTED',
       current_officeholder_uuid: undefined,
       current_officeholder_name: undefined,
-      vacant_status: false,
-      term_start: '2023-01-03',
-      term_end: '2029-01-03',
-      next_expected_election: '2028-11-07',
-      election_cycle: '2028_PRESIDENTIAL',
+      vacant_status: undefined,
+      term_start: undefined,
+      term_end: undefined,
+      next_expected_election: undefined,
+      election_cycle: undefined,
       source_authority: 'https://dos.elections.myflorida.com',
       research_contract_id: 'contract_fl_us_sen_b',
-      coverage_status: 'RESEARCH_IN_PROGRESS',
+      coverage_status: 'NOT_YET_RESEARCHED',
       completeness_percent: 0,
       region: 'SOUTH_FLORIDA'
     });
@@ -200,12 +200,16 @@ export class MasterFloridaLedgerEngine {
         district: `${i}`,
         office_type: 'FEDERAL_LEGISLATOR',
         elective_status: 'ELECTED',
-        vacant_status: false,
-        next_expected_election: '2026-11-03',
-        election_cycle: '2026_MIDTERM',
+        current_officeholder_uuid: undefined,
+        current_officeholder_name: undefined,
+        vacant_status: undefined,
+        term_start: undefined,
+        term_end: undefined,
+        next_expected_election: undefined,
+        election_cycle: undefined,
         source_authority: 'https://api.congress.gov/v3/member/state/FL',
         research_contract_id: `contract_fl_us_rep_${i}`,
-        coverage_status: 'RESEARCH_IN_PROGRESS',
+        coverage_status: 'NOT_YET_RESEARCHED',
         completeness_percent: 0,
         region: i <= 10 ? 'SOUTH_FLORIDA' : i <= 20 ? 'CENTRAL' : 'PANHANDLE'
       });
@@ -232,12 +236,14 @@ export class MasterFloridaLedgerEngine {
         elective_status: 'ELECTED',
         current_officeholder_uuid: undefined,
         current_officeholder_name: undefined,
-        vacant_status: false,
-        next_expected_election: '2026-11-03',
-        election_cycle: '2026_MIDTERM',
+        vacant_status: undefined,
+        term_start: undefined,
+        term_end: undefined,
+        next_expected_election: undefined,
+        election_cycle: undefined,
         source_authority: 'https://www.flgov.com',
         research_contract_id: `contract_${exec.uuid}`,
-        coverage_status: 'RESEARCH_IN_PROGRESS',
+        coverage_status: 'NOT_YET_RESEARCHED',
         completeness_percent: 0,
         region: 'SOUTH_FLORIDA'
       });
@@ -254,12 +260,16 @@ export class MasterFloridaLedgerEngine {
         district: `${s}`,
         office_type: 'STATE_LEGISLATOR',
         elective_status: 'ELECTED',
-        vacant_status: false,
-        next_expected_election: s % 2 === 0 ? '2026-11-03' : '2028-11-07',
-        election_cycle: s % 2 === 0 ? '2026_MIDTERM' : '2028_PRESIDENTIAL',
+        current_officeholder_uuid: undefined,
+        current_officeholder_name: undefined,
+        vacant_status: undefined,
+        term_start: undefined,
+        term_end: undefined,
+        next_expected_election: undefined,
+        election_cycle: undefined,
         source_authority: 'https://flsenate.gov',
         research_contract_id: `contract_fl_sen_${s}`,
-        coverage_status: 'RESEARCH_IN_PROGRESS',
+        coverage_status: 'NOT_YET_RESEARCHED',
         completeness_percent: 0,
         region: s >= 30 ? 'SOUTH_FLORIDA' : s >= 15 ? 'CENTRAL' : 'NORTH_CENTRAL'
       });
@@ -275,13 +285,17 @@ export class MasterFloridaLedgerEngine {
         district: `${h}`,
         office_type: 'STATE_LEGISLATOR',
         elective_status: 'ELECTED',
-        vacant_status: false,
-        next_expected_election: '2026-11-03',
-        election_cycle: '2026_MIDTERM',
+        current_officeholder_uuid: undefined,
+        current_officeholder_name: undefined,
+        vacant_status: undefined,
+        term_start: undefined,
+        term_end: undefined,
+        next_expected_election: undefined,
+        election_cycle: undefined,
         source_authority: 'https://myfloridahouse.gov',
         research_contract_id: `contract_fl_house_${h}`,
-        coverage_status: 'MONITORING',
-        completeness_percent: 85,
+        coverage_status: 'NOT_YET_RESEARCHED',
+        completeness_percent: 0,
         region: h >= 100 ? 'SOUTH_FLORIDA' : h >= 50 ? 'CENTRAL' : 'PANHANDLE'
       });
     }
@@ -294,17 +308,17 @@ export class MasterFloridaLedgerEngine {
         region: c.region,
         expected_elected_seats: c.seats,
         discovered_seats: c.seats,
-        verified_current_officeholders: c.seats,
-        research_complete: c.seats,
+        verified_current_officeholders: 0,
+        research_complete: 0,
         research_in_progress: 0,
-        missing: 0,
-        source_registry_complete: true,
+        missing: c.seats,
+        source_registry_complete: false,
         municipalities_expected: c.muniCount,
         municipalities_discovered: c.muniCount,
         school_board_seats: 5,
         special_district_seats: 2,
-        judicial_coverage: 'Circuit & County Court Ledger Complete',
-        county_completion_percent: 100
+        judicial_coverage: 'Circuit & County Court Ledger Structural Definitions Only',
+        county_completion_percent: 0
       });
 
       // Add County Executive & Constitutional Seats for each county
@@ -319,12 +333,16 @@ export class MasterFloridaLedgerEngine {
           county_fips: c.fips,
           office_type: 'COUNTY_EXECUTIVE',
           elective_status: 'ELECTED',
-          vacant_status: false,
-          next_expected_election: '2028-11-07',
-          election_cycle: '2028_PRESIDENTIAL',
+          current_officeholder_uuid: undefined,
+          current_officeholder_name: undefined,
+          vacant_status: undefined,
+          term_start: undefined,
+          term_end: undefined,
+          next_expected_election: undefined,
+          election_cycle: undefined,
           source_authority: `https://www.${c.name.toLowerCase().replace(/\s+/g, '')}votes.gov`,
           research_contract_id: `contract_${c.fips}_${idx}`,
-          coverage_status: 'RESEARCH_IN_PROGRESS',
+          coverage_status: 'NOT_YET_RESEARCHED',
           completeness_percent: 0,
           region: c.region
         });
@@ -354,26 +372,28 @@ export class MasterFloridaLedgerEngine {
         clerk_source: `https://www.${m.name.toLowerCase().replace(/\s+/g, '')}.gov/clerk`,
         expected_elected_seats: m.seats,
         discovered_elected_seats: m.seats,
-        verified_officeholders: m.seats,
-        coverage_percent: 100
+        verified_officeholders: 0,
+        coverage_percent: 0
       });
     });
   }
 
   public getMasterLedgerSummary() {
     const totalSeats = this.seats.length;
-    const completeSeats = this.seats.filter(s => s.coverage_status === 'UNREVIEWED_RESEARCH_INGESTED' || s.coverage_status === 'MONITORING').length;
 
     return {
+      structural_seats_discovered: totalSeats,
       total_expected_seats: totalSeats,
       total_discovered_seats: totalSeats,
-      total_verified_officeholders: completeSeats,
-      baseline_complete_seats: completeSeats,
-      monitoring_active_seats: this.seats.filter(s => s.coverage_status === 'MONITORING').length,
-      missing_seats: totalSeats - completeSeats,
+      florida_seat_universe_status: 'NOT_YET_RECONCILED',
+      missing_seats_reconciliation: 'UNRECONCILED',
+      total_verified_officeholders: 0,
+      baseline_complete_seats: 0,
+      monitoring_active_seats: 0,
+      missing_seats: totalSeats,
       county_count: this.counties.length,
       municipalities_tracked_row_level: this.municipalities.length,
-      overall_florida_coverage_percent: totalSeats > 0 ? Math.round((completeSeats / totalSeats) * 100) : 0
+      overall_florida_coverage_percent: 0
     };
   }
 
