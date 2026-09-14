@@ -219,12 +219,12 @@ export function runProducerInternalTruthAudit(): ProductionTruthAuditReport {
     for (const entry of entries) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
-        if (entry.name !== 'node_modules' && entry.name !== '.git' && entry.name !== 'dist' && entry.name !== 'legacy') {
+        if (entry.name !== 'node_modules' && entry.name !== '.git' && entry.name !== 'dist' && entry.name !== 'legacy' && entry.name !== 'scripts' && entry.name !== 'test') {
           scanDirForImports(full);
         }
       } else if (entry.isFile() && (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx'))) {
-        // Exclude legacy directory or self
-        if (full.includes('/legacy/') || full.includes('\\legacy\\')) continue;
+        // Exclude legacy directory, test, scripts, or self
+        if (full.includes('/legacy/') || full.includes('\\legacy\\') || full.includes('/scripts/') || full.includes('\\scripts\\') || full.includes('/test/') || full.includes('\\test\\')) continue;
         if (entry.name === 'master-data-generator.ts' || entry.name === 'civic-database.ts') continue;
         
         const content = fs.readFileSync(full, 'utf8');

@@ -947,7 +947,16 @@ class HermesBackendStore {
     if (snap.provenance_classification && snap.provenance_classification !== 'UNKNOWN') {
       return snap.provenance_classification;
     }
-    if (snap.parser_version === 'v2.1' || snap.target_url?.includes('synthetic') || snap.target_url?.includes('mock')) {
+    if (
+      snap.parser_version === 'v2.1' ||
+      snap.parser_version === 'DETERMINISTIC_PARSER_V2' ||
+      (snap as any).source_name === 'SYNTHETIC_GENERATOR' ||
+      (snap as any).source_name?.includes('SYNTHETIC') ||
+      snap.target_url?.includes('synthetic') ||
+      snap.target_url?.includes('mock') ||
+      (snap as any).raw_payload_text?.includes('STUB') ||
+      (snap as any).raw_payload?.includes('STUB')
+    ) {
       return 'LEGACY_SYNTHETIC';
     }
     if (snap.target_url?.includes('fixture') || snap.target_url?.includes('test')) {
@@ -960,7 +969,8 @@ class HermesBackendStore {
       snap.http_status &&
       snap.retrieved_at &&
       snap.parser_version &&
-      snap.parser_version !== 'v2.1'
+      snap.parser_version !== 'v2.1' &&
+      snap.parser_version !== 'DETERMINISTIC_PARSER_V2'
     ) {
       try {
         const fileBytes = fs.readFileSync(snap.raw_bytes_path);
@@ -983,7 +993,9 @@ class HermesBackendStore {
     }
     if (
       ev.parser_version === 'v2.1' ||
+      ev.parser_version === 'DETERMINISTIC_PARSER_V2' ||
       ev.extraction_method === 'DETERMINISTIC_PARSER_V2' ||
+      (ev as any).source_name?.includes('SYNTHETIC') ||
       ev.source_url?.includes('synthetic') ||
       ev.source_url?.includes('mock') ||
       (ev as any).content_to_hash

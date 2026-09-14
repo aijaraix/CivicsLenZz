@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Icon } from './icons';
 import { OfficialAvatar } from './official-avatar';
 import { CoverageMap } from './coverage-map';
 import { getTrackedOfficial, TrackedOfficial, activityItems, ActivityItem } from '../lib/civic-records';
 import { CompletenessAdmin } from './completeness-admin';
-import { hermesPrime } from '../lib/hermes-prime';
 import { DrillDownCategory, RecordDrillDownModal } from './record-drilldown-modal';
 
 function AccordionItem({ title, subtitle, icon, rightElement, children }: { key?: React.Key, title: string, subtitle?: string, icon?: import("./icons").IconName, rightElement?: React.ReactNode, children: React.ReactNode }) {
@@ -47,12 +46,48 @@ export function ProfileExperience() {
     title: string;
     totalCount: number;
   } | null>(null);
+  const [researchState, setResearchState] = useState<{
+    research_state: string;
+    coverage_status: string;
+    last_evaluated_at?: string;
+  }>({
+    research_state: 'RESEARCH_PENDING',
+    coverage_status: 'UNKNOWN'
+  });
+  
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/api/hermes/coverage')
+      .then(res => res.json())
+      .then(data => {
+        if (!isMounted || !data || !Array.isArray(data.seats)) return;
+        const matchingSeat = data.seats.find((s: any) => 
+          ((official as any)?.seat_uuid && s.seat_uuid === (official as any).seat_uuid) || 
+          (official?.name && s.current_official_name === official.name) ||
+          (official?.slug && s.seat_uuid?.includes(official.slug))
+        );
+        if (matchingSeat) {
+          setResearchState({
+            research_state: matchingSeat.coverage_status || 'RESEARCH_PENDING',
+            coverage_status: matchingSeat.coverage_status || 'UNKNOWN',
+            last_evaluated_at: matchingSeat.last_evaluated_at
+          });
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setResearchState({
+            research_state: 'RESEARCH_PENDING',
+            coverage_status: 'UNKNOWN'
+          });
+        }
+      });
+    return () => { isMounted = false; };
+  }, [official?.name, official?.slug]);
   
   if (!official) {
     return <section className="profile-page"><div className="site-width"><h2>Official not found.</h2><Link to="/search/">Back to search</Link></div></section>;
   }
-
-  const primeLock = hermesPrime.getLockByPersonUuid(official.slug || 'person_daniella') || hermesPrime.getActiveLocks()[0];
 
   return (
     <section className="profile-page pb-20">
@@ -79,38 +114,36 @@ export function ProfileExperience() {
         <div className="site-width profile-header-inner">
           <Link to="/search/" className="back-link"><Icon name="arrow-left" size={16} /> Back to results</Link>
           
-          {/* Section XXV: H0 HERMES PRIME Research Completeness Banner */}
-          {primeLock && (
-            <div 
-              onClick={() => setShowCompletenessModal(true)}
-              className="my-3 bg-purple-950/80 border border-purple-500/40 p-3 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-purple-100 cursor-pointer hover:border-purple-400 transition shadow-sm"
-            >
-              <div className="flex items-center gap-3">
-                <span className={`w-3 h-3 rounded-full shrink-0 ${primeLock.completion_percentage >= 100 ? 'bg-emerald-400' : 'bg-purple-400 animate-pulse'}`} />
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono font-bold text-purple-300 uppercase tracking-widest block">
-                      HERMES PRIME RESEARCH LOCK — {primeLock.region.replace(/_/g, ' ')}
-                    </span>
-                    <span className="text-[10px] font-mono bg-purple-900 border border-purple-700 px-1.5 py-0.2 rounded text-purple-200">
-                      {primeLock.research_state}
-                    </span>
-                  </div>
-                  <span className="text-sm font-bold text-white">
-                    {primeLock.completion_percentage >= 100 && official.coverage_status === 'BASELINE_COMPLETE'
-                      ? '✓ REQUIRED CHECKS AUDITED'
-                      : `● RESEARCH ACTIVE — ${primeLock.research_state || 'EXTRACTED_UNREVIEWED'} (PRODUCER RESEARCH ONLY)`}
+          {/* Research Completeness Banner from Server-Side Durable State */}
+          <div 
+            onClick={() => setShowCompletenessModal(true)}
+            className="my-3 bg-purple-950/80 border border-purple-500/40 p-3 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-purple-100 cursor-pointer hover:border-purple-400 transition shadow-sm"
+          >
+            <div className="flex items-center gap-3">
+              <span className={`w-3 h-3 rounded-full shrink-0 ${researchState.coverage_status === 'BASELINE_COMPLETE' ? 'bg-emerald-400' : 'bg-purple-400 animate-pulse'}`} />
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono font-bold text-purple-300 uppercase tracking-widest block">
+                    SERVER-SIDE RESEARCH STATE — FLORIDA
+                  </span>
+                  <span className="text-[10px] font-mono bg-purple-900 border border-purple-700 px-1.5 py-0.2 rounded text-purple-200">
+                    {researchState.coverage_status}
                   </span>
                 </div>
+                <span className="text-sm font-bold text-white">
+                  {researchState.coverage_status === 'BASELINE_COMPLETE'
+                    ? '✓ REQUIRED CHECKS AUDITED'
+                    : `● RESEARCH STATE: ${researchState.research_state} (PRODUCER RESEARCH ONLY)`}
+                </span>
               </div>
-              <button 
-                type="button"
-                className="text-xs font-mono font-bold bg-purple-900 hover:bg-purple-800 text-purple-200 px-3 py-1.5 rounded-xl border border-purple-600 shrink-0"
-              >
-                Inspect Audit Contract →
-              </button>
             </div>
-          )}
+            <button 
+              type="button"
+              className="text-xs font-mono font-bold bg-purple-900 hover:bg-purple-800 text-purple-200 px-3 py-1.5 rounded-xl border border-purple-600 shrink-0"
+            >
+              Inspect Audit Contract →
+            </button>
+          </div>
 
           <div className="profile-identity">
             <OfficialAvatar official={official} size="xl" />
