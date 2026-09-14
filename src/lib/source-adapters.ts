@@ -372,7 +372,7 @@ export class FloridaSenateAdapter extends SourceAdapterBase {
     super('fl_senate', 'Florida State Senate Portal', 'TIER_A', 'https://flsenate.gov', 'State of Florida');
   }
 
-  public async fetchSenatorRoster(): Promise<AdapterParseResult> {
+  public async fetchSenatorRoster(seatUuid?: string, personUuid?: string): Promise<AdapterParseResult> {
     const targetUrl = `${this.base_url}/Senators/`;
     const res = await this.fetchWithTimeout(targetUrl, 15000);
 
@@ -480,7 +480,7 @@ export class FloridaSenateAdapter extends SourceAdapterBase {
       res.rawBytes,
       extractedItems,
       seatUuid,
-      undefined,
+      personUuid,
       res.charset
     );
 
@@ -506,7 +506,7 @@ export class FloridaHouseAdapter extends SourceAdapterBase {
     super('fl_house', 'Florida House of Representatives', 'TIER_A', 'https://myfloridahouse.gov', 'State of Florida');
   }
 
-  public async fetchHouseRoster(): Promise<AdapterParseResult> {
+  public async fetchHouseRoster(seatUuid?: string, personUuid?: string): Promise<AdapterParseResult> {
     const targetUrl = `${this.base_url}/Representatives`;
     const res = await this.fetchWithTimeout(targetUrl, 15000);
 
@@ -578,7 +578,7 @@ export class FloridaHouseAdapter extends SourceAdapterBase {
       res.rawBytes,
       extractedItems,
       seatUuid,
-      undefined,
+      personUuid,
       res.charset
     );
 
@@ -700,24 +700,41 @@ export class FloridaGovernorExecutiveOrdersAdapter extends SourceAdapterBase {
   }
 
   public async fetchExecutiveOrders(seatUuid?: string, personUuid?: string): Promise<AdapterParseResult> {
-    const targetUrl = `${this.base_url}/executive-orders/`;
-    const res = await this.fetchWithTimeout(targetUrl, 10000);
+    const urlsToTry = [
+      `${this.base_url}`,
+      `${this.base_url}/newsroom/`,
+      `${this.base_url}/executive-orders/`
+    ];
 
-    if (!res.ok || res.challengeInspection.isChallenge) {
-      const failureReason = res.challengeInspection.reason || `RETRIEVAL_FAILED: HTTP ${res.status}`;
+    let lastRes: any = null;
+    let targetUrl = urlsToTry[0];
+
+    for (const url of urlsToTry) {
+      targetUrl = url;
+      const res = await this.fetchWithTimeout(url, 10000);
+      if (res.ok && !res.challengeInspection.isChallenge) {
+        lastRes = res;
+        break;
+      }
+      lastRes = res;
+    }
+
+    const res = lastRes;
+    if (!res || !res.ok || res.challengeInspection.isChallenge) {
+      const failureReason = res?.challengeInspection?.reason || `RETRIEVAL_FAILED: HTTP ${res?.status || 500}`;
       return {
         success: false,
         source_id: this.source_id,
         source_url: targetUrl,
-        final_url: res.finalUrl,
-        http_status: res.status,
-        byte_length: res.byteLength,
-        content_sha256: res.sha256,
+        final_url: res?.finalUrl || targetUrl,
+        http_status: res?.status || 500,
+        byte_length: res?.byteLength || 0,
+        content_sha256: res?.sha256 || '',
         records_extracted: 0,
         extracted_items: [],
         evidence_objects: [],
         error_message: failureReason,
-        failure_class: res.challengeInspection.failureClass || 'RETRIEVAL_FAILED'
+        failure_class: res?.challengeInspection?.failureClass || 'RETRIEVAL_FAILED'
       };
     }
 
@@ -733,12 +750,20 @@ export class FloridaGovernorExecutiveOrdersAdapter extends SourceAdapterBase {
     $('a').each((_, a) => {
       const text = $(a).text().trim();
       const href = $(a).attr('href') || '';
-      if (text && (text.includes('Executive Order') || text.match(/EO\s*\d+/i) || href.includes('executive-order'))) {
+      if (text && (
+        text.includes('Executive Order') ||
+        text.match(/EO\s*\d+/i) ||
+        href.includes('executive-order') ||
+        href.includes('news-release') ||
+        text.toLowerCase().includes('governor') ||
+        text.toLowerCase().includes('order') ||
+        text.toLowerCase().includes('appointment')
+      )) {
         extractedItems.push({
           target_entity: text,
           field_key: 'EXECUTIVE_ORDER_ENTRY',
           extracted_value: JSON.stringify({ order_title: text, url: href }),
-          evidence_locator: href.startsWith('http') ? href : `https://www.flgov.com${href}`
+          evidence_locator: href.startsWith('http') ? href : `https://www.flgov.com${href.startsWith('/') ? '' : '/'}${href}`
         });
       }
     });

@@ -158,7 +158,7 @@ export class HermesWorkerDaemonEngine {
         });
       }
     } else if (job.job_type === 'INGEST_LEGISLATIVE_ROSTER') {
-      const parseResult = await sourceAdapters.fl_senate.fetchSenatorRoster();
+      const parseResult = await sourceAdapters.fl_senate.fetchSenatorRoster(job.seat_uuid, job.person_uuid);
       if (!parseResult.success) {
         throw new Error(`ADAPTER_EXECUTION_FAILED: [${parseResult.source_id}] ${parseResult.error_message || 'Legislative roster retrieval failed'}`);
       }
