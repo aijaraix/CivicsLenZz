@@ -1231,6 +1231,7 @@ export interface ScopeMonitoringSchedule {
   scope_id: string;
   scope_name: string;
   cadence: 'REALTIME' | 'HOURLY' | 'DAILY' | 'WEEKLY';
+  target_url?: string;
   last_checked: string;
   current_as_of: string;
   next_check: string;

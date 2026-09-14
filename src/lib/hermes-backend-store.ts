@@ -198,6 +198,79 @@ export interface DeadLetterJobRecord {
   moved_at: string;
 }
 
+export interface MonitoringEventRecord {
+  event_uuid: string;
+  obligation_id: string;
+  check_id: string;
+  retrieval_id: string;
+  comparison_id: string;
+  previous_hash: string;
+  current_hash: string;
+  comparison_event: 'NO_CHANGE' | 'CHANGE_DETECTED';
+  observed_url: string;
+  timestamp: string;
+}
+
+export interface DurableGapRecord {
+  gap_id: string;
+  seat_uuid: string;
+  person_uuid?: string;
+  office_type: string;
+  missing_scope: string;
+  priority: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  auto_generated_job_type?: string;
+  status: 'PENDING' | 'JOB_CREATED' | 'RESOLVED';
+  job_uuid?: string;
+  created_at: string;
+  resolved_at?: string;
+}
+
+export interface DurableAcademyObservationRecord {
+  observation_id: string;
+  source_id: string;
+  parser_id: string;
+  incident_type: string;
+  observed_payload_sample: string;
+  observed_sha256: string;
+  error_message?: string;
+  created_at: string;
+}
+
+export interface DurableAcademyCaseRecord {
+  case_id: string;
+  observation_id: string;
+  case_title: string;
+  proposed_rule?: string;
+  state: 'OBSERVED' | 'CASE_CREATED' | 'PROPOSAL_GENERATED' | 'TESTED_LOCALLY' | 'PROMOTION_APPROVED' | 'PROMOTION_DEPLOYED' | 'REJECTED';
+  test_result?: 'PASS' | 'FAIL';
+  created_at: string;
+  tested_at?: string;
+  promoted_at?: string;
+  promotion_authority?: string;
+}
+
+export interface DurableAutonomousProofRecord {
+  proof_uuid: string;
+  work_id: string;
+  lease_id: string;
+  worker_id: string;
+  retrieval_id: string;
+  artifact_id: string;
+  next_work_id: string;
+  verifier_self_dispatches: false;
+  proven_at: string;
+}
+
+export interface DurableMonitoringProofRecord {
+  proof_uuid: string;
+  obligation_id: string;
+  check_id: string;
+  retrieval_id: string;
+  comparison_id: string;
+  verifier_executes_fetch: false;
+  proven_at: string;
+}
+
 export interface HermesPersistentSchema {
   version: number;
   last_updated_at: string;
@@ -212,6 +285,12 @@ export interface HermesPersistentSchema {
   seat_coverage_status: SeatCoverageStatusRecord[];
   person_coverage_status: PersonCoverageStatusRecord[];
   dead_letter_jobs: DeadLetterJobRecord[];
+  monitoring_events: MonitoringEventRecord[];
+  durable_gaps: DurableGapRecord[];
+  academy_observations: DurableAcademyObservationRecord[];
+  academy_cases: DurableAcademyCaseRecord[];
+  autonomous_proof_records: DurableAutonomousProofRecord[];
+  monitoring_proof_records: DurableMonitoringProofRecord[];
   domain_rate_limits: Record<string, {
     max_req_per_sec: number;
     tokens_available: number;
@@ -237,7 +316,26 @@ class HermesBackendStore {
     if (fs.existsSync(this.dbFilePath)) {
       try {
         const raw = fs.readFileSync(this.dbFilePath, 'utf-8');
-        return JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        parsed.monitoring_events = parsed.monitoring_events || [];
+        parsed.durable_gaps = parsed.durable_gaps || [];
+        parsed.academy_observations = parsed.academy_observations || [];
+        parsed.academy_cases = parsed.academy_cases || [];
+        parsed.autonomous_proof_records = parsed.autonomous_proof_records || [];
+        parsed.monitoring_proof_records = parsed.monitoring_proof_records || [];
+        parsed.hermes_jobs = parsed.hermes_jobs || [];
+        parsed.hermes_job_attempts = parsed.hermes_job_attempts || [];
+        parsed.hermes_worker_leases = parsed.hermes_worker_leases || [];
+        parsed.hermes_checkpoints = parsed.hermes_checkpoints || [];
+        parsed.hermes_source_registry = parsed.hermes_source_registry || [];
+        parsed.raw_source_snapshots = parsed.raw_source_snapshots || [];
+        parsed.raw_evidence_objects = parsed.raw_evidence_objects || [];
+        parsed.research_contract_status = parsed.research_contract_status || [];
+        parsed.seat_coverage_status = parsed.seat_coverage_status || [];
+        parsed.person_coverage_status = parsed.person_coverage_status || [];
+        parsed.dead_letter_jobs = parsed.dead_letter_jobs || [];
+        parsed.domain_rate_limits = parsed.domain_rate_limits || {};
+        return parsed;
       } catch (err) {
         console.error('[HermesBackendStore] Error reading DB file, re-initializing:', err);
       }
@@ -257,6 +355,12 @@ class HermesBackendStore {
       seat_coverage_status: [],
       person_coverage_status: [],
       dead_letter_jobs: [],
+      monitoring_events: [],
+      durable_gaps: [],
+      academy_observations: [],
+      academy_cases: [],
+      autonomous_proof_records: [],
+      monitoring_proof_records: [],
       domain_rate_limits: {}
     };
 
@@ -758,12 +862,142 @@ class HermesBackendStore {
     return [...this.db.hermes_jobs];
   }
 
+  public getJob(jobUuid: string): PersistentHermesJob | undefined {
+    return this.db.hermes_jobs.find(j => j.job_uuid === jobUuid);
+  }
+
+  public getJobAttempts(jobUuid?: string): HermesJobAttempt[] {
+    if (jobUuid) {
+      return this.db.hermes_job_attempts.filter(a => a.job_uuid === jobUuid);
+    }
+    return [...this.db.hermes_job_attempts];
+  }
+
+  public getWorkerLeases(): HermesWorkerLease[] {
+    return [...this.db.hermes_worker_leases];
+  }
+
+  public getRawSnapshots(): RawSourceSnapshot[] {
+    return [...this.db.raw_source_snapshots];
+  }
+
   public getDeadLetterJobs(): DeadLetterJobRecord[] {
     return [...this.db.dead_letter_jobs];
   }
 
   public getSourceRegistry(): SourceRegistryEntry[] {
     return [...this.db.hermes_source_registry];
+  }
+
+  // =========================================================================
+  // MONITORING, GAPS, ACADEMY, AND PROOF PERSISTENCE METHODS
+  // =========================================================================
+
+  public recordMonitoringEvent(event: Omit<MonitoringEventRecord, 'event_uuid' | 'timestamp'>): MonitoringEventRecord {
+    const fullEvent: MonitoringEventRecord = {
+      ...event,
+      event_uuid: `monev_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+      timestamp: new Date().toISOString()
+    };
+    this.db.monitoring_events.push(fullEvent);
+    if (this.db.monitoring_events.length > 500) {
+      this.db.monitoring_events.shift();
+    }
+    this.saveDatabase();
+    return fullEvent;
+  }
+
+  public getMonitoringEvents(obligationId?: string): MonitoringEventRecord[] {
+    if (obligationId) {
+      return this.db.monitoring_events.filter(e => e.obligation_id === obligationId);
+    }
+    return [...this.db.monitoring_events];
+  }
+
+  public recordDurableGap(gap: Omit<DurableGapRecord, 'gap_id' | 'created_at'>): DurableGapRecord {
+    const fullGap: DurableGapRecord = {
+      ...gap,
+      gap_id: `gap_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+      created_at: new Date().toISOString()
+    };
+    this.db.durable_gaps.push(fullGap);
+    this.saveDatabase();
+    return fullGap;
+  }
+
+  public getDurableGaps(status?: 'PENDING' | 'JOB_CREATED' | 'RESOLVED'): DurableGapRecord[] {
+    if (status) {
+      return this.db.durable_gaps.filter(g => g.status === status);
+    }
+    return [...this.db.durable_gaps];
+  }
+
+  public recordAcademyObservation(obs: Omit<DurableAcademyObservationRecord, 'observation_id' | 'created_at'>): DurableAcademyObservationRecord {
+    const fullObs: DurableAcademyObservationRecord = {
+      ...obs,
+      observation_id: `obs_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+      created_at: new Date().toISOString()
+    };
+    this.db.academy_observations.push(fullObs);
+    this.saveDatabase();
+    return fullObs;
+  }
+
+  public getAcademyObservations(): DurableAcademyObservationRecord[] {
+    return [...this.db.academy_observations];
+  }
+
+  public recordAcademyCase(caseRecord: Omit<DurableAcademyCaseRecord, 'case_id' | 'created_at'>): DurableAcademyCaseRecord {
+    const fullCase: DurableAcademyCaseRecord = {
+      ...caseRecord,
+      case_id: `case_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+      created_at: new Date().toISOString()
+    };
+    this.db.academy_cases.push(fullCase);
+    this.saveDatabase();
+    return fullCase;
+  }
+
+  public getAcademyCases(): DurableAcademyCaseRecord[] {
+    return [...this.db.academy_cases];
+  }
+
+  public updateAcademyCase(caseId: string, updates: Partial<DurableAcademyCaseRecord>): DurableAcademyCaseRecord | null {
+    const target = this.db.academy_cases.find(c => c.case_id === caseId);
+    if (!target) return null;
+    Object.assign(target, updates);
+    this.saveDatabase();
+    return target;
+  }
+
+  public recordAutonomousProof(proof: Omit<DurableAutonomousProofRecord, 'proof_uuid' | 'proven_at'>): DurableAutonomousProofRecord {
+    const fullProof: DurableAutonomousProofRecord = {
+      ...proof,
+      proof_uuid: `proof_auto_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+      proven_at: new Date().toISOString()
+    };
+    this.db.autonomous_proof_records.push(fullProof);
+    this.saveDatabase();
+    return fullProof;
+  }
+
+  public getAutonomousProofRecords(): DurableAutonomousProofRecord[] {
+    return [...this.db.autonomous_proof_records];
+  }
+
+  public recordMonitoringProof(proof: Omit<DurableMonitoringProofRecord, 'proof_uuid' | 'proven_at'>): DurableMonitoringProofRecord {
+    const fullProof: DurableMonitoringProofRecord = {
+      ...proof,
+      proof_uuid: `proof_mon_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+      proven_at: new Date().toISOString()
+    };
+    this.db.monitoring_proof_records.push(fullProof);
+    this.saveDatabase();
+    return fullProof;
+  }
+
+  public getMonitoringProofRecords(): DurableMonitoringProofRecord[] {
+    return [...this.db.monitoring_proof_records];
   }
 }
 
