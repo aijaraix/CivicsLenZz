@@ -26,7 +26,7 @@ export interface MasterSeatRecord {
   boundary_uuid?: string;
   source_authority: string;
   research_contract_id: string;
-  coverage_status: 'NOT_YET_RESEARCHED' | 'RESEARCH_IN_PROGRESS' | 'BASELINE_COMPLETE' | 'MONITORING' | 'SOURCE_UNAVAILABLE';
+  coverage_status: 'NOT_YET_RESEARCHED' | 'RESEARCH_IN_PROGRESS' | 'UNREVIEWED_RESEARCH_INGESTED' | 'BASELINE_COMPLETE' | 'MONITORING' | 'SOURCE_UNAVAILABLE';
   completeness_percent: number;
   region: 'SOUTH_FLORIDA' | 'SOUTHEAST' | 'SOUTHWEST' | 'CENTRAL' | 'TAMPA_BAY' | 'NORTHEAST' | 'NORTH_CENTRAL' | 'PANHANDLE';
 }

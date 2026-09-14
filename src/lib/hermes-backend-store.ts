@@ -168,7 +168,7 @@ export interface SeatCoverageStatusRecord {
   next_election_date?: string;
   in_active_election_cycle: boolean;
   completeness_percentage: number;
-  coverage_status: 'NOT_YET_RESEARCHED' | 'RESEARCH_IN_PROGRESS' | 'BASELINE_COMPLETE' | 'MONITORING';
+  coverage_status: 'NOT_YET_RESEARCHED' | 'RESEARCH_IN_PROGRESS' | 'UNREVIEWED_RESEARCH_INGESTED' | 'BASELINE_COMPLETE' | 'MONITORING';
   last_updated_at: string;
 }
 

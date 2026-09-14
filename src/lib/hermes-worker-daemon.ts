@@ -132,6 +132,9 @@ export class HermesWorkerDaemonEngine {
 
     if (job.job_type === 'INGEST_CANDIDATE_FILINGS') {
       const parseResult = await sourceAdapters.fl_dos_elections.fetchCandidateFilings();
+      if (!parseResult.success) {
+        throw new Error(`ADAPTER_EXECUTION_FAILED: [${parseResult.source_id}] ${parseResult.error_message || 'Candidate filings retrieval failed'}`);
+      }
       resultRecords = parseResult.records_extracted;
       if (parseResult.evidence_objects.length > 0) {
         artifactId = parseResult.evidence_objects[0].evidence_uuid;
@@ -139,7 +142,7 @@ export class HermesWorkerDaemonEngine {
         retrievalId = `ret_${parseResult.evidence_objects[0].source_uuid}`;
       }
       
-      // Update Seat Status
+      // Update Seat Status strictly from extracted items
       if (job.seat_uuid) {
         hermesBackendStore.updateSeatCoverage({
           seat_uuid: job.seat_uuid,
@@ -149,13 +152,16 @@ export class HermesWorkerDaemonEngine {
           government_level: 'Federal',
           is_vacant: false,
           in_active_election_cycle: true,
-          completeness_percentage: resultRecords > 0 ? 50 : 10,
+          completeness_percentage: resultRecords > 0 ? 30 : 0,
           coverage_status: resultRecords > 0 ? 'UNREVIEWED_RESEARCH_INGESTED' : 'RESEARCH_IN_PROGRESS',
           last_updated_at: new Date().toISOString()
         });
       }
     } else if (job.job_type === 'INGEST_LEGISLATIVE_ROSTER') {
       const parseResult = await sourceAdapters.fl_senate.fetchSenatorRoster();
+      if (!parseResult.success) {
+        throw new Error(`ADAPTER_EXECUTION_FAILED: [${parseResult.source_id}] ${parseResult.error_message || 'Legislative roster retrieval failed'}`);
+      }
       resultRecords = parseResult.records_extracted;
       if (parseResult.evidence_objects.length > 0) {
         artifactId = parseResult.evidence_objects[0].evidence_uuid;
@@ -174,13 +180,16 @@ export class HermesWorkerDaemonEngine {
           government_level: 'State',
           is_vacant: false,
           in_active_election_cycle: !isSD35,
-          completeness_percentage: resultRecords > 0 ? 50 : 10,
+          completeness_percentage: resultRecords > 0 ? 30 : 0,
           coverage_status: resultRecords > 0 ? 'UNREVIEWED_RESEARCH_INGESTED' : 'RESEARCH_IN_PROGRESS',
           last_updated_at: new Date().toISOString()
         });
       }
     } else if (job.job_type === 'INGEST_COUNTY_ELECTION_DATA') {
       const parseResult = await sourceAdapters.miami_dade_elections.fetchCountyElections(job.seat_uuid, job.person_uuid);
+      if (!parseResult.success) {
+        throw new Error(`ADAPTER_EXECUTION_FAILED: [${parseResult.source_id}] ${parseResult.error_message || 'County election data retrieval failed'}`);
+      }
       resultRecords = parseResult.records_extracted;
       if (parseResult.evidence_objects.length > 0) {
         artifactId = parseResult.evidence_objects[0].evidence_uuid;
@@ -197,13 +206,16 @@ export class HermesWorkerDaemonEngine {
           government_level: 'County',
           is_vacant: false,
           in_active_election_cycle: true,
-          completeness_percentage: resultRecords > 0 ? 50 : 10,
+          completeness_percentage: resultRecords > 0 ? 30 : 0,
           coverage_status: resultRecords > 0 ? 'UNREVIEWED_RESEARCH_INGESTED' : 'RESEARCH_IN_PROGRESS',
           last_updated_at: new Date().toISOString()
         });
       }
     } else if (job.job_type === 'INGEST_EXECUTIVE_ORDERS') {
       const parseResult = await sourceAdapters.fl_governor.fetchExecutiveOrders(job.seat_uuid, job.person_uuid);
+      if (!parseResult.success) {
+        throw new Error(`ADAPTER_EXECUTION_FAILED: [${parseResult.source_id}] ${parseResult.error_message || 'Executive orders retrieval failed'}`);
+      }
       resultRecords = parseResult.records_extracted;
       if (parseResult.evidence_objects.length > 0) {
         artifactId = parseResult.evidence_objects[0].evidence_uuid;
@@ -220,13 +232,16 @@ export class HermesWorkerDaemonEngine {
           government_level: 'State',
           is_vacant: false,
           in_active_election_cycle: true,
-          completeness_percentage: resultRecords > 0 ? 50 : 10,
+          completeness_percentage: resultRecords > 0 ? 30 : 0,
           coverage_status: resultRecords > 0 ? 'UNREVIEWED_RESEARCH_INGESTED' : 'RESEARCH_IN_PROGRESS',
           last_updated_at: new Date().toISOString()
         });
       }
     } else if (job.job_type === 'COMPLETENESS_AUDIT_SCAN' || job.job_type === 'RESEARCH_CONTRACT_COMPLETENESS_RUN') {
       const parseResult = await sourceAdapters.completeness_auditor.executeAudit(job.seat_uuid, job.person_uuid);
+      if (!parseResult.success) {
+        throw new Error(`ADAPTER_EXECUTION_FAILED: [${parseResult.source_id}] ${parseResult.error_message || 'Completeness audit failed'}`);
+      }
       resultRecords = parseResult.records_extracted;
       if (parseResult.evidence_objects.length > 0) {
         artifactId = parseResult.evidence_objects[0].evidence_uuid;
@@ -239,6 +254,9 @@ export class HermesWorkerDaemonEngine {
       const missingScope = targetGap?.missing_scope || 'CANDIDATE_QUALIFICATION_STATUS';
 
       const parseResult = await sourceAdapters.gap_researcher.fillGap(job.seat_uuid || 'fl_senate_dist_34', missingScope, job.person_uuid);
+      if (!parseResult.success) {
+        throw new Error(`ADAPTER_EXECUTION_FAILED: [${parseResult.source_id}] ${parseResult.error_message || 'Gap research fill failed'}`);
+      }
       resultRecords = parseResult.records_extracted;
       if (parseResult.evidence_objects.length > 0) {
         artifactId = parseResult.evidence_objects[0].evidence_uuid;

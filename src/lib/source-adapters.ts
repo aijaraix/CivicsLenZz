@@ -1,19 +1,29 @@
 /**
  * CIVICLENZ / HERMES AUTHORITATIVE SOURCE ADAPTERS
- * Real HTTP-fetching and parsing adapters for Florida data sources.
- * Generates raw snapshots and SHA-256 evidence seals.
+ * Real HTTP-fetching and deterministic parsing adapters for Florida data sources.
+ * Adheres strictly to Zero-Synthetic Rule and Real Source Adapter Contract:
+ * - Real HTTP requests with timeout
+ * - Challenge/blocking/failure detection with fail-closed behavior
+ * - Exact byte capture and SHA-256 calculation
+ * - Deterministic parsing of retrieved bytes only (no pre-filled arrays)
+ * - All outputs marked strictly EXTRACTED_UNREVIEWED
+ * - Zero hardcoded civic facts, zero synthetic payload stubs
  */
 
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import * as cheerio from 'cheerio';
 import { hermesBackendStore, RawSourceSnapshot, RawEvidenceObject } from './hermes-backend-store';
 
 export interface AdapterParseResult {
   success: boolean;
   source_id: string;
   source_url: string;
+  final_url?: string;
   http_status: number;
+  byte_length?: number;
+  content_sha256?: string;
   records_extracted: number;
   extracted_items: Array<{
     target_entity: string;
@@ -25,6 +35,50 @@ export interface AdapterParseResult {
   raw_snapshot_uuid?: string;
   evidence_objects: RawEvidenceObject[];
   error_message?: string;
+  failure_class?: string;
+}
+
+export interface AccessChallengeInspection {
+  isChallenge: boolean;
+  reason?: string;
+  failureClass?: string;
+}
+
+export function detectAccessChallenge(status: number, text: string): AccessChallengeInspection {
+  if (status === 403) {
+    const lower = text.toLowerCase();
+    if (lower.includes('cf-mitigated') || lower.includes('cloudflare') || lower.includes('challenges.cloudflare.com')) {
+      return { isChallenge: true, reason: 'ACCESS_RESTRICTED: Cloudflare bot challenge mitigation (HTTP 403)', failureClass: 'ACCESS_RESTRICTED' };
+    }
+    return { isChallenge: true, reason: 'ACCESS_RESTRICTED: HTTP 403 Forbidden', failureClass: 'ACCESS_RESTRICTED' };
+  }
+
+  if (status === 429) {
+    return { isChallenge: true, reason: 'RATE_LIMITED: HTTP 429 Too Many Requests', failureClass: 'RATE_LIMITED' };
+  }
+
+  if (status === 503 || status === 502 || status === 504) {
+    return { isChallenge: true, reason: `SOURCE_UNAVAILABLE: HTTP ${status}`, failureClass: 'SOURCE_UNAVAILABLE' };
+  }
+
+  if (status < 200 || status >= 300) {
+    return { isChallenge: true, reason: `RETRIEVAL_FAILED: HTTP ${status}`, failureClass: 'RETRIEVAL_FAILED' };
+  }
+
+  const lower = text.toLowerCase();
+  if (lower.includes('cf-turnstile') || lower.includes('challenge-platform') || lower.includes('just a moment...') || lower.includes('attention required! | cloudflare')) {
+    return { isChallenge: true, reason: 'ACCESS_RESTRICTED: Cloudflare interstitial challenge detected', failureClass: 'ACCESS_RESTRICTED' };
+  }
+
+  if (lower.includes('robot or human?') || lower.includes('bot verification') || lower.includes('security check to continue') || lower.includes('captcha') || lower.includes('ddos-guard')) {
+    return { isChallenge: true, reason: 'ACCESS_RESTRICTED: Bot mitigation challenge page detected', failureClass: 'ACCESS_RESTRICTED' };
+  }
+
+  if (text.trim().length === 0) {
+    return { isChallenge: true, reason: 'SOURCE_UNAVAILABLE: Empty response body received from source', failureClass: 'SOURCE_UNAVAILABLE' };
+  }
+
+  return { isChallenge: false };
 }
 
 export class SourceAdapterBase {
@@ -48,7 +102,16 @@ export class SourceAdapterBase {
     this.jurisdiction = jurisdiction;
   }
 
-  protected async fetchWithTimeout(url: string, timeoutMs = 20000): Promise<{ ok: boolean; status: number; text: string; contentType: string }> {
+  protected async fetchWithTimeout(url: string, timeoutMs = 20000): Promise<{
+    ok: boolean;
+    status: number;
+    text: string;
+    contentType: string;
+    finalUrl: string;
+    byteLength: number;
+    sha256: string;
+    challengeInspection: AccessChallengeInspection;
+  }> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -56,17 +119,43 @@ export class SourceAdapterBase {
       const response = await fetch(url, {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'CivicLenZ-HERMES-InferenceWorker/2.0 (Civic Intelligence; https://civiclenz.gov)',
+          'User-Agent': 'CivicLenZ-HERMES-InferenceWorker/2.0 (Civic Intelligence Research Producer; contact@civiclenz.org)',
           'Accept': 'text/html,application/json,application/xhtml+xml,text/plain,*/*'
         }
       });
       clearTimeout(timer);
       const contentType = response.headers.get('content-type') || 'text/html';
       const text = await response.text();
-      return { ok: response.ok, status: response.status, text, contentType };
+      const byteLength = Buffer.byteLength(text, 'utf-8');
+      const sha256 = crypto.createHash('sha256').update(Buffer.from(text, 'utf-8')).digest('hex');
+      const finalUrl = response.url || url;
+      const challengeInspection = detectAccessChallenge(response.status, text);
+
+      return {
+        ok: response.ok && !challengeInspection.isChallenge,
+        status: response.status,
+        text,
+        contentType,
+        finalUrl,
+        byteLength,
+        sha256,
+        challengeInspection
+      };
     } catch (err: any) {
       clearTimeout(timer);
-      return { ok: false, status: 504, text: err.message || 'Fetch Timeout', contentType: 'text/plain' };
+      const isTimeout = err.name === 'AbortError' || (err.message && err.message.includes('timeout'));
+      const status = isTimeout ? 504 : 502;
+      const errorMsg = isTimeout ? 'RETRIEVAL_FAILED: Connection timed out' : `RETRIEVAL_FAILED: ${err.message || 'Network error'}`;
+      return {
+        ok: false,
+        status,
+        text: '',
+        contentType: 'text/plain',
+        finalUrl: url,
+        byteLength: 0,
+        sha256: crypto.createHash('sha256').update('').digest('hex'),
+        challengeInspection: { isChallenge: true, reason: errorMsg, failureClass: isTimeout ? 'RETRIEVAL_TIMEOUT' : 'NETWORK_ERROR' }
+      };
     }
   }
 
@@ -79,17 +168,17 @@ export class SourceAdapterBase {
     seatUuid?: string,
     personUuid?: string
   ): { snapshotUuid: string; evidenceObjects: RawEvidenceObject[] } {
-    // 1. Store Raw Snapshot
+    // 1. Store Raw Snapshot with exact bytes
     const snapshot = hermesBackendStore.storeRawSnapshot({
       source_uuid: this.source_id,
       target_url: url,
       http_status: httpStatus,
       content_type: contentType,
-      raw_payload: rawPayload.substring(0, 100000), // Cap size
-      parser_version: 'v2.1'
+      raw_payload: rawPayload.substring(0, 100000), // Cap size for store
+      parser_version: 'v2.2-zero-synthetic'
     });
 
-    // 2. Generate Evidence Objects
+    // 2. Generate Evidence Objects strictly marked EXTRACTED_UNREVIEWED
     const evidenceObjects: RawEvidenceObject[] = extractedItems.map(item => {
       return hermesBackendStore.createEvidenceObject({
         source_uuid: this.source_id,
@@ -98,7 +187,7 @@ export class SourceAdapterBase {
         document_type: 'PRIMARY_GOVERNMENT_PORTAL',
         source_tier: this.authority_tier,
         raw_snapshot_uuid: snapshot.snapshot_uuid,
-        parser_version: 'v2.1',
+        parser_version: 'v2.2-zero-synthetic',
         extraction_method: 'DETERMINISTIC_PARSER_V2',
         supporting_locator: item.evidence_locator || url,
         verification_state: 'EXTRACTED_UNREVIEWED',
@@ -124,18 +213,99 @@ export class FloridaDOSDivisionOfElectionsAdapter extends SourceAdapterBase {
     const targetUrl = `${this.base_url}/candidates/CanList.asp`;
     const res = await this.fetchWithTimeout(targetUrl, 15000);
 
-    const extractedItems = [
-      { target_entity: 'Rick Scott', field_key: 'CANDIDATE_QUALIFICATION_STATUS', extracted_value: 'QUALIFIED_ACTIVE', evidence_locator: 'DOCKET_FL_2026_US_SEN' },
-      { target_entity: 'Debbie Mucarsel-Powell', field_key: 'CANDIDATE_FILING_PARTY', extracted_value: 'DEMOCRATIC_PARTY', evidence_locator: 'DOCKET_FL_2026_US_SEN_DEM' },
-      { target_entity: 'Ron DeSantis', field_key: 'GOVERNOR_FILING_RECORD', extracted_value: 'TERM_LIMITED_2026', evidence_locator: 'FL_DOS_EXEC_2022_CERT' }
-    ];
+    // If fetch failed or challenge detected, fail closed!
+    if (!res.ok || res.challengeInspection.isChallenge) {
+      const failureReason = res.challengeInspection.reason || `RETRIEVAL_FAILED: HTTP ${res.status}`;
+      
+      // Store failed raw snapshot for audit/Academy traceability
+      let snapshotUuid: string | undefined;
+      if (res.text) {
+        const snap = hermesBackendStore.storeRawSnapshot({
+          source_uuid: this.source_id,
+          target_url: targetUrl,
+          http_status: res.status,
+          content_type: res.contentType,
+          raw_payload: res.text.substring(0, 5000),
+          parser_version: 'v2.2-zero-synthetic'
+        });
+        snapshotUuid = snap.snapshot_uuid;
+      }
 
-    const payload = res.ok ? res.text : 'OFFICIAL_FL_DOS_CANDIDATE_LISTING_STUB_2026';
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        final_url: res.finalUrl,
+        http_status: res.status,
+        byte_length: res.byteLength,
+        content_sha256: res.sha256,
+        records_extracted: 0,
+        extracted_items: [],
+        raw_snapshot_uuid: snapshotUuid,
+        evidence_objects: [],
+        error_message: failureReason,
+        failure_class: res.challengeInspection.failureClass || 'RETRIEVAL_FAILED'
+      };
+    }
+
+    // Deterministic parser against exact retrieved HTML bytes
+    const extractedItems: Array<{
+      target_entity: string;
+      field_key: string;
+      extracted_value: string;
+      evidence_locator?: string;
+    }> = [];
+
+    const $ = cheerio.load(res.text);
+
+    // Florida DOS Candidate List displays table rows for candidates
+    $('table tr').each((rowIdx, row) => {
+      const cells = $(row).find('td').map((_, cell) => $(cell).text().trim()).get();
+      if (cells.length >= 3) {
+        const candidateName = cells[0];
+        const party = cells[1];
+        const status = cells[2];
+        const office = cells[3] || officeCategory;
+
+        if (candidateName && candidateName.length > 2 && !candidateName.toLowerCase().includes('candidate name')) {
+          extractedItems.push({
+            target_entity: candidateName,
+            field_key: 'CANDIDATE_FILING_RECORD',
+            extracted_value: JSON.stringify({
+              candidate_name: candidateName,
+              party_affiliation: party,
+              filing_status: status,
+              office_sought: office
+            }),
+            evidence_locator: `${targetUrl}#table_row_${rowIdx}`
+          });
+        }
+      }
+    });
+
+    // If parser found 0 valid candidate records, fail closed truthfully
+    if (extractedItems.length === 0) {
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        final_url: res.finalUrl,
+        http_status: res.status,
+        byte_length: res.byteLength,
+        content_sha256: res.sha256,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: 'PARSER_INCOMPATIBLE: Zero candidate records extracted from retrieved markup structure',
+        failure_class: 'PARSER_INCOMPATIBLE'
+      };
+    }
+
     const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
       targetUrl,
       res.status,
       res.contentType,
-      payload,
+      res.text,
       extractedItems
     );
 
@@ -143,7 +313,10 @@ export class FloridaDOSDivisionOfElectionsAdapter extends SourceAdapterBase {
       success: true,
       source_id: this.source_id,
       source_url: targetUrl,
+      final_url: res.finalUrl,
       http_status: res.status,
+      byte_length: res.byteLength,
+      content_sha256: res.sha256,
       records_extracted: extractedItems.length,
       extracted_items: extractedItems,
       raw_snapshot_uuid: snapshotUuid,
@@ -162,28 +335,119 @@ export class FloridaSenateAdapter extends SourceAdapterBase {
     const targetUrl = `${this.base_url}/Senators/`;
     const res = await this.fetchWithTimeout(targetUrl, 15000);
 
-    const extractedItems = [
-      { target_entity: 'Shevrin D. "Shev" Jones', field_key: 'FL_SENATE_DIST_34_OFFICEHOLDER', extracted_value: 'VERIFIED_ACTIVE_SENATOR', evidence_locator: 'flsenate.gov/Senators/s34' },
-      { target_entity: 'Barbara Sharief', field_key: 'FL_SENATE_DIST_35_OFFICEHOLDER', extracted_value: 'VERIFIED_ACTIVE_SENATOR', evidence_locator: 'flsenate.gov/Senators/s35' },
-      { target_entity: 'Florida State Senate', field_key: 'TOTAL_DISTRICTS_COUNT', extracted_value: '40_SENATE_DISTRICTS_VERIFIED', evidence_locator: 'flsenate.gov/Senators/' }
-    ];
+    if (!res.ok || res.challengeInspection.isChallenge) {
+      const failureReason = res.challengeInspection.reason || `RETRIEVAL_FAILED: HTTP ${res.status}`;
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        final_url: res.finalUrl,
+        http_status: res.status,
+        byte_length: res.byteLength,
+        content_sha256: res.sha256,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: failureReason,
+        failure_class: res.challengeInspection.failureClass || 'RETRIEVAL_FAILED'
+      };
+    }
 
-    const payload = res.ok ? res.text : 'OFFICIAL_FL_SENATE_ROSTER_STREAM_2026';
+    // Deterministic parser against exact retrieved HTML bytes
+    const extractedItems: Array<{
+      target_entity: string;
+      field_key: string;
+      extracted_value: string;
+      evidence_locator?: string;
+    }> = [];
+
+    const $ = cheerio.load(res.text);
+
+    // Parse the official Florida Senate roster table
+    $('table tr').each((rowIdx, row) => {
+      const cells = $(row).find('td').map((_, cell) => $(cell).text().trim()).get();
+      if (cells.length >= 3) {
+        // Table columns: [ Senator, District, Party, Counties, ... ]
+        const rawSenator = cells[0];
+        const district = cells[1];
+        const party = cells[2];
+        const counties = cells[3] || '';
+
+        // Clean senator name (remove titles like "President", "Minority Leader")
+        const cleanName = rawSenator.split('\n')[0].trim();
+        const linkHref = $(row).find('td a').first().attr('href') || `/Senators/`;
+
+        if (cleanName && cleanName.length > 2 && district && /^\d+$/.test(district)) {
+          extractedItems.push({
+            target_entity: cleanName,
+            field_key: 'FL_SENATE_DISTRICT_OFFICEHOLDER',
+            extracted_value: JSON.stringify({
+              senator_name: cleanName,
+              district_number: district,
+              party_affiliation: party,
+              counties_represented: counties
+            }),
+            evidence_locator: linkHref.startsWith('http') ? linkHref : `https://flsenate.gov${linkHref}`
+          });
+        }
+      }
+    });
+
+    // If the table was not matched, fallback to senator detail links
+    if (extractedItems.length === 0) {
+      $('a').each((_, a) => {
+        const href = $(a).attr('href') || '';
+        const match = href.match(/\/Senators\/(?:20\d\d-20\d\d\/)?S(\d+)/i);
+        if (match) {
+          const text = $(a).text().trim();
+          if (text && !text.toLowerCase().includes('senator list') && !text.toLowerCase().includes('find')) {
+            extractedItems.push({
+              target_entity: text,
+              field_key: 'FL_SENATE_DISTRICT_OFFICEHOLDER',
+              extracted_value: JSON.stringify({
+                senator_name: text,
+                district_number: match[1]
+              }),
+              evidence_locator: `https://flsenate.gov${href}`
+            });
+          }
+        }
+      });
+    }
+
+    if (extractedItems.length === 0) {
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        final_url: res.finalUrl,
+        http_status: res.status,
+        byte_length: res.byteLength,
+        content_sha256: res.sha256,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: 'PARSER_INCOMPATIBLE: Zero senator records extracted from markup',
+        failure_class: 'PARSER_INCOMPATIBLE'
+      };
+    }
+
     const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
       targetUrl,
       res.status,
       res.contentType,
-      payload,
-      extractedItems,
-      'fl_senate_dist_34',
-      'person_shevrin_jones'
+      res.text,
+      extractedItems
     );
 
     return {
       success: true,
       source_id: this.source_id,
       source_url: targetUrl,
+      final_url: res.finalUrl,
       http_status: res.status,
+      byte_length: res.byteLength,
+      content_sha256: res.sha256,
       records_extracted: extractedItems.length,
       extracted_items: extractedItems,
       raw_snapshot_uuid: snapshotUuid,
@@ -202,16 +466,72 @@ export class FloridaHouseAdapter extends SourceAdapterBase {
     const targetUrl = `${this.base_url}/Representatives`;
     const res = await this.fetchWithTimeout(targetUrl, 15000);
 
-    const extractedItems = [
-      { target_entity: 'Florida House', field_key: 'TOTAL_HOUSE_SEATS_COUNT', extracted_value: '120_HOUSE_DISTRICTS_VERIFIED', evidence_locator: 'myfloridahouse.gov/Representatives' }
-    ];
+    if (!res.ok || res.challengeInspection.isChallenge) {
+      const failureReason = res.challengeInspection.reason || `RETRIEVAL_FAILED: HTTP ${res.status}`;
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        final_url: res.finalUrl,
+        http_status: res.status,
+        byte_length: res.byteLength,
+        content_sha256: res.sha256,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: failureReason,
+        failure_class: res.challengeInspection.failureClass || 'RETRIEVAL_FAILED'
+      };
+    }
 
-    const payload = res.ok ? res.text : 'OFFICIAL_FL_HOUSE_ROSTER_STREAM_2026';
+    const extractedItems: Array<{
+      target_entity: string;
+      field_key: string;
+      extracted_value: string;
+      evidence_locator?: string;
+    }> = [];
+
+    const $ = cheerio.load(res.text);
+
+    // Parse links to Representatives
+    $('a').each((_, a) => {
+      const href = $(a).attr('href') || '';
+      if (href.includes('/Representatives/Detail/') || href.includes('MemberId=')) {
+        const text = $(a).text().trim();
+        if (text && text.length > 2) {
+          extractedItems.push({
+            target_entity: text,
+            field_key: 'FL_HOUSE_REPRESENTATIVE_ENTRY',
+            extracted_value: JSON.stringify({ representative_name: text, link: href }),
+            evidence_locator: href.startsWith('http') ? href : `https://myfloridahouse.gov${href}`
+          });
+        }
+      }
+    });
+
+    // If page is a navigation shell without embedded representative rows, fail closed truthfully
+    if (extractedItems.length === 0) {
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        final_url: res.finalUrl,
+        http_status: res.status,
+        byte_length: res.byteLength,
+        content_sha256: res.sha256,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: 'PARSER_INCOMPATIBLE: Florida House portal returned navigation shell without static representative roster rows',
+        failure_class: 'PARSER_INCOMPATIBLE'
+      };
+    }
+
     const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
       targetUrl,
       res.status,
       res.contentType,
-      payload,
+      res.text,
       extractedItems
     );
 
@@ -219,7 +539,10 @@ export class FloridaHouseAdapter extends SourceAdapterBase {
       success: true,
       source_id: this.source_id,
       source_url: targetUrl,
+      final_url: res.finalUrl,
       http_status: res.status,
+      byte_length: res.byteLength,
+      content_sha256: res.sha256,
       records_extracted: extractedItems.length,
       extracted_items: extractedItems,
       raw_snapshot_uuid: snapshotUuid,
@@ -234,31 +557,73 @@ export class MiamiDadeCountyElectionsAdapter extends SourceAdapterBase {
     super('fl_miami_dade_elections', 'Miami-Dade County Elections Department', 'TIER_A', 'https://www.miamidade.gov/elections', 'Miami-Dade County');
   }
 
-  public async fetchCountyElections(seatUuid = 'fl_miami_dade_mayor_seat_01', personUuid = 'person_daniella_levine_cava'): Promise<AdapterParseResult> {
+  public async fetchCountyElections(seatUuid?: string, personUuid?: string): Promise<AdapterParseResult> {
     const targetUrl = `${this.base_url}`;
-    const res = await this.fetchWithTimeout(targetUrl, 5000);
+    const res = await this.fetchWithTimeout(targetUrl, 10000);
 
-    const extractedItems = [
-      { target_entity: 'Daniella Levine Cava', field_key: 'COUNTY_MAYOR_OFFICEHOLDER', extracted_value: 'SEATED_COUNTY_MAYOR', evidence_locator: 'miamidade.gov/mayor' },
-      { target_entity: 'Miami-Dade County Mayor', field_key: 'CANDIDATE_QUALIFICATION_STATUS', extracted_value: 'QUALIFIED_ACTIVE', evidence_locator: 'miamidade.gov/elections/candidates' },
-      { target_entity: 'Miami-Dade Board of County Commissioners', field_key: 'COMMISSION_SEATS_TOTAL', extracted_value: '13_COMMISSION_DISTRICTS_ACTIVE', evidence_locator: 'miamidade.gov/commission' }
-    ];
+    if (!res.ok || res.challengeInspection.isChallenge) {
+      const failureReason = res.challengeInspection.reason || `RETRIEVAL_FAILED: HTTP ${res.status}`;
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        final_url: res.finalUrl,
+        http_status: res.status,
+        byte_length: res.byteLength,
+        content_sha256: res.sha256,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: failureReason,
+        failure_class: res.challengeInspection.failureClass || 'RETRIEVAL_FAILED'
+      };
+    }
 
-    let payload = res.ok ? res.text : '';
-    if (!payload) {
-      const snapJson = path.resolve(process.cwd(), 'data/candidates/cand_2026_dlc.json');
-      if (fs.existsSync(snapJson)) {
-        payload = fs.readFileSync(snapJson, 'utf-8');
-      } else {
-        payload = 'OFFICIAL_MIAMI_DADE_ELECTIONS_RECORD_2026';
+    const extractedItems: Array<{
+      target_entity: string;
+      field_key: string;
+      extracted_value: string;
+      evidence_locator?: string;
+    }> = [];
+
+    const $ = cheerio.load(res.text);
+
+    // Look for election dates, candidate links, or portal metadata
+    $('a').each((_, a) => {
+      const text = $(a).text().trim();
+      const href = $(a).attr('href') || '';
+      if (text && (text.toLowerCase().includes('candidate') || text.toLowerCase().includes('election date') || text.toLowerCase().includes('sample ballot'))) {
+        extractedItems.push({
+          target_entity: text,
+          field_key: 'COUNTY_ELECTION_PORTAL_RESOURCE',
+          extracted_value: JSON.stringify({ resource_title: text, resource_url: href }),
+          evidence_locator: href.startsWith('http') ? href : `https://www.miamidade.gov${href}`
+        });
       }
+    });
+
+    if (extractedItems.length === 0) {
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        final_url: res.finalUrl,
+        http_status: res.status,
+        byte_length: res.byteLength,
+        content_sha256: res.sha256,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: 'PARSER_INCOMPATIBLE: Zero election items extracted from county portal markup',
+        failure_class: 'PARSER_INCOMPATIBLE'
+      };
     }
 
     const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
       targetUrl,
       res.status,
-      res.contentType || 'application/json',
-      payload,
+      res.contentType || 'text/html',
+      res.text,
       extractedItems,
       seatUuid,
       personUuid
@@ -268,7 +633,10 @@ export class MiamiDadeCountyElectionsAdapter extends SourceAdapterBase {
       success: true,
       source_id: this.source_id,
       source_url: targetUrl,
+      final_url: res.finalUrl,
       http_status: res.status,
+      byte_length: res.byteLength,
+      content_sha256: res.sha256,
       records_extracted: extractedItems.length,
       extracted_items: extractedItems,
       raw_snapshot_uuid: snapshotUuid,
@@ -283,30 +651,72 @@ export class FloridaGovernorExecutiveOrdersAdapter extends SourceAdapterBase {
     super('fl_governor_exec', 'Executive Office of the Governor of Florida', 'TIER_A', 'https://www.flgov.com', 'State of Florida');
   }
 
-  public async fetchExecutiveOrders(seatUuid = 'fl_governor_seat_01', personUuid = 'person_ron_desantis'): Promise<AdapterParseResult> {
+  public async fetchExecutiveOrders(seatUuid?: string, personUuid?: string): Promise<AdapterParseResult> {
     const targetUrl = `${this.base_url}/executive-orders/`;
-    const res = await this.fetchWithTimeout(targetUrl, 5000);
+    const res = await this.fetchWithTimeout(targetUrl, 10000);
 
-    const extractedItems = [
-      { target_entity: 'Ron DeSantis', field_key: 'EXECUTIVE_TERM_LIMIT_STATUS', extracted_value: 'SECOND_TERM_EXPIRING_JAN_2027', evidence_locator: 'flgov.com/governor-biography' },
-      { target_entity: 'Florida Governor Executive Orders', field_key: 'EXECUTIVE_ORDERS_SERIES', extracted_value: 'FL_EO_2024_2026_SERIES_ACTIVE', evidence_locator: 'flgov.com/executive-orders/' }
-    ];
+    if (!res.ok || res.challengeInspection.isChallenge) {
+      const failureReason = res.challengeInspection.reason || `RETRIEVAL_FAILED: HTTP ${res.status}`;
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        final_url: res.finalUrl,
+        http_status: res.status,
+        byte_length: res.byteLength,
+        content_sha256: res.sha256,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: failureReason,
+        failure_class: res.challengeInspection.failureClass || 'RETRIEVAL_FAILED'
+      };
+    }
 
-    let payload = res.ok ? res.text : '';
-    if (!payload) {
-      const snapHtml = path.resolve(process.cwd(), 'data/artifacts/executive_actions/gov_c5fd246eec99.html');
-      if (fs.existsSync(snapHtml)) {
-        payload = fs.readFileSync(snapHtml, 'utf-8');
-      } else {
-        payload = 'OFFICIAL_FL_GOVERNOR_EXECUTIVE_ORDERS_STREAM_2026';
+    const extractedItems: Array<{
+      target_entity: string;
+      field_key: string;
+      extracted_value: string;
+      evidence_locator?: string;
+    }> = [];
+
+    const $ = cheerio.load(res.text);
+
+    $('a').each((_, a) => {
+      const text = $(a).text().trim();
+      const href = $(a).attr('href') || '';
+      if (text && (text.includes('Executive Order') || text.match(/EO\s*\d+/i) || href.includes('executive-order'))) {
+        extractedItems.push({
+          target_entity: text,
+          field_key: 'EXECUTIVE_ORDER_ENTRY',
+          extracted_value: JSON.stringify({ order_title: text, url: href }),
+          evidence_locator: href.startsWith('http') ? href : `https://www.flgov.com${href}`
+        });
       }
+    });
+
+    if (extractedItems.length === 0) {
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        final_url: res.finalUrl,
+        http_status: res.status,
+        byte_length: res.byteLength,
+        content_sha256: res.sha256,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: 'PARSER_INCOMPATIBLE: Zero executive orders extracted from markup',
+        failure_class: 'PARSER_INCOMPATIBLE'
+      };
     }
 
     const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
       targetUrl,
       res.status,
       res.contentType || 'text/html',
-      payload,
+      res.text,
       extractedItems,
       seatUuid,
       personUuid
@@ -316,7 +726,10 @@ export class FloridaGovernorExecutiveOrdersAdapter extends SourceAdapterBase {
       success: true,
       source_id: this.source_id,
       source_url: targetUrl,
+      final_url: res.finalUrl,
       http_status: res.status,
+      byte_length: res.byteLength,
+      content_sha256: res.sha256,
       records_extracted: extractedItems.length,
       extracted_items: extractedItems,
       raw_snapshot_uuid: snapshotUuid,
@@ -331,7 +744,20 @@ export class CompletenessAuditAdapter extends SourceAdapterBase {
     super('civiclenz_completeness_auditor', 'CivicsLenZ Completeness & Integrity Auditor', 'TIER_A', 'https://civiclenz.local/audit', 'State of Florida');
   }
 
-  public async executeAudit(seatUuid = 'fl_us_senate_seat_02', personUuid = 'person_marco_rubio'): Promise<AdapterParseResult> {
+  public async executeAudit(seatUuid?: string, personUuid?: string): Promise<AdapterParseResult> {
+    if (!seatUuid) {
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: `${this.base_url}/seats/unspecified`,
+        http_status: 400,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: 'MISSING_TARGET_SEAT: executeAudit requires explicit seatUuid'
+      };
+    }
+
     const targetUrl = `${this.base_url}/seats/${seatUuid}`;
     const seats = hermesBackendStore.getSeatCoverageRecords();
     const evidenceList = hermesBackendStore.getRawEvidenceObjects();
@@ -343,9 +769,10 @@ export class CompletenessAuditAdapter extends SourceAdapterBase {
       audit_timestamp: new Date().toISOString(),
       target_seat_uuid: seatUuid,
       seat_found: Boolean(targetSeat),
-      current_official: targetSeat?.current_official_name || 'Marco Rubio',
+      current_official: targetSeat?.current_official_name || 'UNRESEARCHED',
       evidence_objects_count: seatEvidence.length,
-      coverage_status: targetSeat?.coverage_status || 'AUDITED_CURRENT',
+      coverage_status: targetSeat?.coverage_status || 'NOT_YET_RESEARCHED',
+      unreviewed_evidence_count: seatEvidence.filter(e => e.verification_state === 'EXTRACTED_UNREVIEWED').length,
       total_seats_in_scope: seats.length
     };
 
@@ -356,8 +783,8 @@ export class CompletenessAuditAdapter extends SourceAdapterBase {
     fs.writeFileSync(auditFilePath, payload);
 
     const extractedItems = [
-      { target_entity: auditReport.current_official, field_key: 'COMPLETENESS_AUDIT_STATUS', extracted_value: 'PHYSICALLY_AUDITED_AND_VERIFIED', evidence_locator: auditFilePath },
-      { target_entity: seatUuid, field_key: 'EVIDENCE_COUNT_AUDITED', extracted_value: String(seatEvidence.length), evidence_locator: auditFilePath }
+      { target_entity: seatUuid, field_key: 'AUDIT_RECORD_COUNT', extracted_value: String(seatEvidence.length), evidence_locator: auditFilePath },
+      { target_entity: seatUuid, field_key: 'AUDIT_VERIFICATION_DISCLAIMER', extracted_value: 'PRODUCER_AUDIT_ONLY_NO_CANONICAL_VERIFICATION', evidence_locator: auditFilePath }
     ];
 
     const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
@@ -375,6 +802,8 @@ export class CompletenessAuditAdapter extends SourceAdapterBase {
       source_id: this.source_id,
       source_url: targetUrl,
       http_status: 200,
+      byte_length: Buffer.byteLength(payload, 'utf-8'),
+      content_sha256: crypto.createHash('sha256').update(Buffer.from(payload, 'utf-8')).digest('hex'),
       records_extracted: extractedItems.length,
       extracted_items: extractedItems,
       raw_snapshot_uuid: snapshotUuid,
@@ -391,64 +820,104 @@ export class GapResearchFillAdapter extends SourceAdapterBase {
 
   public async fillGap(seatUuid: string, missingScope: string, personUuid?: string): Promise<AdapterParseResult> {
     const targetUrl = `${this.base_url}/${seatUuid}/${missingScope}`;
-    let extractedValue = 'PROVEN_REAL_EVIDENCE';
-    let supportingLocator = targetUrl;
-    let payload = '';
 
     if (missingScope === 'CANDIDATE_QUALIFICATION_STATUS') {
       const res = await sourceAdapters.fl_dos_elections.fetchCandidateFilings();
-      extractedValue = 'QUALIFIED_ACTIVE';
-      supportingLocator = res.source_url;
-      payload = JSON.stringify(res.extracted_items);
-    } else if (missingScope === 'LEGISLATOR_ROSTER_ENTRY') {
-      const res = await sourceAdapters.fl_senate.fetchSenatorRoster();
-      extractedValue = 'VERIFIED_ACTIVE_SENATOR';
-      supportingLocator = res.source_url;
-      payload = JSON.stringify(res.extracted_items);
-    } else if (missingScope === 'DISTRICT_BOUNDARY_GIS') {
-      const gisDir = path.resolve(process.cwd(), 'data/artifacts/gis_boundary_discovery');
-      if (fs.existsSync(gisDir)) {
-        const files = fs.readdirSync(gisDir);
-        if (files.length > 0) {
-          const firstGis = path.join(gisDir, files[0]);
-          payload = fs.readFileSync(firstGis, 'utf-8');
-          supportingLocator = firstGis;
-          extractedValue = 'GIS_BOUNDARY_VERIFIED_SHA256';
-        }
+      if (!res.success) {
+        return {
+          success: false,
+          source_id: this.source_id,
+          source_url: targetUrl,
+          http_status: res.http_status,
+          records_extracted: 0,
+          extracted_items: [],
+          evidence_objects: [],
+          error_message: `GAP_FILL_FAILED: Downstream candidate adapter failed (${res.error_message || 'SOURCE_UNAVAILABLE'})`,
+          failure_class: res.failure_class || 'SOURCE_UNAVAILABLE'
+        };
       }
-      if (!payload) {
-        payload = `FLORIDA_OFFICIAL_GIS_BOUNDARY_RECONCILED_${seatUuid}`;
-        supportingLocator = 'https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb';
-        extractedValue = 'GIS_BOUNDARY_TIGERWEB_INDEXED';
-      }
-    } else {
-      payload = `OFFICIAL_RESEARCH_GAP_FILL_PAYLOAD_${seatUuid}_${missingScope}`;
-      extractedValue = 'VERIFIED_RESEARCH_SCOPE';
+      // Return real parsed items from DOS
+      return res;
     }
 
-    const extractedItems = [
-      { target_entity: seatUuid, field_key: missingScope, extracted_value: extractedValue, evidence_locator: supportingLocator }
-    ];
+    if (missingScope === 'LEGISLATOR_ROSTER_ENTRY') {
+      const res = await sourceAdapters.fl_senate.fetchSenatorRoster();
+      if (!res.success) {
+        return {
+          success: false,
+          source_id: this.source_id,
+          source_url: targetUrl,
+          http_status: res.http_status,
+          records_extracted: 0,
+          extracted_items: [],
+          evidence_objects: [],
+          error_message: `GAP_FILL_FAILED: Downstream senate adapter failed (${res.error_message || 'SOURCE_UNAVAILABLE'})`,
+          failure_class: res.failure_class || 'SOURCE_UNAVAILABLE'
+        };
+      }
+      return res;
+    }
 
-    const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
-      targetUrl,
-      200,
-      'application/json',
-      payload,
-      extractedItems,
-      seatUuid,
-      personUuid
-    );
+    if (missingScope === 'DISTRICT_BOUNDARY_GIS') {
+      const gisDir = path.resolve(process.cwd(), 'data/artifacts/gis_boundary_discovery');
+      if (fs.existsSync(gisDir)) {
+        const files = fs.readdirSync(gisDir).filter(f => f.includes(seatUuid) || f.endsWith('.geojson') || f.endsWith('.json'));
+        if (files.length > 0) {
+          const firstGis = path.join(gisDir, files[0]);
+          const payload = fs.readFileSync(firstGis, 'utf-8');
+          const sha256 = crypto.createHash('sha256').update(payload).digest('hex');
+          const extractedItems = [
+            { target_entity: seatUuid, field_key: 'DISTRICT_BOUNDARY_GIS', extracted_value: `VERIFIED_PHYSICAL_GIS_LAYER_${sha256.slice(0, 8)}`, evidence_locator: firstGis }
+          ];
+          const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
+            targetUrl,
+            200,
+            'application/geo+json',
+            payload,
+            extractedItems,
+            seatUuid,
+            personUuid
+          );
+          return {
+            success: true,
+            source_id: this.source_id,
+            source_url: targetUrl,
+            http_status: 200,
+            byte_length: Buffer.byteLength(payload, 'utf-8'),
+            content_sha256: sha256,
+            records_extracted: extractedItems.length,
+            extracted_items: extractedItems,
+            raw_snapshot_uuid: snapshotUuid,
+            evidence_objects: evidenceObjects
+          };
+        }
+      }
 
+      // No physical boundary layer found: Fail truthfully! Never manufacture GIS strings!
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        http_status: 404,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: `PENDING_LOCAL_GIS_INTEGRATION: No authoritative physical GIS boundary file located for seat ${seatUuid}`,
+        failure_class: 'CAPABILITY_NOT_IMPLEMENTED'
+      };
+    }
+
+    // Any other scope: Fail closed truthfully
     return {
-      success: true,
+      success: false,
       source_id: this.source_id,
       source_url: targetUrl,
-      http_status: 200,
-      records_extracted: extractedItems.length,
-      extracted_items: extractedItems,
-      raw_snapshot_uuid: snapshotUuid,
-      evidence_objects: evidenceObjects
+      http_status: 501,
+      records_extracted: 0,
+      extracted_items: [],
+      evidence_objects: [],
+      error_message: `CAPABILITY_NOT_IMPLEMENTED: Scope "${missingScope}" has no registered automated research adapter`,
+      failure_class: 'CAPABILITY_NOT_IMPLEMENTED'
     };
   }
 }
@@ -463,3 +932,4 @@ export const sourceAdapters = {
   completeness_auditor: new CompletenessAuditAdapter(),
   gap_researcher: new GapResearchFillAdapter()
 };
+
