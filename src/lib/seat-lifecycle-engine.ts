@@ -4,6 +4,7 @@
 import { OfficeTypeTemplate } from './completeness-contract';
 import { profileCompletenessEngine } from './completeness-engine';
 import { hermesOrchestratorV2 } from './hermes-matrix-v2';
+import { computeStatutoryWindowStatus } from './fl-senate-house-seats';
 
 export interface CandidateRecord {
   person_uuid: string;
@@ -253,13 +254,17 @@ class SeatLifecycleEngine {
           start: '2026-06-08T12:00:00-04:00',
           end: '2026-06-12T12:00:00-04:00',
           statutory_authority: 'Section 99.061(2), Florida Statutes',
-          status: 'UPCOMING'
+          get status(): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+            return computeStatutoryWindowStatus(this.start, this.end);
+          }
         },
         pre_qualifying_document_acceptance: {
           start: '2026-05-25T08:00:00-04:00',
           end: '2026-06-08T12:00:00-04:00',
           statutory_authority: 'Section 99.061(8), Florida Statutes',
-          status: 'UPCOMING'
+          get status(): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+            return computeStatutoryWindowStatus(this.start, this.end);
+          }
         },
         filing_activity: {
           candidate_filing_active: true,
@@ -327,13 +332,17 @@ class SeatLifecycleEngine {
           start: '2026-06-08T12:00:00-04:00',
           end: '2026-06-12T12:00:00-04:00',
           statutory_authority: 'Section 99.061(2), Florida Statutes (Second Qualifying Period: Noon June 8 - Noon June 12, 2026)',
-          status: 'UPCOMING'
+          get status(): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+            return computeStatutoryWindowStatus(this.start, this.end);
+          }
         },
         pre_qualifying_document_acceptance: {
           start: '2026-05-25T08:00:00-04:00',
           end: '2026-06-08T12:00:00-04:00',
           statutory_authority: 'Section 99.061(8), Florida Statutes (14-day pre-qualifying acceptance)',
-          status: 'UPCOMING'
+          get status(): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+            return computeStatutoryWindowStatus(this.start, this.end);
+          }
         },
         filing_activity: {
           candidate_filing_active: true,

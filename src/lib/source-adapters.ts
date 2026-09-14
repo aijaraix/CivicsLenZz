@@ -185,7 +185,7 @@ export class SourceAdapterBase {
     }
   }
 
-  protected storeSnapshotAndEvidence(
+  public storeSnapshotAndEvidence(
     url: string,
     httpStatus: number,
     contentType: string,
@@ -207,7 +207,7 @@ export class SourceAdapterBase {
       charset: charset || 'utf-8',
       byte_length: rawBuffer.length,
       raw_bytes: rawBuffer,
-      parser_version: 'v2.2-zero-synthetic'
+      parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC'
     });
 
     // 2. Generate Evidence Objects strictly marked EXTRACTED_UNREVIEWED (Requirement 11)
@@ -225,15 +225,14 @@ export class SourceAdapterBase {
         raw_snapshot_uuid: snapshot.snapshot_uuid,
         retrieval_content_sha256: retrievalSha256,
         claim_fingerprint: claimFingerprint,
-        parser_version: 'v2.2-zero-synthetic',
-        extraction_method: 'DETERMINISTIC_PARSER_V2',
+        parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',
+        extraction_method: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',
         supporting_locator: item.evidence_locator || url,
         verification_state: 'EXTRACTED_UNREVIEWED',
         seat_uuid: seatUuid,
         person_uuid: personUuid,
         field_key: item.field_key,
-        extracted_value: item.extracted_value,
-        content_to_hash: rawBuffer
+        extracted_value: item.extracted_value
       });
     });
 
@@ -255,16 +254,18 @@ export class FloridaDOSDivisionOfElectionsAdapter extends SourceAdapterBase {
     if (!res.ok || res.challengeInspection.isChallenge) {
       const failureReason = res.challengeInspection.reason || `RETRIEVAL_FAILED: HTTP ${res.status}`;
       
-      // Store failed raw snapshot for audit/Academy traceability
+      // Store failed raw snapshot for audit/Academy traceability with exact raw bytes
       let snapshotUuid: string | undefined;
-      if (res.text) {
+      if (res.rawBytes && res.rawBytes.length > 0) {
         const snap = hermesBackendStore.storeRawSnapshot({
           source_uuid: this.source_id,
           target_url: targetUrl,
           http_status: res.status,
           content_type: res.contentType,
-          raw_payload: res.text.substring(0, 5000),
-          parser_version: 'v2.2-zero-synthetic'
+          charset: res.charset || 'utf-8',
+          byte_length: res.rawBytes.length,
+          raw_bytes: res.rawBytes,
+          parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC'
         });
         snapshotUuid = snap.snapshot_uuid;
       }

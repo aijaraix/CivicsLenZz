@@ -15,6 +15,7 @@ import { createHash } from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { CivicLenZResearchIngestContractV1, HarvesterBatchPackage } from './harvester-contract';
+import { computeStatutoryWindowStatus } from './fl-senate-house-seats';
 
 // Physical counts interface strictly mandated by CivicLenZ Master Architecture
 export interface HarvesterPhysicalCounts {
@@ -565,13 +566,17 @@ export class FloridaBacklogEngine {
           start: '2026-06-08T12:00:00-04:00',
           end: '2026-06-12T12:00:00-04:00',
           statutory_authority: 'Section 99.061(2), Florida Statutes (Second Qualifying Period: Noon June 8 - Noon June 12, 2026)',
-          status: 'UPCOMING'
+          get status(): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+            return computeStatutoryWindowStatus(this.start, this.end);
+          }
         },
         pre_qualifying_document_acceptance: {
           start: '2026-05-25T08:00:00-04:00',
           end: '2026-06-08T12:00:00-04:00',
           statutory_authority: 'Section 99.061(8), Florida Statutes (14-day pre-qualifying document acceptance window)',
-          status: 'UPCOMING'
+          get status(): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+            return computeStatutoryWindowStatus(this.start, this.end);
+          }
         },
         filing_activity: {
           candidate_filing_active: true,
@@ -602,13 +607,17 @@ export class FloridaBacklogEngine {
           start: '2026-06-08T12:00:00-04:00',
           end: '2026-06-12T12:00:00-04:00',
           statutory_authority: 'Section 99.061(2), Florida Statutes (State Legislative Second Qualifying Period)',
-          status: 'UPCOMING'
+          get status(): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+            return computeStatutoryWindowStatus(this.start, this.end);
+          }
         },
         pre_qualifying_document_acceptance: {
           start: '2026-05-25T08:00:00-04:00',
           end: '2026-06-08T12:00:00-04:00',
           statutory_authority: 'Section 99.061(8), Florida Statutes (14-day pre-qualifying window)',
-          status: 'UPCOMING'
+          get status(): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+            return computeStatutoryWindowStatus(this.start, this.end);
+          }
         },
         filing_activity: {
           candidate_filing_active: true,
@@ -640,13 +649,17 @@ export class FloridaBacklogEngine {
           start: '2026-06-08T12:00:00-04:00',
           end: '2026-06-12T12:00:00-04:00',
           statutory_authority: 'Section 99.061(2), Florida Statutes (State Legislative Second Qualifying Period)',
-          status: 'UPCOMING'
+          get status(): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+            return computeStatutoryWindowStatus(this.start, this.end);
+          }
         },
         pre_qualifying_document_acceptance: {
           start: '2026-05-25T08:00:00-04:00',
           end: '2026-06-08T12:00:00-04:00',
           statutory_authority: 'Section 99.061(8), Florida Statutes (14-day pre-qualifying window)',
-          status: 'UPCOMING'
+          get status(): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+            return computeStatutoryWindowStatus(this.start, this.end);
+          }
         },
         filing_activity: {
           candidate_filing_active: true,

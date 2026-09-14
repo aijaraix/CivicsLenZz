@@ -42,7 +42,7 @@ export interface SeatResearchRecord {
       start: string; // "2026-05-25T08:00:00-04:00" (14 days prior pursuant to § 99.061(8), F.S.)
       end: string;   // "2026-06-08T12:00:00-04:00"
       statutory_authority: string; // "Section 99.061(8), Florida Statutes"
-      status: 'UPCOMING' | 'ACTIVE' | 'CONCLUDED';
+      status: 'UPCOMING' | 'ACTIVE' | 'CONCLUDED' | 'CLOSED';
     };
     filing_activity: {
       candidate_filing_active: boolean;
@@ -107,14 +107,46 @@ export interface SeatResearchRecord {
   };
 }
 
+export function computeStatutoryWindowStatus(startIso: string, endIso: string, now: Date = new Date()): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+  const nowMs = now.getTime();
+  const startMs = new Date(startIso).getTime();
+  const endMs = new Date(endIso).getTime();
+  if (nowMs < startMs) return 'UPCOMING';
+  if (nowMs >= startMs && nowMs <= endMs) return 'ACTIVE';
+  return 'CLOSED';
+}
+
 // Canonical Statutory Election Schedules for Florida (Section 99.061 & 106.021, F.S.)
+// First Qualifying Period per Section 99.061(1), F.S. (Federal, Judicial, State Attorney, Public Defender):
+// Noon April 20, 2026 through Noon April 24, 2026
+export const FL_2026_FEDERAL_STATE_QUALIFYING_PERIOD = {
+  start: "2026-04-20T12:00:00-04:00",
+  end: "2026-04-24T12:00:00-04:00",
+  statutory_authority: "Section 99.061(1), Florida Statutes (First Qualifying Period: Federal/Judicial/Multi-county)",
+  get status(): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+    return computeStatutoryWindowStatus(this.start, this.end);
+  }
+};
+
+// Section 99.061(8), F.S. early acceptance for First Qualifying Period (14 days prior):
+export const FL_2026_FEDERAL_STATE_PRE_QUALIFYING_ACCEPTANCE = {
+  start: "2026-04-06T08:00:00-04:00",
+  end: "2026-04-20T12:00:00-04:00",
+  statutory_authority: "Section 99.061(8), Florida Statutes (14-day pre-qualifying document acceptance window for § 99.061(1) offices)",
+  get status(): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+    return computeStatutoryWindowStatus(this.start, this.end);
+  }
+};
+
 // Statutory qualifying period for 2026 second qualifying group (Governor, Cabinet, Senate even-districts, House, County):
 // Noon June 8, 2026 through Noon June 12, 2026
 export const FL_2026_STATUTORY_QUALIFYING_PERIOD = {
   start: "2026-06-08T12:00:00-04:00", // Noon June 8, 2026
   end: "2026-06-12T12:00:00-04:00",   // Noon June 12, 2026
   statutory_authority: "Section 99.061(2), Florida Statutes (Second Qualifying Period)",
-  status: 'UPCOMING' as const
+  get status(): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+    return computeStatutoryWindowStatus(this.start, this.end);
+  }
 };
 
 // Section 99.061(8), F.S.: 14-day pre-qualifying document acceptance window
@@ -122,7 +154,9 @@ export const FL_2026_PRE_QUALIFYING_ACCEPTANCE = {
   start: "2026-05-25T08:00:00-04:00",
   end: "2026-06-08T12:00:00-04:00",
   statutory_authority: "Section 99.061(8), Florida Statutes (14-day pre-qualifying document acceptance window)",
-  status: 'UPCOMING' as const
+  get status(): 'UPCOMING' | 'ACTIVE' | 'CLOSED' {
+    return computeStatutoryWindowStatus(this.start, this.end);
+  }
 };
 
 // Section 106.021, F.S.: Continuous campaign depository and treasurer appointment active

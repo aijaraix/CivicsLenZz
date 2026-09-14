@@ -910,6 +910,13 @@ class HermesBackendStore {
     const rawFilePath = path.join(retrievalsDir, `${snapshotUuid}.raw`);
     fs.writeFileSync(rawFilePath, rawBuffer);
 
+    const initialProvenance: EvidenceProvenance =
+      snapshot.parser_version === 'v2.1' || snapshot.parser_version === 'DETERMINISTIC_PARSER_V2'
+        ? 'LEGACY_SYNTHETIC'
+        : snapshot.http_status === 200
+        ? 'REAL_PROVEN'
+        : 'LEGACY_UNPROVEN';
+
     // Metadata store retains path, content type, byte length, SHA-256, charset, retrieval time, URL, HTTP status
     // Entire binary payload is NOT placed into JSON
     const record: RawSourceSnapshot = {
@@ -924,7 +931,7 @@ class HermesBackendStore {
       raw_bytes_path: rawFilePath,
       retrieved_at: nowIso,
       parser_version: snapshot.parser_version,
-      provenance_classification: snapshot.parser_version === 'v2.1' ? 'LEGACY_SYNTHETIC' : 'REAL_PROVEN'
+      provenance_classification: initialProvenance
     };
 
     this.db.raw_source_snapshots.push(record);
@@ -966,7 +973,7 @@ class HermesBackendStore {
       snap.raw_bytes_path &&
       fs.existsSync(snap.raw_bytes_path) &&
       snap.target_url &&
-      snap.http_status &&
+      snap.http_status === 200 &&
       snap.retrieved_at &&
       snap.parser_version &&
       snap.parser_version !== 'v2.1' &&
@@ -1168,6 +1175,14 @@ class HermesBackendStore {
 
   public getRawSnapshots(): RawSourceSnapshot[] {
     return [...this.db.raw_source_snapshots];
+  }
+
+  public getRawSnapshot(snapshotUuid: string): RawSourceSnapshot | null {
+    return this.db.raw_source_snapshots.find(s => s.snapshot_uuid === snapshotUuid) || null;
+  }
+
+  public getSnapshot(snapshotUuid: string): RawSourceSnapshot | null {
+    return this.getRawSnapshot(snapshotUuid);
   }
 
   public getRealProvenSnapshots(): RawSourceSnapshot[] {

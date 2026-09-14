@@ -2,10 +2,13 @@
  * FRESH EVIDENCE PROVENANCE & REAL_PROVEN CLASSIFICATION TEST SUITE
  * 
  * Verifies:
- * 1. Fresh real retrieval with DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC classifies as REAL_PROVEN
+ * 1. Fresh real retrieval through real SourceAdapterBase execution path classifies as REAL_PROVEN
  * 2. Exact raw snapshot byte match and SHA-256 verification yields REAL_PROVEN
- * 3. Legacy records with legacy parser versions or content_to_hash are classified as LEGACY_SYNTHETIC
- * 4. Synthetic generator markers or non-authoritative claims are REJECTED / SYNTHETIC
+ * 3. Fresh evidence objects are EXTRACTED_UNREVIEWED, public eligible, and bridge eligible
+ * 4. Failed/challenged retrievals preserve exact raw bytes on disk, classify as failed/unproven, and produce 0 evidence and 0 bridge output
+ * 5. Legacy records with legacy parser versions or content_to_hash are classified as LEGACY_SYNTHETIC
+ * 6. Synthetic generator markers or non-authoritative claims are REJECTED / SYNTHETIC
+ * 7. Election readiness dynamic lifecycle: §99.061(1), §99.061(2), and §99.061(8) evaluated dynamically
  */
 
 import fs from 'fs';
@@ -18,6 +21,13 @@ const isolatedTestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'civicslenzz-prove
 process.env.CIVICSLENZZ_DATA_DIR = isolatedTestDir;
 
 import { hermesBackendStore } from '../src/lib/hermes-backend-store';
+import { FloridaDOSDivisionOfElectionsAdapter, FloridaSenateAdapter } from '../src/lib/source-adapters';
+import {
+  FL_2026_FEDERAL_STATE_QUALIFYING_PERIOD,
+  FL_2026_STATUTORY_QUALIFYING_PERIOD,
+  FL_2026_PRE_QUALIFYING_ACCEPTANCE,
+  computeStatutoryWindowStatus
+} from '../src/lib/fl-senate-house-seats';
 
 // Reinitialize store in isolated temp directory
 hermesBackendStore.reinitialize(isolatedTestDir);
@@ -51,51 +61,61 @@ async function runAllProvenanceTests() {
   console.log("RUNNING FRESH EVIDENCE PROVENANCE & REAL_PROVEN TEST SUITE");
   console.log("=======================================================\n");
 
-  // TEST 1: Fresh Real Retrieval with exact byte match -> REAL_PROVEN
-  await runTest("1. Fresh real retrieval with DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC classifies as REAL_PROVEN", () => {
+  // TEST 1: Real Source-Adapter Evidence Creation Path -> REAL_PROVEN, EXTRACTED_UNREVIEWED, Public & Bridge Eligible
+  await runTest("1. Real SourceAdapterBase execution path produces REAL_PROVEN snapshot & evidence, public + bridge eligible", () => {
+    const senateAdapter = new FloridaSenateAdapter();
     const realHtml = `<!DOCTYPE html><html><head><title>Florida Senate Roster</title></head><body><h1>Senator District 34</h1><div class="roster-item">Shevrin Jones</div></body></html>`;
     const realBytes = Buffer.from(realHtml, 'utf8');
-    const sha256 = crypto.createHash('sha256').update(realBytes).digest('hex');
+    const expectedSha256 = crypto.createHash('sha256').update(realBytes).digest('hex');
 
-    const snapshot = hermesBackendStore.storeRawSnapshot({
-      source_uuid: 'src_fl_senate_official',
-      target_url: 'https://flsenate.gov/Senators/s34',
-      http_status: 200,
-      content_type: 'text/html; charset=utf-8',
-      byte_length: realBytes.byteLength,
-      raw_payload: realHtml,
-      parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC'
-    });
+    const extractedItems = [
+      {
+        target_entity: 'seat_fl_senate_34',
+        field_key: 'official_name',
+        extracted_value: 'Shevrin Jones',
+        evidence_locator: 'https://flsenate.gov/Senators/s34#title'
+      }
+    ];
 
-    assert.ok(snapshot.snapshot_uuid, "Snapshot UUID must be generated");
-    assert.strictEqual(snapshot.provenance_classification, 'REAL_PROVEN');
-    assert.strictEqual(hermesBackendStore.classifySnapshot(snapshot), 'REAL_PROVEN');
+    // Execute real adapter storeSnapshotAndEvidence method
+    const { snapshotUuid, evidenceObjects } = senateAdapter.storeSnapshotAndEvidence(
+      'https://flsenate.gov/Senators/s34',
+      200,
+      'text/html; charset=utf-8',
+      realBytes,
+      extractedItems,
+      'seat_fl_senate_34',
+      'person_shevrin_jones'
+    );
 
-    const evidence = hermesBackendStore.createEvidenceObject({
-      seat_uuid: 'seat_fl_senate_34',
-      source_uuid: 'src_fl_senate_official',
-      source_url: 'https://flsenate.gov/Senators/s34',
-      document_title: 'Florida Senate Official Roster - District 34',
-      document_type: 'OFFICIAL_ROSTER',
-      source_tier: 'TIER_A',
-      field_key: 'official_name',
-      extracted_value: 'Shevrin Jones',
-      claim_fingerprint: 'claim_sd34_shevrin_jones',
-      raw_snapshot_uuid: snapshot.snapshot_uuid,
-      retrieval_content_sha256: sha256,
-      extraction_method: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',
-      parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',
-      verification_state: 'EXTRACTED_UNREVIEWED'
-    });
+    // Verify snapshot
+    const snap = hermesBackendStore.getSnapshot(snapshotUuid);
+    assert.ok(snap, "Snapshot must exist in store");
+    assert.strictEqual(snap.provenance_classification, 'REAL_PROVEN');
+    assert.strictEqual(hermesBackendStore.classifySnapshot(snap), 'REAL_PROVEN');
+    assert.strictEqual(snap.parser_version, 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC');
+    assert.strictEqual(snap.payload_sha256, expectedSha256);
 
-    assert.ok(evidence.evidence_uuid, "Evidence UUID must be generated");
-    assert.strictEqual(evidence.provenance_classification, 'REAL_PROVEN');
-    assert.strictEqual(evidence.verification_state, 'EXTRACTED_UNREVIEWED');
-    assert.strictEqual(evidence.retrieval_content_sha256, sha256);
-    assert.strictEqual((evidence as any).content_to_hash, undefined, "content_to_hash must not be persisted on new evidence");
+    // Verify evidence
+    assert.strictEqual(evidenceObjects.length, 1);
+    const ev = evidenceObjects[0];
+    assert.strictEqual(ev.provenance_classification, 'REAL_PROVEN');
+    assert.strictEqual(hermesBackendStore.classifyEvidence(ev), 'REAL_PROVEN');
+    assert.strictEqual(ev.verification_state, 'EXTRACTED_UNREVIEWED');
+    assert.strictEqual(ev.parser_version, 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC');
+    assert.strictEqual(ev.extraction_method, 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC');
+    assert.strictEqual(ev.retrieval_content_sha256, expectedSha256);
+    assert.strictEqual((ev as any).content_to_hash, undefined, "content_to_hash must not be persisted");
+
+    // Verify eligibility for public & bridge
+    const publicEvidence = hermesBackendStore.getPublicEligibleEvidence();
+    assert.ok(publicEvidence.some(e => e.evidence_uuid === ev.evidence_uuid), "Evidence must be public eligible");
+
+    const bridgeEvidence = hermesBackendStore.getBridgeEligibleEvidence();
+    assert.ok(bridgeEvidence.some(e => e.evidence_uuid === ev.evidence_uuid), "Evidence must be bridge eligible");
   });
 
-  // TEST 2: Exact Raw Snapshot Byte Match -> REAL_PROVEN
+  // TEST 2: Exact Raw Snapshot Byte Match on Disk -> REAL_PROVEN
   await runTest("2. Stored byte payload passes disk verification and validates as REAL_PROVEN", () => {
     const rawText = "Official Florida Division of Elections Candidate Filing Report\nCandidate: Test Candidate\nOffice: State Representative District 100";
     const rawBytes = Buffer.from(rawText, 'utf8');
@@ -106,7 +126,7 @@ async function runAllProvenanceTests() {
       http_status: 200,
       content_type: 'text/plain; charset=utf-8',
       byte_length: rawBytes.byteLength,
-      raw_payload: rawText,
+      raw_bytes: rawBytes,
       parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC'
     });
 
@@ -114,8 +134,47 @@ async function runAllProvenanceTests() {
     assert.strictEqual(classification, 'REAL_PROVEN');
   });
 
-  // TEST 3: Legacy records with legacy parser or content_to_hash -> LEGACY_SYNTHETIC
-  await runTest("3. Legacy records with legacy parser versions or content_to_hash classify as LEGACY_SYNTHETIC", () => {
+  // TEST 3: Failed-Retrieval Byte Preservation (403/challenge) -> exact bytes on disk, 0 evidence, 0 bridge
+  await runTest("3. Failed/challenged retrieval preserves exact raw bytes on disk, classifies as unproven/failed, produces 0 evidence and 0 bridge output", () => {
+    const challengeBody = `<html><head><title>403 Forbidden - Cloudflare Security Challenge</title></head><body><h1>Access Denied</h1><p>Challenge required.</p></body></html>`;
+    const challengeBytes = Buffer.from(challengeBody, 'utf8');
+    const challengeSha256 = crypto.createHash('sha256').update(challengeBytes).digest('hex');
+
+    // Store failed retrieval raw snapshot with exact raw bytes
+    const failedSnapshot = hermesBackendStore.storeRawSnapshot({
+      source_uuid: 'fl_dos_elections',
+      target_url: 'https://dos.elections.myflorida.com/candidates/CanList.asp',
+      http_status: 403,
+      content_type: 'text/html; charset=utf-8',
+      byte_length: challengeBytes.length,
+      raw_bytes: challengeBytes,
+      parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC'
+    });
+
+    assert.ok(failedSnapshot.snapshot_uuid, "Failed snapshot UUID must exist");
+    assert.strictEqual(failedSnapshot.payload_sha256, challengeSha256);
+    assert.strictEqual(failedSnapshot.byte_length, challengeBytes.length);
+
+    // Verify stored disk bytes match exact original bytes
+    const diskBytes = hermesBackendStore.getRawSnapshotBytes(failedSnapshot.snapshot_uuid);
+    assert.ok(diskBytes, "Raw bytes must be readable from disk");
+    assert.strictEqual(diskBytes.toString('utf8'), challengeBody);
+
+    // Verify provenance classification is NOT REAL_PROVEN
+    const snapClass = hermesBackendStore.classifySnapshot(failedSnapshot);
+    assert.notStrictEqual(snapClass, 'REAL_PROVEN', "Failed 403 snapshot must NOT be REAL_PROVEN");
+
+    // Verify 0 bridge-eligible evidence exists for this failed snapshot
+    const bridgeEvidence = hermesBackendStore.getBridgeEligibleEvidence();
+    assert.strictEqual(
+      bridgeEvidence.filter(e => e.raw_snapshot_uuid === failedSnapshot.snapshot_uuid).length,
+      0,
+      "Failed retrieval snapshot must produce zero bridge-eligible evidence"
+    );
+  });
+
+  // TEST 4: Legacy records with legacy parser or content_to_hash -> LEGACY_SYNTHETIC
+  await runTest("4. Legacy records with legacy parser versions or content_to_hash classify as LEGACY_SYNTHETIC", () => {
     const legacySnapshot = {
       snapshot_uuid: 'snap_legacy_001',
       seat_uuid: 'seat_fl_senate_1',
@@ -149,8 +208,8 @@ async function runAllProvenanceTests() {
     assert.strictEqual(evClass, 'LEGACY_SYNTHETIC');
   });
 
-  // TEST 4: Synthetic Generator Content -> REJECTED / SYNTHETIC
-  await runTest("4. Synthetic content markers are rejected as SYNTHETIC", () => {
+  // TEST 5: Synthetic Generator Content -> REJECTED / SYNTHETIC
+  await runTest("5. Synthetic content markers are rejected as SYNTHETIC", () => {
     const syntheticSnapshot = {
       snapshot_uuid: 'snap_synth_001',
       seat_uuid: 'seat_fl_gov',
@@ -168,9 +227,27 @@ async function runAllProvenanceTests() {
     assert.strictEqual(snapClass, 'LEGACY_SYNTHETIC');
   });
 
+  // TEST 6: Election Readiness Currentness & Statutory Schedule Evaluation
+  await runTest("6. Election readiness evaluates statutory qualifying windows dynamically against current clock", () => {
+    // Current date is in September 2026 -> June 8-12, 2026 qualifying period is CLOSED
+    assert.strictEqual(FL_2026_STATUTORY_QUALIFYING_PERIOD.status, 'CLOSED');
+    assert.strictEqual(FL_2026_PRE_QUALIFYING_ACCEPTANCE.status, 'CLOSED');
+    assert.strictEqual(FL_2026_FEDERAL_STATE_QUALIFYING_PERIOD.status, 'CLOSED');
+
+    // Dynamic helper tests for past, active, future
+    const pastStatus = computeStatutoryWindowStatus('2026-06-08T12:00:00-04:00', '2026-06-12T12:00:00-04:00', new Date('2026-09-14T12:00:00Z'));
+    assert.strictEqual(pastStatus, 'CLOSED');
+
+    const activeStatus = computeStatutoryWindowStatus('2026-06-08T12:00:00-04:00', '2026-06-12T12:00:00-04:00', new Date('2026-06-10T12:00:00-04:00'));
+    assert.strictEqual(activeStatus, 'ACTIVE');
+
+    const futureStatus = computeStatutoryWindowStatus('2028-06-08T12:00:00-04:00', '2028-06-12T12:00:00-04:00', new Date('2026-09-14T12:00:00Z'));
+    assert.strictEqual(futureStatus, 'UPCOMING');
+  });
+
   console.log("\n=======================================================");
   console.log(`PROVENANCE TEST SUMMARY: ${passed} PASSED | ${failed} FAILED`);
-  console.log("=======================================================\n");
+  console.log("=======================================================");
 
   if (failed > 0) {
     process.exit(1);
@@ -183,3 +260,4 @@ runAllProvenanceTests().catch(err => {
   console.error("Provenance test error:", err);
   process.exit(1);
 });
+
