@@ -206,8 +206,11 @@ export interface MonitoringEventRecord {
   comparison_id: string;
   previous_hash: string;
   current_hash: string;
-  comparison_event: 'NO_CHANGE' | 'CHANGE_DETECTED';
+  comparison_event: 'NO_CHANGE' | 'CHANGE_DETECTED' | 'CHECK_FAILED' | 'PARSER_REPLAY_CHECK';
   observed_url: string;
+  source_origin?: 'LIVE_NETWORK' | 'DURABLE_SNAPSHOT_FIXTURE';
+  status_code?: number;
+  error_message?: string;
   timestamp: string;
 }
 
@@ -267,6 +270,7 @@ export interface DurableMonitoringProofRecord {
   check_id: string;
   retrieval_id: string;
   comparison_id: string;
+  source_origin?: 'LIVE_NETWORK' | 'DURABLE_SNAPSHOT_FIXTURE';
   verifier_executes_fetch: false;
   proven_at: string;
 }
@@ -930,6 +934,18 @@ class HermesBackendStore {
       return this.db.durable_gaps.filter(g => g.status === status);
     }
     return [...this.db.durable_gaps];
+  }
+
+  public updateDurableGap(gapId: string, updates: Partial<DurableGapRecord>): DurableGapRecord | null {
+    const target = this.db.durable_gaps.find(g => g.gap_id === gapId);
+    if (!target) return null;
+    Object.assign(target, updates);
+    this.saveDatabase();
+    return target;
+  }
+
+  public resolveDurableGap(gapId: string): DurableGapRecord | null {
+    return this.updateDurableGap(gapId, { status: 'RESOLVED', resolved_at: new Date().toISOString() });
   }
 
   public recordAcademyObservation(obs: Omit<DurableAcademyObservationRecord, 'observation_id' | 'created_at'>): DurableAcademyObservationRecord {

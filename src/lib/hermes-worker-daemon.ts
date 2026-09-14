@@ -103,7 +103,8 @@ export class HermesWorkerDaemonEngine {
           await this.processClaimedJob(job, workerInstance, lease.lease_uuid);
         } catch (err: any) {
           console.error(`[HERMES DAEMON] Job Processing Exception [${job.job_uuid}]:`, err);
-          hermesBackendStore.failJob(job.job_uuid, workerInstance, err.message || 'Processing Exception');
+          const isUnsupported = Boolean(err.message && err.message.includes('UNSUPPORTED_JOB_TYPE'));
+          hermesBackendStore.failJob(job.job_uuid, workerInstance, err.message || 'Processing Exception', isUnsupported);
         } finally {
           this.activeJobsProcessing.delete(job.job_uuid);
         }
@@ -113,11 +114,11 @@ export class HermesWorkerDaemonEngine {
 
   private async processClaimedJob(job: PersistentHermesJob, workerInstance: string, leaseUuid?: string) {
     let resultRecords = 0;
-    let artifactId = `art_${crypto.randomBytes(6).toString('hex')}`;
-    let retrievalId = `ret_${crypto.randomBytes(6).toString('hex')}`;
-    let contentSha256 = crypto.randomBytes(32).toString('hex');
+    let artifactId = '';
+    let retrievalId = '';
+    let contentSha256 = '';
 
-    if (job.agent_id === 'H1' || job.job_type === 'INGEST_CANDIDATE_FILINGS') {
+    if (job.job_type === 'INGEST_CANDIDATE_FILINGS') {
       const parseResult = await sourceAdapters.fl_dos_elections.fetchCandidateFilings();
       resultRecords = parseResult.records_extracted;
       if (parseResult.evidence_objects.length > 0) {
@@ -143,7 +144,7 @@ export class HermesWorkerDaemonEngine {
           last_updated_at: new Date().toISOString()
         });
       }
-    } else if (job.agent_id === 'H13' || job.job_type === 'INGEST_LEGISLATIVE_ROSTER') {
+    } else if (job.job_type === 'INGEST_LEGISLATIVE_ROSTER') {
       const parseResult = await sourceAdapters.fl_senate.fetchSenatorRoster();
       resultRecords = parseResult.records_extracted;
       if (parseResult.evidence_objects.length > 0) {
@@ -170,27 +171,93 @@ export class HermesWorkerDaemonEngine {
           last_updated_at: new Date().toISOString()
         });
       }
+    } else if (job.job_type === 'INGEST_COUNTY_ELECTION_DATA') {
+      const parseResult = await sourceAdapters.miami_dade_elections.fetchCountyElections(job.seat_uuid, job.person_uuid);
+      resultRecords = parseResult.records_extracted;
+      if (parseResult.evidence_objects.length > 0) {
+        artifactId = parseResult.evidence_objects[0].evidence_uuid;
+        contentSha256 = parseResult.evidence_objects[0].content_hash;
+        retrievalId = `ret_${parseResult.evidence_objects[0].source_uuid}`;
+      }
+
+      if (job.seat_uuid) {
+        hermesBackendStore.updateSeatCoverage({
+          seat_uuid: job.seat_uuid,
+          office_name: 'Miami-Dade County Mayor',
+          office_type: 'COUNTY_EXECUTIVE',
+          jurisdiction: 'Miami-Dade County',
+          government_level: 'County',
+          current_official_person_uuid: 'person_daniella_levine_cava',
+          current_official_name: 'Daniella Levine Cava',
+          is_vacant: false,
+          in_active_election_cycle: true,
+          completeness_percentage: 100,
+          coverage_status: 'BASELINE_COMPLETE',
+          last_updated_at: new Date().toISOString()
+        });
+      }
+    } else if (job.job_type === 'INGEST_EXECUTIVE_ORDERS') {
+      const parseResult = await sourceAdapters.fl_governor.fetchExecutiveOrders(job.seat_uuid, job.person_uuid);
+      resultRecords = parseResult.records_extracted;
+      if (parseResult.evidence_objects.length > 0) {
+        artifactId = parseResult.evidence_objects[0].evidence_uuid;
+        contentSha256 = parseResult.evidence_objects[0].content_hash;
+        retrievalId = `ret_${parseResult.evidence_objects[0].source_uuid}`;
+      }
+
+      if (job.seat_uuid) {
+        hermesBackendStore.updateSeatCoverage({
+          seat_uuid: job.seat_uuid,
+          office_name: 'Governor of Florida',
+          office_type: 'STATE_EXECUTIVE',
+          jurisdiction: 'State of Florida',
+          government_level: 'State',
+          current_official_person_uuid: 'person_ron_desantis',
+          current_official_name: 'Ron DeSantis',
+          is_vacant: false,
+          in_active_election_cycle: true,
+          completeness_percentage: 100,
+          coverage_status: 'BASELINE_COMPLETE',
+          last_updated_at: new Date().toISOString()
+        });
+      }
+    } else if (job.job_type === 'COMPLETENESS_AUDIT_SCAN' || job.job_type === 'RESEARCH_CONTRACT_COMPLETENESS_RUN') {
+      const parseResult = await sourceAdapters.completeness_auditor.executeAudit(job.seat_uuid, job.person_uuid);
+      resultRecords = parseResult.records_extracted;
+      if (parseResult.evidence_objects.length > 0) {
+        artifactId = parseResult.evidence_objects[0].evidence_uuid;
+        contentSha256 = parseResult.evidence_objects[0].content_hash;
+        retrievalId = `ret_${parseResult.evidence_objects[0].source_uuid}`;
+      }
+    } else if (job.job_type === 'GAP_RESEARCH_FILL') {
+      const gaps = hermesBackendStore.getDurableGaps();
+      const targetGap = gaps.find(g => g.job_uuid === job.job_uuid || g.seat_uuid === job.seat_uuid);
+      const missingScope = targetGap?.missing_scope || 'CANDIDATE_QUALIFICATION_STATUS';
+
+      const parseResult = await sourceAdapters.gap_researcher.fillGap(job.seat_uuid || 'fl_senate_dist_34', missingScope, job.person_uuid);
+      resultRecords = parseResult.records_extracted;
+      if (parseResult.evidence_objects.length > 0) {
+        artifactId = parseResult.evidence_objects[0].evidence_uuid;
+        contentSha256 = parseResult.evidence_objects[0].content_hash;
+        retrievalId = `ret_${parseResult.evidence_objects[0].source_uuid}`;
+      }
+
+      if (targetGap) {
+        hermesBackendStore.resolveDurableGap(targetGap.gap_id);
+      }
     } else {
-      // Default Generic Audit / Reconciliation Job
-      resultRecords = 1;
-      const samplePayload = `EXEC_HERMES_JOB_${job.job_uuid}_${job.job_type}`;
-      contentSha256 = crypto.createHash('sha256').update(samplePayload).digest('hex');
-      const artPath = `data/artifacts/daemon/art_${job.job_uuid}.dat`;
-      const resolved = path.resolve(process.cwd(), artPath);
-      const parentDir = path.dirname(resolved);
-      if (!fs.existsSync(parentDir)) fs.mkdirSync(parentDir, { recursive: true });
-      fs.writeFileSync(resolved, Buffer.from(samplePayload, 'utf-8'));
-      artifactId = `ev_${job.job_uuid}`;
-      retrievalId = `ret_${job.job_uuid}`;
+      // PROHIBITED: Generic synthetic job success is forbidden.
+      // Unknown/unimplemented job types MUST NOT create generated bytes or report successful execution.
+      throw new Error(`UNSUPPORTED_JOB_TYPE: Job type "${job.job_type}" with agent "${job.agent_id}" is not supported by any registered worker or adapter.`);
     }
 
-    // Complete Job and Release Lease
+    // Complete Job and Release Lease ONLY after real execution contract has completed
     hermesBackendStore.completeJob(job.job_uuid, workerInstance, {
       records_processed: resultRecords,
       artifact_id: artifactId,
       retrieval_id: retrievalId,
       sha256: contentSha256,
-      status_message: `Successfully executed ${job.job_type} via persistent worker runtime.`
+      status_message: `Successfully executed real adapter for ${job.job_type} via persistent worker runtime.`
     });
 
     // Record durable autonomous proof record
@@ -213,6 +280,7 @@ export class HermesWorkerDaemonEngine {
    * Persistent Monitoring Scheduler:
    * Periodically wakes, checks due obligations, performs retrieval, computes content SHA-256,
    * compares with previous hash, updates schedule, and writes durable monitoring event and proof.
+   * Prohibits generated monitoring payloads (HTTP_<status>_... or MONITORING_PAYLOAD_FALLBACK_...).
    */
   public async executeMonitoringCycle() {
     const schedules = harvesterCapabilityMatrixEngine.getScopeMonitoringSchedules();
@@ -222,43 +290,98 @@ export class HermesWorkerDaemonEngine {
       const isDue = !schedule.next_check || new Date(schedule.next_check) <= now || !schedule.last_checked;
       if (isDue) {
         const checkId = `chk_mon_${Date.now().toString(36)}_${crypto.randomBytes(3).toString('hex')}`;
-        const targetUrl = schedule.target_url || "https://dos.elections.myflorida.com/candidates/canlist.asp";
+        const targetUrl = schedule.target_url || "https://flsenate.gov/Senators/";
         
-        let responseBody = "";
-        let retrievalOrigin = "LIVE_NETWORK";
+        let responseBody: string | null = null;
+        let retrievalOrigin: 'LIVE_NETWORK' | 'DURABLE_SNAPSHOT_FIXTURE' = 'LIVE_NETWORK';
+        let checkFailed = false;
+        let failureReason = '';
+        let httpStatus = 200;
         
         try {
           const res = await fetch(targetUrl, {
-            headers: { 'User-Agent': 'CivicLenZ-Monitoring-Scheduler/2.0' }
+            headers: { 'User-Agent': 'CivicLenZ-Monitoring-Scheduler/2.0' },
+            signal: AbortSignal.timeout(5000)
           });
+          httpStatus = res.status;
           if (res.ok) {
             responseBody = await res.text();
+            retrievalOrigin = 'LIVE_NETWORK';
           } else {
-            responseBody = `HTTP_${res.status}_MONITORING_PAYLOAD_${schedule.scope_id}`;
+            // Non-OK response: Record actual HTTP failure, DO NOT fabricate payload!
+            checkFailed = true;
+            failureReason = `HTTP_${res.status}_${res.statusText || 'NON_OK'}`;
           }
-        } catch (e) {
-          // Check authoritative snapshot fixture for this domain
-          const snapFile = path.resolve(process.cwd(), 'data/snapshots/fl_dos_candidate_listing_senate_2026.html');
-          if (fs.existsSync(snapFile)) {
-            responseBody = fs.readFileSync(snapFile, 'utf-8');
-            retrievalOrigin = "DURABLE_SNAPSHOT_FIXTURE";
+        } catch (e: any) {
+          // Network exception:
+          // Check for legitimate same-source physical snapshot fixture
+          let legitimateSnapshotPath: string | null = null;
+          if (schedule.scope_id === 'scope_fl_senate_districts_even' || schedule.scope_id === 'scope_fl_legislative_elections_2026') {
+            legitimateSnapshotPath = path.resolve(process.cwd(), 'data/snapshots/fl_senate_sd34_authoritative.html');
+          } else if (schedule.scope_id === 'scope_fl_governor_election_2026') {
+            legitimateSnapshotPath = path.resolve(process.cwd(), 'data/artifacts/executive_actions/gov_c5fd246eec99.html');
+          }
+
+          if (legitimateSnapshotPath && fs.existsSync(legitimateSnapshotPath)) {
+            responseBody = fs.readFileSync(legitimateSnapshotPath, 'utf-8');
+            retrievalOrigin = 'DURABLE_SNAPSHOT_FIXTURE';
           } else {
-            responseBody = `MONITORING_PAYLOAD_FALLBACK_${schedule.scope_id}`;
+            // No valid physical snapshot available: record CHECK_FAILED / DEGRADED.
+            // Do NOT fabricate comparison content!
+            checkFailed = true;
+            failureReason = e.message || 'NETWORK_TIMEOUT_NO_SNAPSHOT';
           }
         }
 
+        if (checkFailed || responseBody === null) {
+          // Record actual HTTP status or network failure without fabricating comparison content
+          schedule.last_checked = now.toISOString();
+          schedule.source_health = 'DEGRADED';
+          schedule.consecutive_failures = (schedule.consecutive_failures || 0) + 1;
+          schedule.last_comparison_event = 'CHECK_FAILED';
+          schedule.next_check = new Date(Date.now() + 3600000).toISOString();
+
+          hermesBackendStore.recordMonitoringEvent({
+            obligation_id: schedule.scope_id,
+            check_id: checkId,
+            retrieval_id: `ret_failed_${Date.now().toString(36)}`,
+            comparison_id: `cmp_failed_${Date.now().toString(36)}`,
+            previous_hash: schedule.previous_content_hash || '',
+            current_hash: '',
+            comparison_event: 'CHECK_FAILED',
+            observed_url: targetUrl,
+            source_origin: 'LIVE_NETWORK',
+            status_code: httpStatus,
+            error_message: failureReason
+          });
+          continue;
+        }
+
+        // Real body retrieved (either live network or legitimate physical snapshot)
         const currentHash = crypto.createHash('sha256').update(responseBody).digest('hex');
         const previousHash = schedule.previous_content_hash || currentHash;
         const changeDetected = schedule.previous_content_hash ? schedule.previous_content_hash !== currentHash : false;
         const comparisonId = `cmp_${currentHash.slice(0, 8)}_${Date.now().toString(36)}`;
         const retrievalId = `ret_mon_${currentHash.slice(0, 10)}`;
 
-        // Update schedule in memory
         schedule.last_checked = now.toISOString();
         schedule.next_check = new Date(Date.now() + 86400000).toISOString();
         schedule.previous_content_hash = currentHash;
         schedule.last_comparison_id = comparisonId;
-        schedule.last_comparison_event = changeDetected ? 'CHANGE_DETECTED' : 'NO_CHANGE';
+
+        if (retrievalOrigin === 'DURABLE_SNAPSHOT_FIXTURE') {
+          // SNAPSHOT MONITORING:
+          // origin = DURABLE_SNAPSHOT_FIXTURE
+          // Proves parser/replay behavior; MUST NOT establish current live-source health or live monitoring currentness!
+          schedule.last_comparison_event = 'PARSER_REPLAY_CHECK';
+          schedule.source_health = 'DEGRADED';
+        } else {
+          // LIVE NETWORK
+          schedule.current_as_of = now.toISOString();
+          schedule.source_health = 'HEALTHY';
+          schedule.consecutive_failures = 0;
+          schedule.last_comparison_event = changeDetected ? 'CHANGE_DETECTED' : 'NO_CHANGE';
+        }
 
         // Record durable monitoring event
         hermesBackendStore.recordMonitoringEvent({
@@ -268,8 +391,10 @@ export class HermesWorkerDaemonEngine {
           comparison_id: comparisonId,
           previous_hash: previousHash,
           current_hash: currentHash,
-          comparison_event: changeDetected ? 'CHANGE_DETECTED' : 'NO_CHANGE',
-          observed_url: targetUrl
+          comparison_event: retrievalOrigin === 'DURABLE_SNAPSHOT_FIXTURE' ? 'PARSER_REPLAY_CHECK' : (changeDetected ? 'CHANGE_DETECTED' : 'NO_CHANGE'),
+          observed_url: targetUrl,
+          source_origin: retrievalOrigin,
+          status_code: 200
         });
 
         // Record durable monitoring proof
@@ -278,6 +403,7 @@ export class HermesWorkerDaemonEngine {
           check_id: checkId,
           retrieval_id: retrievalId,
           comparison_id: comparisonId,
+          source_origin: retrievalOrigin,
           verifier_executes_fetch: false
         });
       }
