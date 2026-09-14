@@ -1,0 +1,1368 @@
+/**
+ * CIVICSLENZZ POSTGRES PRODUCER STORE
+ * 
+ * Authoritative production implementation of ProducerPersistence backed by
+ * Cloud SQL PostgreSQL and GCS.
+ */
+
+import crypto from 'crypto';
+import { eq, and, sql, desc, gte, lt, or, inArray } from 'drizzle-orm';
+import { db, pool } from '../../db/index.ts';
+import {
+  hermesJobs,
+  hermesJobAttempts,
+  hermesWorkerLeases,
+  hermesCheckpoints,
+  hermesSourceRegistry,
+  rawSourceSnapshots,
+  rawEvidenceObjects,
+  researchContractStatuses,
+  seatCoverageStatuses,
+  personCoverageStatuses,
+  deadLetterJobs,
+  monitoringEvents,
+  durableGaps,
+  academyObservations,
+  academyCases,
+  autonomousProofRecords,
+  monitoringProofRecords,
+  bridgeSubmissions,
+  domainRateLimits,
+  producerSystemState
+} from '../../db/schema.ts';
+import {
+  ProducerPersistence,
+  StorageHealthInfo,
+  ClaimLeaseResult
+} from './storage-interface';
+import {
+  PersistentHermesJob,
+  HermesWorkerLease,
+  HermesJobAttempt,
+  HermesCheckpoint,
+  SourceRegistryEntry,
+  RawSourceSnapshot,
+  RawEvidenceObject,
+  ResearchContractStatus,
+  SeatCoverageStatusRecord,
+  PersonCoverageStatusRecord,
+  DeadLetterJobRecord,
+  MonitoringEventRecord,
+  DurableGapRecord,
+  DurableAcademyObservationRecord,
+  DurableAcademyCaseRecord,
+  DurableAutonomousProofRecord,
+  DurableMonitoringProofRecord,
+  JobStatus
+} from '../hermes-backend-store';
+import { ResultSubmissionRecord } from '../hermes-bridge-client';
+import { ResearchIngestPackage } from '../hermes-bridge-types';
+import { GcsRawObjectStore, RawObjectStore } from './raw-object-store';
+
+export class PostgresProducerStore implements ProducerPersistence {
+  private rawObjectStore: RawObjectStore;
+  private isInitialized: boolean = false;
+  private daemonActive: boolean = false;
+
+  constructor(rawObjectStore?: RawObjectStore) {
+    this.rawObjectStore = rawObjectStore || new GcsRawObjectStore();
+  }
+
+  public async initialize(): Promise<void> {
+    const health = await this.checkHealth();
+    if (!health.postgresConnected || !health.postgresSchemaReady) {
+      throw new Error(`[PostgresProducerStore] Fail-closed initialization check failed: ${health.error || 'SQL unready'}`);
+    }
+    this.isInitialized = true;
+  }
+
+  public isFailClosed(): boolean {
+    return true;
+  }
+
+  public setDaemonActive(active: boolean) {
+    this.daemonActive = active;
+  }
+
+  public async checkHealth(): Promise<StorageHealthInfo> {
+    const postgresConfigured = Boolean(process.env.SQL_HOST && process.env.SQL_DB_NAME && process.env.SQL_USER);
+    let postgresConnected = false;
+    let postgresSchemaReady = false;
+    let error: string | undefined;
+
+    if (postgresConfigured) {
+      try {
+        await db.execute(sql`SELECT 1`);
+        postgresConnected = true;
+
+        // Verify key tables exist
+        const check = await db.execute(sql`
+          SELECT count(*) as count 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+            AND table_name IN ('hermes_jobs', 'hermes_worker_leases', 'hermes_job_attempts', 'raw_evidence_objects', 'bridge_submissions')
+        `);
+        const tableCount = Number((check as any)?.rows?.[0]?.count || 0);
+        postgresSchemaReady = tableCount >= 5;
+      } catch (err: any) {
+        error = err.message;
+      }
+    } else {
+      error = 'SQL_HOST or credentials missing in environment';
+    }
+
+    const rawHealth = await this.rawObjectStore.checkHealth();
+
+    return {
+      storageMode: 'CLOUD_SQL_POSTGRES_GCS',
+      postgresConfigured,
+      postgresConnected,
+      postgresSchemaReady,
+      rawObjectStorageConfigured: true,
+      rawObjectStorageConnected: rawHealth.ok,
+      localFallbackEnabled: false,
+      daemonActive: this.daemonActive,
+      error
+    };
+  }
+
+  // =========================================================================
+  // JOBS & LOGICAL WORK IDEMPOTENCY
+  // =========================================================================
+
+  public async createJob(jobData: {
+    agent_id: string;
+    job_type: string;
+    logical_work_key?: string;
+    seat_uuid?: string;
+    person_uuid?: string;
+    race_uuid?: string;
+    campaign_uuid?: string;
+    source_uuid?: string;
+    priority?: number;
+    max_attempts?: number;
+    available_at?: string;
+    checkpoint?: any;
+    status?: JobStatus;
+  }): Promise<PersistentHermesJob> {
+    // 1. Check logical work idempotency if key provided
+    if (jobData.logical_work_key) {
+      const existing = await this.findJobByLogicalKey(jobData.logical_work_key);
+      if (existing && ['QUEUED', 'LEASED', 'RUNNING', 'CHECKPOINTED'].includes(existing.status)) {
+        return existing;
+      }
+    }
+
+    const now = new Date().toISOString();
+    const jobUuid = `job_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+
+    await db.insert(hermesJobs).values({
+      jobUuid,
+      agentId: jobData.agent_id,
+      logicalWorkKey: jobData.logical_work_key || null,
+      missionUuid: null,
+      seatUuid: jobData.seat_uuid || null,
+      personUuid: jobData.person_uuid || null,
+      raceUuid: jobData.race_uuid || null,
+      campaignUuid: jobData.campaign_uuid || null,
+      sourceUuid: jobData.source_uuid || null,
+      jobType: jobData.job_type,
+      priority: jobData.priority || 1,
+      status: jobData.status || 'QUEUED',
+      attemptCount: 0,
+      maxAttempts: jobData.max_attempts || 4,
+      availableAt: jobData.available_at || now,
+      checkpoint: jobData.checkpoint || null,
+      createdAt: now,
+      updatedAt: now
+    });
+
+    const created = await this.getJob(jobUuid);
+    if (!created) {
+      throw new Error(`Failed to retrieve newly created job ${jobUuid}`);
+    }
+    return created;
+  }
+
+  public async findJobByLogicalKey(logicalWorkKey: string): Promise<PersistentHermesJob | null> {
+    const rows = await db.select().from(hermesJobs)
+      .where(eq(hermesJobs.logicalWorkKey, logicalWorkKey))
+      .orderBy(desc(hermesJobs.createdAt))
+      .limit(1);
+
+    if (rows.length === 0) return null;
+    return this.mapJobRow(rows[0]);
+  }
+
+  public async getJob(jobUuid: string): Promise<PersistentHermesJob | null> {
+    const rows = await db.select().from(hermesJobs).where(eq(hermesJobs.jobUuid, jobUuid)).limit(1);
+    if (rows.length === 0) return null;
+    return this.mapJobRow(rows[0]);
+  }
+
+  public async getAllJobs(): Promise<PersistentHermesJob[]> {
+    const rows = await db.select().from(hermesJobs).orderBy(desc(hermesJobs.createdAt));
+    return rows.map(r => this.mapJobRow(r));
+  }
+
+  public async getQueuedJobsCount(): Promise<number> {
+    const res = await db.select({ count: sql<number>`count(*)` })
+      .from(hermesJobs)
+      .where(eq(hermesJobs.status, 'QUEUED'));
+    return Number(res[0]?.count || 0);
+  }
+
+  // =========================================================================
+  // ATOMIC AGENT-SPECIFIC LEASING WITH ROW LOCKING & EXACT ATTEMPT IDENTITY
+  // =========================================================================
+
+  public async claimAtomicLease(
+    agentId: string,
+    workerInstance: string,
+    leaseDurationSec: number = 60
+  ): Promise<ClaimLeaseResult | null> {
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const expiresAt = new Date(now.getTime() + leaseDurationSec * 1000).toISOString();
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // 1. Expire any stale leases first
+      await client.query(`
+        UPDATE hermes_job_attempts
+        SET status = 'LEASED_EXPIRED',
+            finished_at = $1,
+            error_message = 'Worker lease expired without completion'
+        WHERE job_uuid IN (
+          SELECT job_uuid FROM hermes_worker_leases WHERE expires_at < $1
+        )
+        AND finished_at IS NULL
+      `, [nowIso]);
+
+      await client.query(`
+        UPDATE hermes_jobs
+        SET status = CASE 
+              WHEN attempt_count >= max_attempts THEN 'FAILED_PERMANENT'
+              ELSE 'FAILED_RETRYABLE'
+            END,
+            lease_expires_at = NULL,
+            active_attempt_uuid = NULL,
+            updated_at = $1
+        WHERE job_uuid IN (
+          SELECT job_uuid FROM hermes_worker_leases WHERE expires_at < $1
+        )
+      `, [nowIso]);
+
+      await client.query(`DELETE FROM hermes_worker_leases WHERE expires_at < $1`, [nowIso]);
+
+      // 2. Select eligible job with strict agent routing, max attempt filter, priority ordering, and row lock
+      const selectRes = await client.query(`
+        SELECT job_uuid, agent_id, logical_work_key, mission_uuid, seat_uuid, person_uuid, race_uuid, campaign_uuid,
+               source_uuid, job_type, priority, status, attempt_count, max_attempts, available_at,
+               locked_at, lease_expires_at, worker_instance, started_at, completed_at, failed_at,
+               last_error, checkpoint, created_at, updated_at
+        FROM hermes_jobs
+        WHERE (
+          status IN ('QUEUED', 'CHECKPOINTED', 'FAILED_RETRYABLE')
+        )
+        AND available_at <= $1
+        AND attempt_count < max_attempts
+        AND (agent_id = $2 OR agent_id = '*' OR $2 = '*')
+        ORDER BY priority DESC, created_at ASC
+        LIMIT 1
+        FOR UPDATE SKIP LOCKED
+      `, [nowIso, agentId]);
+
+      if (selectRes.rows.length === 0) {
+        await client.query('COMMIT');
+        return null;
+      }
+
+      const row = selectRes.rows[0];
+      const jobUuid = row.job_uuid;
+      const attemptCount = (row.attempt_count || 0) + 1;
+      const attemptUuid = `att_${jobUuid}_${attemptCount}_${Date.now()}`;
+      const leaseUuid = `lease_${jobUuid}_${Date.now()}`;
+
+      // 3. Update job state with active attempt
+      await client.query(`
+        UPDATE hermes_jobs
+        SET status = 'LEASED',
+            worker_instance = $1,
+            locked_at = $2,
+            lease_expires_at = $3,
+            attempt_count = $4,
+            active_attempt_uuid = $5,
+            started_at = COALESCE(started_at, $2),
+            updated_at = $2
+        WHERE job_uuid = $6
+      `, [workerInstance, nowIso, expiresAt, attemptCount, attemptUuid, jobUuid]);
+
+      // 4. Upsert worker lease
+      await client.query(`
+        INSERT INTO hermes_worker_leases (lease_uuid, job_uuid, attempt_uuid, worker_instance, agent_id, acquired_at, expires_at, last_heartbeat_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $6)
+        ON CONFLICT (job_uuid) DO UPDATE
+        SET lease_uuid = $1,
+            attempt_uuid = $3,
+            worker_instance = $4,
+            agent_id = $5,
+            acquired_at = $6,
+            expires_at = $7,
+            last_heartbeat_at = $6
+      `, [leaseUuid, jobUuid, attemptUuid, workerInstance, agentId, nowIso, expiresAt]);
+
+      // 5. Insert new running attempt
+      await client.query(`
+        INSERT INTO hermes_job_attempts (attempt_uuid, job_uuid, worker_instance, started_at, status, records_extracted)
+        VALUES ($1, $2, $3, $4, 'RUNNING', 0)
+      `, [attemptUuid, jobUuid, workerInstance, nowIso]);
+
+      await client.query('COMMIT');
+
+      const freshJob = await this.getJob(jobUuid);
+      if (!freshJob) {
+        throw new Error(`Failed to load freshly leased job ${jobUuid}`);
+      }
+
+      const lease: HermesWorkerLease = {
+        lease_uuid: leaseUuid,
+        job_uuid: jobUuid,
+        worker_instance: workerInstance,
+        agent_id: agentId,
+        acquired_at: nowIso,
+        expires_at: expiresAt,
+        last_heartbeat_at: nowIso
+      };
+
+      const attempt: HermesJobAttempt = {
+        attempt_uuid: attemptUuid,
+        job_uuid: jobUuid,
+        worker_instance: workerInstance,
+        started_at: nowIso,
+        status: 'RUNNING',
+        records_extracted: 0
+      };
+
+      return { job: freshJob, lease, attempt };
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async heartbeatLease(leaseUuid: string, extendSeconds: number = 60): Promise<boolean> {
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const expiresAt = new Date(now.getTime() + extendSeconds * 1000).toISOString();
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const res = await client.query(`
+        UPDATE hermes_worker_leases
+        SET expires_at = $1,
+            last_heartbeat_at = $2
+        WHERE lease_uuid = $3
+        RETURNING job_uuid
+      `, [expiresAt, nowIso, leaseUuid]);
+
+      if (res.rows.length === 0) {
+        await client.query('COMMIT');
+        return false;
+      }
+
+      const jobUuid = res.rows[0].job_uuid;
+      await client.query(`
+        UPDATE hermes_jobs
+        SET lease_expires_at = $1,
+            updated_at = $2
+        WHERE job_uuid = $3
+      `, [expiresAt, nowIso, jobUuid]);
+
+      await client.query('COMMIT');
+      return true;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async completeJob(jobUuid: string, attemptUuid: string, recordsExtracted: number = 0): Promise<void> {
+    const nowIso = new Date().toISOString();
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      await client.query(`
+        UPDATE hermes_jobs
+        SET status = 'COMPLETED',
+            completed_at = $1,
+            lease_expires_at = NULL,
+            active_attempt_uuid = NULL,
+            updated_at = $1
+        WHERE job_uuid = $2
+      `, [nowIso, jobUuid]);
+
+      await client.query(`DELETE FROM hermes_worker_leases WHERE job_uuid = $1`, [jobUuid]);
+
+      // Complete ONLY the exact attempt identity
+      await client.query(`
+        UPDATE hermes_job_attempts
+        SET finished_at = $1,
+            status = 'SUCCESS',
+            records_extracted = $2
+        WHERE attempt_uuid = $3
+      `, [nowIso, recordsExtracted, attemptUuid]);
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async failJob(
+    jobUuid: string,
+    attemptUuid: string,
+    errorMessage: string,
+    retryable: boolean = true,
+    httpStatus?: number
+  ): Promise<void> {
+    const nowIso = new Date().toISOString();
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const jobRes = await client.query(`
+        SELECT attempt_count, max_attempts, agent_id, job_type 
+        FROM hermes_jobs 
+        WHERE job_uuid = $1 
+        FOR UPDATE
+      `, [jobUuid]);
+
+      if (jobRes.rows.length === 0) {
+        await client.query('COMMIT');
+        return;
+      }
+
+      const job = jobRes.rows[0];
+      const attempts = job.attempt_count || 1;
+      const maxAttempts = job.max_attempts || 4;
+
+      let nextStatus = 'FAILED_RETRYABLE';
+      if (!retryable || attempts >= maxAttempts) {
+        nextStatus = 'FAILED_PERMANENT';
+      }
+
+      // Exponential backoff if retryable (10s, 30s, 90s)
+      const backoffSec = Math.min(180, Math.pow(3, attempts) * 5);
+      const nextAvailableAt = new Date(Date.now() + backoffSec * 1000).toISOString();
+
+      await client.query(`
+        UPDATE hermes_jobs
+        SET status = $1,
+            failed_at = $2,
+            last_error = $3,
+            available_at = CASE WHEN $1 = 'FAILED_RETRYABLE' THEN $4 ELSE available_at END,
+            lease_expires_at = NULL,
+            active_attempt_uuid = NULL,
+            updated_at = $2
+        WHERE job_uuid = $5
+      `, [nextStatus, nowIso, errorMessage, nextAvailableAt, jobUuid]);
+
+      await client.query(`DELETE FROM hermes_worker_leases WHERE job_uuid = $1`, [jobUuid]);
+
+      // Fail ONLY the exact attempt identity
+      await client.query(`
+        UPDATE hermes_job_attempts
+        SET finished_at = $1,
+            status = $2,
+            error_message = $3,
+            http_status = $4
+        WHERE attempt_uuid = $5
+      `, [nowIso, nextStatus, errorMessage, httpStatus || null, attemptUuid]);
+
+      if (nextStatus === 'FAILED_PERMANENT') {
+        const deadLetterUuid = `dlq_${jobUuid}_${Date.now()}`;
+        await client.query(`
+          INSERT INTO dead_letter_jobs (dead_letter_uuid, job_uuid, agent_id, job_type, attempts_made, final_error, moved_at)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
+          ON CONFLICT (job_uuid) DO NOTHING
+        `, [deadLetterUuid, jobUuid, job.agent_id, job.job_type, attempts, errorMessage, nowIso]);
+      }
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  public async expireLeasesWatchdog(): Promise<number> {
+    const nowIso = new Date().toISOString();
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const expiredLeases = await client.query(`
+        SELECT l.lease_uuid, l.job_uuid, l.attempt_uuid, j.attempt_count, j.max_attempts, j.agent_id, j.job_type
+        FROM hermes_worker_leases l
+        JOIN hermes_jobs j ON l.job_uuid = j.job_uuid
+        WHERE l.expires_at < $1
+        FOR UPDATE
+      `, [nowIso]);
+
+      if (expiredLeases.rows.length === 0) {
+        await client.query('COMMIT');
+        return 0;
+      }
+
+      for (const row of expiredLeases.rows) {
+        const attempts = row.attempt_count || 1;
+        const maxAttempts = row.max_attempts || 4;
+        const isPermanent = attempts >= maxAttempts;
+
+        if (row.attempt_uuid) {
+          await client.query(`
+            UPDATE hermes_job_attempts
+            SET status = 'LEASE_EXPIRED',
+                finished_at = $1,
+                error_message = 'Worker lease expired and was reclaimed by watchdog'
+            WHERE attempt_uuid = $2 AND finished_at IS NULL
+          `, [nowIso, row.attempt_uuid]);
+        }
+
+        await client.query(`
+          UPDATE hermes_jobs
+          SET status = $1,
+              lease_expires_at = NULL,
+              active_attempt_uuid = NULL,
+              last_error = 'Lease expired without completion',
+              updated_at = $2
+          WHERE job_uuid = $3
+        `, [isPermanent ? 'FAILED_PERMANENT' : 'FAILED_RETRYABLE', nowIso, row.job_uuid]);
+
+        if (isPermanent) {
+          const dlqUuid = `dlq_${row.job_uuid}_${Date.now()}`;
+          await client.query(`
+            INSERT INTO dead_letter_jobs (dead_letter_uuid, job_uuid, agent_id, job_type, attempts_made, final_error, moved_at)
+            VALUES ($1, $2, $3, $4, $5, 'Lease expired at max attempts', $6)
+            ON CONFLICT (job_uuid) DO NOTHING
+          `, [dlqUuid, row.job_uuid, row.agent_id, row.job_type, attempts, nowIso]);
+        }
+      }
+
+      await client.query(`DELETE FROM hermes_worker_leases WHERE expires_at < $1`, [nowIso]);
+
+      await client.query('COMMIT');
+      return expiredLeases.rows.length;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  // =========================================================================
+  // CHECKPOINTS
+  // =========================================================================
+
+  public async saveCheckpoint(checkpoint: {
+    job_uuid: string;
+    step_name: string;
+    records_processed: number;
+    last_processed_id?: string;
+    state_data: Record<string, any>;
+  }): Promise<HermesCheckpoint> {
+    const checkpointUuid = `chk_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+    const nowIso = new Date().toISOString();
+
+    await db.insert(hermesCheckpoints).values({
+      checkpointUuid,
+      jobUuid: checkpoint.job_uuid,
+      stepName: checkpoint.step_name,
+      recordsProcessed: checkpoint.records_processed,
+      lastProcessedId: checkpoint.last_processed_id || null,
+      stateData: checkpoint.state_data,
+      savedAt: nowIso
+    });
+
+    await db.update(hermesJobs).set({
+      checkpoint: {
+        checkpoint_uuid: checkpointUuid,
+        step_name: checkpoint.step_name,
+        records_processed: checkpoint.records_processed,
+        last_processed_id: checkpoint.last_processed_id,
+        saved_at: nowIso
+      },
+      updatedAt: nowIso
+    }).where(eq(hermesJobs.jobUuid, checkpoint.job_uuid));
+
+    return {
+      checkpoint_uuid: checkpointUuid,
+      job_uuid: checkpoint.job_uuid,
+      step_name: checkpoint.step_name,
+      records_processed: checkpoint.records_processed,
+      last_processed_id: checkpoint.last_processed_id,
+      state_data: checkpoint.state_data,
+      saved_at: nowIso
+    };
+  }
+
+  public async getCheckpoints(jobUuid: string): Promise<HermesCheckpoint[]> {
+    const rows = await db.select().from(hermesCheckpoints)
+      .where(eq(hermesCheckpoints.jobUuid, jobUuid))
+      .orderBy(desc(hermesCheckpoints.savedAt));
+
+    return rows.map(r => ({
+      checkpoint_uuid: r.checkpointUuid,
+      job_uuid: r.jobUuid,
+      step_name: r.stepName,
+      records_processed: r.recordsProcessed,
+      last_processed_id: r.lastProcessedId || undefined,
+      state_data: (r.stateData as any) || {},
+      saved_at: r.savedAt
+    }));
+  }
+
+  // =========================================================================
+  // RAW SNAPSHOTS & EVIDENCE OBJECTS
+  // =========================================================================
+
+  public async saveRawSnapshot(snapshot: RawSourceSnapshot): Promise<void> {
+    await db.insert(rawSourceSnapshots).values({
+      snapshotUuid: snapshot.snapshot_uuid,
+      sourceUuid: snapshot.source_uuid,
+      targetUrl: snapshot.target_url,
+      httpStatus: snapshot.http_status,
+      contentType: snapshot.content_type,
+      charset: snapshot.charset || null,
+      byteLength: snapshot.byte_length || null,
+      rawPayload: snapshot.raw_payload || null,
+      payloadSha256: snapshot.payload_sha256,
+      rawBytesPath: snapshot.raw_bytes_path,
+      objectLocator: snapshot.object_locator || null,
+      retrievedAt: snapshot.retrieved_at,
+      parserVersion: snapshot.parser_version,
+      provenanceClassification: snapshot.provenance_classification || 'UNKNOWN',
+      challengeReason: snapshot.challenge_reason || null,
+      failureClass: snapshot.failure_class || null
+    }).onConflictDoNothing();
+  }
+
+  public async getRawSnapshot(snapshotUuid: string): Promise<RawSourceSnapshot | null> {
+    const rows = await db.select().from(rawSourceSnapshots)
+      .where(eq(rawSourceSnapshots.snapshotUuid, snapshotUuid))
+      .limit(1);
+
+    if (rows.length === 0) return null;
+    const r = rows[0];
+    return {
+      snapshot_uuid: r.snapshotUuid,
+      source_uuid: r.sourceUuid,
+      target_url: r.targetUrl,
+      http_status: r.httpStatus,
+      content_type: r.contentType,
+      charset: r.charset || undefined,
+      byte_length: r.byteLength || undefined,
+      raw_payload: r.rawPayload || undefined,
+      payload_sha256: r.payloadSha256,
+      raw_bytes_path: r.rawBytesPath,
+      object_locator: r.objectLocator || undefined,
+      retrieved_at: r.retrievedAt,
+      parser_version: r.parserVersion,
+      provenance_classification: r.provenanceClassification as any,
+      challenge_reason: r.challengeReason || undefined,
+      failure_class: r.failureClass as any
+    };
+  }
+
+  public async getAllRawSnapshots(): Promise<RawSourceSnapshot[]> {
+    const rows = await db.select().from(rawSourceSnapshots).orderBy(desc(rawSourceSnapshots.retrievedAt));
+    return rows.map(r => ({
+      snapshot_uuid: r.snapshotUuid,
+      source_uuid: r.sourceUuid,
+      target_url: r.targetUrl,
+      http_status: r.httpStatus,
+      content_type: r.contentType,
+      charset: r.charset || undefined,
+      byte_length: r.byteLength || undefined,
+      raw_payload: r.rawPayload || undefined,
+      payload_sha256: r.payloadSha256,
+      raw_bytes_path: r.rawBytesPath,
+      object_locator: r.objectLocator || undefined,
+      retrieved_at: r.retrievedAt,
+      parser_version: r.parserVersion,
+      provenance_classification: r.provenanceClassification as any,
+      challenge_reason: r.challengeReason || undefined,
+      failure_class: r.failureClass as any
+    }));
+  }
+
+  public async saveEvidenceObjects(evidenceList: RawEvidenceObject[]): Promise<void> {
+    if (evidenceList.length === 0) return;
+
+    for (const e of evidenceList) {
+      await db.insert(rawEvidenceObjects).values({
+        evidenceUuid: e.evidence_uuid,
+        sourceUuid: e.source_uuid,
+        sourceUrl: e.source_url,
+        deepLink: e.deep_link || null,
+        documentTitle: e.document_title,
+        documentType: e.document_type,
+        retrievedAt: e.retrieved_at,
+        publishedAt: e.published_at || null,
+        sourceTier: e.source_tier,
+        rawSnapshotUuid: e.raw_snapshot_uuid || null,
+        retrievalContentSha256: e.retrieval_content_sha256 || null,
+        claimFingerprint: e.claim_fingerprint || null,
+        contentHash: e.content_hash,
+        parserVersion: e.parser_version,
+        extractionMethod: e.extraction_method,
+        supportingLocator: e.supporting_locator || null,
+        verificationState: e.verification_state || 'EXTRACTED_UNREVIEWED',
+        seatUuid: e.seat_uuid || null,
+        personUuid: e.person_uuid || null,
+        fieldKey: e.field_key || null,
+        extractedValue: e.extracted_value || null,
+        provenanceClassification: e.provenance_classification || 'UNKNOWN'
+      }).onConflictDoNothing();
+    }
+  }
+
+  public async getAllEvidenceObjects(): Promise<RawEvidenceObject[]> {
+    const rows = await db.select().from(rawEvidenceObjects).orderBy(desc(rawEvidenceObjects.retrievedAt));
+    return rows.map(r => ({
+      evidence_uuid: r.evidenceUuid,
+      source_uuid: r.sourceUuid,
+      source_url: r.sourceUrl,
+      deep_link: r.deepLink || undefined,
+      document_title: r.documentTitle,
+      document_type: r.documentType,
+      retrieved_at: r.retrievedAt,
+      published_at: r.publishedAt || undefined,
+      source_tier: r.sourceTier as any,
+      raw_snapshot_uuid: r.rawSnapshotUuid || undefined,
+      retrieval_content_sha256: r.retrievalContentSha256 || undefined,
+      claim_fingerprint: r.claimFingerprint || undefined,
+      content_hash: r.contentHash,
+      parser_version: r.parserVersion,
+      extraction_method: r.extractionMethod,
+      supporting_locator: r.supportingLocator || undefined,
+      verification_state: r.verificationState as any,
+      seat_uuid: r.seatUuid || undefined,
+      person_uuid: r.personUuid || undefined,
+      field_key: r.fieldKey || undefined,
+      extracted_value: r.extractedValue || undefined,
+      provenance_classification: r.provenanceClassification as any
+    }));
+  }
+
+  public async getEvidenceForSeat(seatUuid: string): Promise<RawEvidenceObject[]> {
+    const rows = await db.select().from(rawEvidenceObjects)
+      .where(eq(rawEvidenceObjects.seatUuid, seatUuid))
+      .orderBy(desc(rawEvidenceObjects.retrievedAt));
+
+    return rows.map(r => ({
+      evidence_uuid: r.evidenceUuid,
+      source_uuid: r.sourceUuid,
+      source_url: r.sourceUrl,
+      deep_link: r.deepLink || undefined,
+      document_title: r.documentTitle,
+      document_type: r.documentType,
+      retrieved_at: r.retrievedAt,
+      published_at: r.publishedAt || undefined,
+      source_tier: r.sourceTier as any,
+      raw_snapshot_uuid: r.rawSnapshotUuid || undefined,
+      retrieval_content_sha256: r.retrievalContentSha256 || undefined,
+      claim_fingerprint: r.claimFingerprint || undefined,
+      content_hash: r.contentHash,
+      parser_version: r.parserVersion,
+      extraction_method: r.extractionMethod,
+      supporting_locator: r.supportingLocator || undefined,
+      verification_state: r.verificationState as any,
+      seat_uuid: r.seatUuid || undefined,
+      person_uuid: r.personUuid || undefined,
+      field_key: r.fieldKey || undefined,
+      extracted_value: r.extractedValue || undefined,
+      provenance_classification: r.provenanceClassification as any
+    }));
+  }
+
+  // =========================================================================
+  // SOURCE REGISTRY
+  // =========================================================================
+
+  public async getSourceRegistry(): Promise<SourceRegistryEntry[]> {
+    const rows = await db.select().from(hermesSourceRegistry);
+    return rows.map(r => ({
+      source_uuid: r.sourceUuid,
+      source_id: r.sourceId,
+      source_name: r.sourceName,
+      authority_tier: r.authorityTier as any,
+      base_url: r.baseUrl,
+      jurisdiction: r.jurisdiction,
+      rate_limit_req_per_sec: r.rateLimitReqPerSec,
+      status: r.status as any,
+      consecutive_failures: r.consecutiveFailures,
+      circuit_opens_count: r.circuitOpensCount,
+      circuit_reopen_at: r.circuitReopenAt || undefined,
+      last_success_at: r.lastSuccessAt || undefined,
+      last_failure_at: r.lastFailureAt || undefined,
+      last_error: r.lastError || undefined,
+      last_checked_at: r.lastCheckedAt || undefined
+    }));
+  }
+
+  public async updateSourceStatus(sourceId: string, status: string, error?: string): Promise<void> {
+    const nowIso = new Date().toISOString();
+    await db.update(hermesSourceRegistry).set({
+      status,
+      lastCheckedAt: nowIso,
+      lastError: error || null,
+      lastSuccessAt: status === 'HEALTHY' ? nowIso : undefined,
+      lastFailureAt: status !== 'HEALTHY' ? nowIso : undefined
+    }).where(eq(hermesSourceRegistry.sourceId, sourceId));
+  }
+
+  // =========================================================================
+  // COVERAGE RECORDS (SEATS & PERSONS)
+  // =========================================================================
+
+  public async getSeatCoverageRecords(): Promise<SeatCoverageStatusRecord[]> {
+    const rows = await db.select().from(seatCoverageStatuses);
+    return rows.map(r => ({
+      seat_uuid: r.seatUuid,
+      office_name: r.officeName,
+      office_type: r.officeType,
+      jurisdiction: r.jurisdiction,
+      county_fips: r.countyFips || undefined,
+      district_number: r.districtNumber || undefined,
+      government_level: r.governmentLevel as any,
+      current_official_person_uuid: r.currentOfficialPersonUuid || undefined,
+      current_official_name: r.currentOfficialName || undefined,
+      is_vacant: r.isVacant as any,
+      vacancy_status: r.vacancyStatus as any,
+      tenure_years: r.tenureYears,
+      term_start: r.termStart,
+      term_end: r.termEnd,
+      next_election_date: r.nextElectionDate,
+      in_active_election_cycle: r.inActiveElectionCycle,
+      completeness_percentage: r.completenessPercentage,
+      coverage_status: r.coverageStatus as any,
+      verification_state: r.verificationState as any,
+      last_updated_at: r.lastUpdatedAt
+    }));
+  }
+
+  public async updateSeatCoverageRecord(seatUuid: string, updates: Partial<SeatCoverageStatusRecord>): Promise<void> {
+    const nowIso = new Date().toISOString();
+    await db.update(seatCoverageStatuses).set({
+      completenessPercentage: updates.completeness_percentage,
+      coverageStatus: updates.coverage_status,
+      verificationState: updates.verification_state,
+      lastUpdatedAt: nowIso
+    }).where(eq(seatCoverageStatuses.seatUuid, seatUuid));
+  }
+
+  public async getPersonCoverageRecords(): Promise<PersonCoverageStatusRecord[]> {
+    const rows = await db.select().from(personCoverageStatuses);
+    return rows.map(r => ({
+      person_uuid: r.personUuid,
+      name: r.name,
+      title: r.title,
+      office_type: r.officeType,
+      party: r.party,
+      district: r.district,
+      jurisdiction: r.jurisdiction,
+      seat_uuid: r.seatUuid,
+      completeness_percentage: r.completenessPercentage,
+      research_state: r.researchState as any,
+      last_audited_at: r.lastAuditedAt
+    }));
+  }
+
+  // =========================================================================
+  // DEAD LETTERS, MONITORING, GAPS, ACADEMY, PROOFS
+  // =========================================================================
+
+  public async getDeadLetterJobs(): Promise<DeadLetterJobRecord[]> {
+    const rows = await db.select().from(deadLetterJobs).orderBy(desc(deadLetterJobs.movedAt));
+    return rows.map(r => ({
+      dead_letter_uuid: r.deadLetterUuid,
+      job_uuid: r.jobUuid,
+      agent_id: r.agentId,
+      job_type: r.jobType,
+      attempts_made: r.attemptsMade,
+      final_error: r.finalError,
+      source_id: r.sourceId || undefined,
+      payload_snapshot: r.payloadSnapshot,
+      moved_at: r.movedAt
+    }));
+  }
+
+  public async recordMonitoringEvent(event: Omit<MonitoringEventRecord, 'event_uuid'>): Promise<MonitoringEventRecord> {
+    const eventUuid = `mon_ev_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+    await db.insert(monitoringEvents).values({
+      eventUuid,
+      obligationId: event.obligation_id,
+      checkId: event.check_id,
+      retrievalId: event.retrieval_id,
+      comparisonId: event.comparison_id,
+      previousHash: event.previous_hash,
+      currentHash: event.current_hash,
+      comparisonEvent: event.comparison_event,
+      observedUrl: event.observed_url,
+      sourceOrigin: event.source_origin || 'LIVE_NETWORK',
+      statusCode: event.status_code || null,
+      errorMessage: event.error_message || null,
+      timestamp: event.timestamp
+    });
+
+    return { ...event, event_uuid: eventUuid };
+  }
+
+  public async getMonitoringEvents(): Promise<MonitoringEventRecord[]> {
+    const rows = await db.select().from(monitoringEvents).orderBy(desc(monitoringEvents.timestamp));
+    return rows.map(r => ({
+      event_uuid: r.eventUuid,
+      obligation_id: r.obligationId,
+      check_id: r.checkId,
+      retrieval_id: r.retrievalId,
+      comparison_id: r.comparisonId,
+      previous_hash: r.previousHash,
+      current_hash: r.currentHash,
+      comparison_event: r.comparisonEvent as any,
+      observed_url: r.observedUrl,
+      source_origin: r.sourceOrigin as any,
+      status_code: r.statusCode || undefined,
+      error_message: r.errorMessage || undefined,
+      timestamp: r.timestamp
+    }));
+  }
+
+  public async getDurableGaps(): Promise<DurableGapRecord[]> {
+    const rows = await db.select().from(durableGaps);
+    return rows.map(r => ({
+      gap_id: r.gapId,
+      seat_uuid: r.seatUuid,
+      person_uuid: r.personUuid || undefined,
+      office_type: r.officeType,
+      missing_scope: r.missingScope,
+      priority: r.priority as any,
+      auto_generated_job_type: r.autoGeneratedJobType || undefined,
+      status: r.status as any,
+      job_uuid: r.jobUuid || undefined,
+      created_at: r.createdAt,
+      resolved_at: r.resolvedAt || undefined
+    }));
+  }
+
+  public async createDurableGap(gap: Omit<DurableGapRecord, 'gap_id' | 'created_at'>): Promise<DurableGapRecord> {
+    const gapId = `gap_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+    const nowIso = new Date().toISOString();
+
+    await db.insert(durableGaps).values({
+      gapId,
+      seatUuid: gap.seat_uuid,
+      personUuid: gap.person_uuid || null,
+      officeType: gap.office_type,
+      missingScope: gap.missing_scope,
+      priority: gap.priority,
+      autoGeneratedJobType: gap.auto_generated_job_type || null,
+      status: gap.status,
+      jobUuid: gap.job_uuid || null,
+      createdAt: nowIso,
+      resolvedAt: null
+    });
+
+    return { ...gap, gap_id: gapId, created_at: nowIso };
+  }
+
+  public async updateDurableGap(gapId: string, updates: Partial<DurableGapRecord>): Promise<DurableGapRecord | null> {
+    await db.update(durableGaps).set({
+      status: updates.status,
+      resolvedAt: updates.resolved_at
+    }).where(eq(durableGaps.gapId, gapId));
+
+    const rows = await db.select().from(durableGaps).where(eq(durableGaps.gapId, gapId)).limit(1);
+    if (rows.length === 0) return null;
+    const r = rows[0];
+    return {
+      gap_id: r.gapId,
+      seat_uuid: r.seatUuid,
+      person_uuid: r.personUuid || undefined,
+      office_type: r.officeType,
+      missing_scope: r.missingScope,
+      priority: r.priority as any,
+      auto_generated_job_type: r.autoGeneratedJobType || undefined,
+      status: r.status as any,
+      job_uuid: r.jobUuid || undefined,
+      created_at: r.createdAt,
+      resolved_at: r.resolvedAt || undefined
+    };
+  }
+
+  public async recordAcademyObservation(obs: Omit<DurableAcademyObservationRecord, 'observation_id' | 'created_at'>): Promise<DurableAcademyObservationRecord> {
+    const observationId = `obs_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+    const nowIso = new Date().toISOString();
+
+    await db.insert(academyObservations).values({
+      observationId,
+      sourceId: obs.source_id,
+      parserId: obs.parser_id,
+      incidentType: obs.incident_type,
+      observedPayloadSample: obs.observed_payload_sample,
+      observedSha256: obs.observed_sha256,
+      errorMessage: obs.error_message || null,
+      createdAt: nowIso
+    });
+
+    return { ...obs, observation_id: observationId, created_at: nowIso };
+  }
+
+  public async getAcademyObservations(): Promise<DurableAcademyObservationRecord[]> {
+    const rows = await db.select().from(academyObservations).orderBy(desc(academyObservations.createdAt));
+    return rows.map(r => ({
+      observation_id: r.observationId,
+      source_id: r.sourceId,
+      parser_id: r.parserId,
+      incident_type: r.incidentType as any,
+      observed_payload_sample: r.observedPayloadSample,
+      observed_sha256: r.observedSha256,
+      error_message: r.errorMessage || undefined,
+      created_at: r.createdAt
+    }));
+  }
+
+  public async recordAcademyCase(caseRecord: Omit<DurableAcademyCaseRecord, 'case_id' | 'created_at'>): Promise<DurableAcademyCaseRecord> {
+    const caseId = `case_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+    const nowIso = new Date().toISOString();
+
+    await db.insert(academyCases).values({
+      caseId,
+      observationId: caseRecord.observation_id,
+      caseTitle: caseRecord.case_title,
+      proposedRule: caseRecord.proposed_rule || null,
+      state: caseRecord.state,
+      testResult: caseRecord.test_result || null,
+      createdAt: nowIso,
+      testedAt: caseRecord.tested_at || null,
+      promotedAt: caseRecord.promoted_at || null,
+      promotionAuthority: caseRecord.promotion_authority || null
+    });
+
+    return { ...caseRecord, case_id: caseId, created_at: nowIso };
+  }
+
+  public async getAcademyCases(): Promise<DurableAcademyCaseRecord[]> {
+    const rows = await db.select().from(academyCases).orderBy(desc(academyCases.createdAt));
+    return rows.map(r => ({
+      case_id: r.caseId,
+      observation_id: r.observationId,
+      case_title: r.caseTitle,
+      proposed_rule: r.proposedRule || undefined,
+      state: r.state as any,
+      test_result: (r.testResult as 'PASS' | 'FAIL') || undefined,
+      created_at: r.createdAt,
+      tested_at: r.testedAt || undefined,
+      promoted_at: r.promotedAt || undefined,
+      promotion_authority: r.promotionAuthority || undefined
+    }));
+  }
+
+  public async updateAcademyCase(caseId: string, updates: Partial<DurableAcademyCaseRecord>): Promise<DurableAcademyCaseRecord | null> {
+    await db.update(academyCases).set({
+      state: updates.state,
+      testResult: updates.test_result,
+      testedAt: updates.tested_at,
+      promotedAt: updates.promoted_at,
+      promotionAuthority: updates.promotion_authority
+    }).where(eq(academyCases.caseId, caseId));
+
+    const rows = await db.select().from(academyCases).where(eq(academyCases.caseId, caseId)).limit(1);
+    if (rows.length === 0) return null;
+    const r = rows[0];
+    return {
+      case_id: r.caseId,
+      observation_id: r.observationId,
+      case_title: r.caseTitle,
+      proposed_rule: r.proposedRule || undefined,
+      state: r.state as any,
+      test_result: (r.testResult as 'PASS' | 'FAIL') || undefined,
+      created_at: r.createdAt,
+      tested_at: r.testedAt || undefined,
+      promoted_at: r.promotedAt || undefined,
+      promotion_authority: r.promotionAuthority || undefined
+    };
+  }
+
+  public async recordAutonomousProof(proof: Omit<DurableAutonomousProofRecord, 'proof_uuid' | 'proven_at'>): Promise<DurableAutonomousProofRecord> {
+    const proofUuid = `proof_auto_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+    const nowIso = new Date().toISOString();
+
+    await db.insert(autonomousProofRecords).values({
+      proofUuid,
+      workId: proof.work_id,
+      leaseId: proof.lease_id,
+      workerId: proof.worker_id,
+      retrievalId: proof.retrieval_id,
+      artifactId: proof.artifact_id,
+      nextWorkId: proof.next_work_id,
+      verifierSelfDispatches: Boolean(proof.verifier_self_dispatches),
+      provenAt: nowIso
+    });
+
+    return { ...proof, proof_uuid: proofUuid, proven_at: nowIso };
+  }
+
+  public async getAutonomousProofRecords(): Promise<DurableAutonomousProofRecord[]> {
+    const rows = await db.select().from(autonomousProofRecords).orderBy(desc(autonomousProofRecords.provenAt));
+    return rows.map(r => ({
+      proof_uuid: r.proofUuid,
+      work_id: r.workId,
+      lease_id: r.leaseId,
+      worker_id: r.workerId,
+      retrieval_id: r.retrievalId,
+      artifact_id: r.artifactId,
+      next_work_id: r.nextWorkId,
+      verifier_self_dispatches: false as const,
+      proven_at: r.provenAt
+    }));
+  }
+
+  public async recordMonitoringProof(proof: Omit<DurableMonitoringProofRecord, 'proof_uuid' | 'proven_at'>): Promise<DurableMonitoringProofRecord> {
+    const proofUuid = `proof_mon_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+    const nowIso = new Date().toISOString();
+
+    await db.insert(monitoringProofRecords).values({
+      proofUuid,
+      obligationId: proof.obligation_id,
+      checkId: proof.check_id,
+      retrievalId: proof.retrieval_id,
+      comparisonId: proof.comparison_id,
+      sourceOrigin: proof.source_origin || 'LIVE_NETWORK',
+      verifierExecutesFetch: Boolean(proof.verifier_executes_fetch),
+      provenAt: nowIso
+    });
+
+    return { ...proof, proof_uuid: proofUuid, proven_at: nowIso };
+  }
+
+  public async getMonitoringProofRecords(): Promise<DurableMonitoringProofRecord[]> {
+    const rows = await db.select().from(monitoringProofRecords).orderBy(desc(monitoringProofRecords.provenAt));
+    return rows.map(r => ({
+      proof_uuid: r.proofUuid,
+      obligation_id: r.obligationId,
+      check_id: r.checkId,
+      retrieval_id: r.retrievalId,
+      comparison_id: r.comparisonId,
+      source_origin: r.sourceOrigin as any,
+      verifier_executes_fetch: false as const,
+      proven_at: r.provenAt
+    }));
+  }
+
+  // =========================================================================
+  // BRIDGE SUBMISSIONS (POSTGRESQL-BACKED IDEMPOTENCY)
+  // =========================================================================
+
+  public async getBridgeSubmission(jobId: string): Promise<ResultSubmissionRecord | null> {
+    const rows = await db.select().from(bridgeSubmissions)
+      .where(eq(bridgeSubmissions.jobId, jobId))
+      .limit(1);
+
+    if (rows.length === 0) return null;
+    const r = rows[0];
+    return {
+      submission_id: r.submissionId,
+      job_id: r.jobId,
+      idempotency_key: r.idempotencyKey,
+      delivery_state: r.deliveryState as any,
+      attempts: r.attempts,
+      max_attempts: r.maxAttempts,
+      next_retry_at: r.nextRetryAt || null,
+      last_attempt_at: r.lastAttemptAt || null,
+      last_error: r.lastError || null,
+      acknowledgment: (r.acknowledgment as any) || null,
+      created_at: r.createdAt,
+      updated_at: r.updatedAt
+    };
+  }
+
+  public async getAllBridgeSubmissions(): Promise<ResultSubmissionRecord[]> {
+    const rows = await db.select().from(bridgeSubmissions).orderBy(desc(bridgeSubmissions.createdAt));
+    return rows.map(r => ({
+      submission_id: r.submissionId,
+      job_id: r.jobId,
+      idempotency_key: r.idempotencyKey,
+      delivery_state: r.deliveryState as any,
+      attempts: r.attempts,
+      max_attempts: r.maxAttempts,
+      next_retry_at: r.nextRetryAt || null,
+      last_attempt_at: r.lastAttemptAt || null,
+      last_error: r.lastError || null,
+      acknowledgment: (r.acknowledgment as any) || null,
+      created_at: r.createdAt,
+      updated_at: r.updatedAt
+    }));
+  }
+
+  public async upsertBridgeSubmission(submission: ResultSubmissionRecord, resultPackage?: ResearchIngestPackage): Promise<void> {
+    const nowIso = new Date().toISOString();
+    await db.insert(bridgeSubmissions).values({
+      submissionId: submission.submission_id || submission.job_id,
+      jobId: submission.job_id,
+      idempotencyKey: submission.idempotency_key || `sub_${submission.job_id}`,
+      deliveryState: submission.delivery_state,
+      attempts: submission.attempts,
+      maxAttempts: submission.max_attempts || 10,
+      nextRetryAt: submission.next_retry_at || null,
+      lastAttemptAt: submission.last_attempt_at || null,
+      lastError: submission.last_error || null,
+      canonicalAckCode: submission.acknowledgment?.code || null,
+      canonicalCorrelationId: submission.acknowledgment?.ingest_receipt_id || (submission.acknowledgment?.details as any)?.correlation_id || null,
+      acknowledgment: submission.acknowledgment,
+      resultPackage: resultPackage || null,
+      createdAt: submission.created_at || nowIso,
+      updatedAt: nowIso
+    }).onConflictDoUpdate({
+      target: bridgeSubmissions.jobId,
+      set: {
+        deliveryState: submission.delivery_state,
+        attempts: submission.attempts,
+        maxAttempts: submission.max_attempts,
+        nextRetryAt: submission.next_retry_at || null,
+        lastAttemptAt: submission.last_attempt_at || null,
+        lastError: submission.last_error || null,
+        canonicalAckCode: submission.acknowledgment?.code || null,
+        canonicalCorrelationId: submission.acknowledgment?.ingest_receipt_id || (submission.acknowledgment?.details as any)?.correlation_id || null,
+        acknowledgment: submission.acknowledgment,
+        resultPackage: resultPackage || undefined,
+        updatedAt: nowIso
+      }
+    });
+  }
+
+  // =========================================================================
+  // METRICS & RECONCILIATION
+  // =========================================================================
+
+  public async getEntityCounts(): Promise<Record<string, number>> {
+    const [
+      jobs,
+      attempts,
+      leases,
+      checkpoints,
+      sources,
+      snapshots,
+      evidence,
+      contracts,
+      seats,
+      persons,
+      deadLetters,
+      monEvents,
+      gaps,
+      acadObs,
+      acadCases,
+      autoProofs,
+      monProofs,
+      bridgeSubs
+    ] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(hermesJobs),
+      db.select({ count: sql<number>`count(*)` }).from(hermesJobAttempts),
+      db.select({ count: sql<number>`count(*)` }).from(hermesWorkerLeases),
+      db.select({ count: sql<number>`count(*)` }).from(hermesCheckpoints),
+      db.select({ count: sql<number>`count(*)` }).from(hermesSourceRegistry),
+      db.select({ count: sql<number>`count(*)` }).from(rawSourceSnapshots),
+      db.select({ count: sql<number>`count(*)` }).from(rawEvidenceObjects),
+      db.select({ count: sql<number>`count(*)` }).from(researchContractStatuses),
+      db.select({ count: sql<number>`count(*)` }).from(seatCoverageStatuses),
+      db.select({ count: sql<number>`count(*)` }).from(personCoverageStatuses),
+      db.select({ count: sql<number>`count(*)` }).from(deadLetterJobs),
+      db.select({ count: sql<number>`count(*)` }).from(monitoringEvents),
+      db.select({ count: sql<number>`count(*)` }).from(durableGaps),
+      db.select({ count: sql<number>`count(*)` }).from(academyObservations),
+      db.select({ count: sql<number>`count(*)` }).from(academyCases),
+      db.select({ count: sql<number>`count(*)` }).from(autonomousProofRecords),
+      db.select({ count: sql<number>`count(*)` }).from(monitoringProofRecords),
+      db.select({ count: sql<number>`count(*)` }).from(bridgeSubmissions)
+    ]);
+
+    return {
+      jobs: Number(jobs[0]?.count || 0),
+      attempts: Number(attempts[0]?.count || 0),
+      leases: Number(leases[0]?.count || 0),
+      checkpoints: Number(checkpoints[0]?.count || 0),
+      sources: Number(sources[0]?.count || 0),
+      snapshots: Number(snapshots[0]?.count || 0),
+      evidence: Number(evidence[0]?.count || 0),
+      contracts: Number(contracts[0]?.count || 0),
+      seats: Number(seats[0]?.count || 0),
+      persons: Number(persons[0]?.count || 0),
+      dead_letters: Number(deadLetters[0]?.count || 0),
+      monitoring_events: Number(monEvents[0]?.count || 0),
+      gaps: Number(gaps[0]?.count || 0),
+      academy_observations: Number(acadObs[0]?.count || 0),
+      academy_cases: Number(acadCases[0]?.count || 0),
+      autonomous_proofs: Number(autoProofs[0]?.count || 0),
+      monitoring_proofs: Number(monProofs[0]?.count || 0),
+      bridge_submissions: Number(bridgeSubs[0]?.count || 0)
+    };
+  }
+
+  public async getDatabaseSummary(): Promise<Record<string, any>> {
+    const counts = await this.getEntityCounts();
+    const queuedCount = await this.getQueuedJobsCount();
+
+    return {
+      total_jobs_in_db: counts.jobs,
+      queued_jobs: queuedCount,
+      total_seats_tracked: counts.seats,
+      total_evidence_collected: counts.evidence,
+      total_dead_letter_jobs: counts.dead_letters,
+      storage_engine: 'PostgresProducerStore (Cloud SQL PostgreSQL + GCS)'
+    };
+  }
+
+  private mapJobRow(r: typeof hermesJobs.$inferSelect): PersistentHermesJob {
+    return {
+      job_uuid: r.jobUuid,
+      agent_id: r.agentId,
+      mission_uuid: r.missionUuid || undefined,
+      seat_uuid: r.seatUuid || undefined,
+      person_uuid: r.personUuid || undefined,
+      race_uuid: r.raceUuid || undefined,
+      campaign_uuid: r.campaignUuid || undefined,
+      source_uuid: r.sourceUuid || undefined,
+      job_type: r.jobType,
+      priority: r.priority,
+      status: r.status as JobStatus,
+      attempt_count: r.attemptCount,
+      max_attempts: r.maxAttempts,
+      available_at: r.availableAt,
+      locked_at: r.lockedAt || undefined,
+      lease_expires_at: r.leaseExpiresAt || undefined,
+      worker_instance: r.workerInstance || undefined,
+      started_at: r.startedAt || undefined,
+      completed_at: r.completedAt || undefined,
+      failed_at: r.failedAt || undefined,
+      last_error: r.lastError || undefined,
+      checkpoint: r.checkpoint || undefined,
+      created_at: r.createdAt,
+      updated_at: r.updatedAt
+    };
+  }
+}

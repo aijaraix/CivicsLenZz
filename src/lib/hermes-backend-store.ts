@@ -115,7 +115,7 @@ export interface HermesJobAttempt {
   worker_instance: string;
   started_at: string;
   finished_at?: string;
-  status: 'SUCCESS' | 'FAILED_RETRYABLE' | 'FAILED_PERMANENT';
+  status: 'RUNNING' | 'SUCCESS' | 'FAILED_RETRYABLE' | 'FAILED_PERMANENT';
   error_message?: string;
   http_status?: number;
   records_extracted: number;
@@ -172,6 +172,9 @@ export interface RawSourceSnapshot {
   raw_payload?: string;
   payload_sha256: string;
   raw_bytes_path: string;
+  object_locator?: string;
+  challenge_reason?: string;
+  failure_class?: string;
   retrieved_at: string;
   parser_version: string;
   provenance_classification?: EvidenceProvenance;

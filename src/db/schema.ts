@@ -4,6 +4,8 @@ import { pgTable, text, integer, boolean, timestamp, jsonb, primaryKey, uniqueIn
 export const hermesJobs = pgTable('hermes_jobs', {
   jobUuid: text('job_uuid').primaryKey(),
   agentId: text('agent_id').notNull(),
+  logicalWorkKey: text('logical_work_key'),
+  activeAttemptUuid: text('active_attempt_uuid'),
   missionUuid: text('mission_uuid'),
   seatUuid: text('seat_uuid'),
   personUuid: text('person_uuid'),
@@ -30,6 +32,7 @@ export const hermesJobs = pgTable('hermes_jobs', {
   index('idx_hermes_jobs_status').on(table.status),
   index('idx_hermes_jobs_agent').on(table.agentId),
   index('idx_hermes_jobs_seat').on(table.seatUuid),
+  index('idx_hermes_jobs_logical_key').on(table.logicalWorkKey),
 ]);
 
 // 2. HERMES JOB ATTEMPTS
@@ -39,7 +42,7 @@ export const hermesJobAttempts = pgTable('hermes_job_attempts', {
   workerInstance: text('worker_instance').notNull(),
   startedAt: text('started_at').notNull(),
   finishedAt: text('finished_at'),
-  status: text('status').notNull(), // SUCCESS, FAILED_RETRYABLE, FAILED_PERMANENT
+  status: text('status').notNull(), // RUNNING, SUCCESS, FAILED_RETRYABLE, FAILED_PERMANENT, LEASE_EXPIRED, ABANDONED_WORKER
   errorMessage: text('error_message'),
   httpStatus: integer('http_status'),
   recordsExtracted: integer('records_extracted').notNull().default(0),
@@ -51,6 +54,7 @@ export const hermesJobAttempts = pgTable('hermes_job_attempts', {
 export const hermesWorkerLeases = pgTable('hermes_worker_leases', {
   leaseUuid: text('lease_uuid').primaryKey(),
   jobUuid: text('job_uuid').notNull().unique().references(() => hermesJobs.jobUuid),
+  attemptUuid: text('attempt_uuid'),
   workerInstance: text('worker_instance').notNull(),
   agentId: text('agent_id').notNull(),
   acquiredAt: text('acquired_at').notNull(),
@@ -82,7 +86,7 @@ export const hermesSourceRegistry = pgTable('hermes_source_registry', {
   baseUrl: text('base_url').notNull(),
   jurisdiction: text('jurisdiction').notNull(),
   rateLimitReqPerSec: integer('rate_limit_req_per_sec').notNull().default(2),
-  status: text('status').notNull().default('HEALTHY'), // HEALTHY, DEGRADED, BLOCKED_SOURCE, CIRCUIT_OPEN, UNKNOWN
+  status: text('status').notNull().default('UNKNOWN'), // HEALTHY, DEGRADED, BLOCKED_SOURCE, CIRCUIT_OPEN, UNKNOWN
   consecutiveFailures: integer('consecutive_failures').notNull().default(0),
   circuitOpensCount: integer('circuit_opens_count').notNull().default(0),
   circuitReopenAt: text('circuit_reopen_at'),
@@ -107,7 +111,7 @@ export const rawSourceSnapshots = pgTable('raw_source_snapshots', {
   objectLocator: text('object_locator'),
   retrievedAt: text('retrieved_at').notNull(),
   parserVersion: text('parser_version').notNull(),
-  provenanceClassification: text('provenance_classification').notNull().default('REAL_PROVEN'),
+  provenanceClassification: text('provenance_classification').notNull().default('UNKNOWN'),
   challengeReason: text('challenge_reason'),
   failureClass: text('failure_class'),
 }, (table) => [
@@ -138,7 +142,7 @@ export const rawEvidenceObjects = pgTable('raw_evidence_objects', {
   personUuid: text('person_uuid'),
   fieldKey: text('field_key'),
   extractedValue: text('extracted_value'),
-  provenanceClassification: text('provenance_classification').notNull().default('REAL_PROVEN'),
+  provenanceClassification: text('provenance_classification').notNull().default('UNKNOWN'),
 }, (table) => [
   index('idx_raw_evidence_seat').on(table.seatUuid),
   index('idx_raw_evidence_person').on(table.personUuid),

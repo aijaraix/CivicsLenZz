@@ -26,6 +26,7 @@ import {
   BridgeTelemetry
 } from './hermes-bridge-types';
 import { CIVICSLENZZ_PRODUCER_MANIFEST } from './producer-manifest';
+import { getProducerPersistence } from './producer-storage/index';
 
 export interface EnvelopeValidationResult {
   valid: boolean;
@@ -123,6 +124,15 @@ export class HermesBridgeClient {
       }
       const array = Array.from(this.submissions.values());
       fs.writeFileSync(this.storagePath, JSON.stringify(array, null, 2), 'utf-8');
+
+      // Persist to PostgreSQL asynchronously
+      const persistence = getProducerPersistence();
+      for (const item of array) {
+        const pkg = this.resultPackages.get(item.job_id);
+        persistence.upsertBridgeSubmission(item, pkg).catch(e => {
+          console.warn('[HermesBridgeClient] Postgres bridge submission upsert deferred:', e.message);
+        });
+      }
     } catch (err) {
       console.error("[HermesBridgeClient] Could not save submissions", err);
     }

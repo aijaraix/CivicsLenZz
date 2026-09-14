@@ -4,6 +4,7 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { hermesBackendStore } from "./src/lib/hermes-backend-store";
 import { hermesWorkerDaemon } from "./src/lib/hermes-worker-daemon";
+import { getProducerPersistence } from "./src/lib/producer-storage/index";
 import { masterFloridaLedger } from "./src/lib/florida-master-ledger";
 import { cohortReadinessEngine } from "./src/lib/cohort-readiness-engine";
 import {
@@ -18,30 +19,47 @@ async function startServer() {
   app.use(express.json());
   const PORT = 3000;
 
+  const persistence = getProducerPersistence();
+
   // Start Real Server-Side HERMES Background Worker Daemon
-  hermesWorkerDaemon.startDaemon();
+  hermesWorkerDaemon.startDaemon().catch(err => {
+    console.error("[SERVER] Worker daemon startup error:", err);
+  });
 
   // =========================================================================
   // REAL HERMES SERVER REST API ENDPOINTS
   // =========================================================================
 
   // 1. Daemon Status & Worker Health
-  app.get("/api/hermes/status", (req, res) => {
-    const daemonStatus = hermesWorkerDaemon.getDaemonStatus();
+  app.get("/api/hermes/status", async (req, res) => {
+    const daemonStatus = await hermesWorkerDaemon.getDaemonStatus();
+    const health = await persistence.checkHealth();
     res.json({
       ...daemonStatus,
-      producer_storage_mode: hermesBackendStore.getStorageMode(),
-      durable_storage: "CLOUD_SQL_POSTGRES",
-      durable_storage_configured: Boolean(process.env.SQL_HOST)
+      PRODUCER_STORAGE_MODE: health.storageMode,
+      POSTGRES_CONFIGURED: health.postgresConfigured,
+      POSTGRES_CONNECTED: health.postgresConnected,
+      POSTGRES_SCHEMA_READY: health.postgresSchemaReady,
+      RAW_OBJECT_STORAGE_CONFIGURED: health.rawObjectStorageConfigured,
+      RAW_OBJECT_STORAGE_CONNECTED: health.rawObjectStorageConnected,
+      LOCAL_FALLBACK_ENABLED: health.localFallbackEnabled,
+      DAEMON_ACTIVE: daemonStatus.daemon_active,
+      producer_storage_mode: health.storageMode,
+      durable_storage: "CLOUD_SQL_POSTGRES_GCS"
     });
   });
 
   // 2. Persistent Job Queue & Dead Letter Queue
-  app.get("/api/hermes/jobs", (req, res) => {
+  app.get("/api/hermes/jobs", async (req, res) => {
+    const [jobs, deadLetters, summary] = await Promise.all([
+      persistence.getAllJobs(),
+      persistence.getDeadLetterJobs(),
+      persistence.getDatabaseSummary()
+    ]);
     res.json({
-      jobs: hermesBackendStore.getJobs(),
-      dead_letters: hermesBackendStore.getDeadLetterJobs(),
-      summary: hermesBackendStore.getDatabaseSummary()
+      jobs,
+      dead_letters: deadLetters,
+      summary
     });
   });
 
@@ -56,27 +74,37 @@ async function startServer() {
   });
 
   // 4. Florida Seat Coverage Ledger
-  app.get("/api/hermes/coverage", (req, res) => {
+  app.get("/api/hermes/coverage", async (req, res) => {
+    const [seats, summary] = await Promise.all([
+      persistence.getSeatCoverageRecords(),
+      persistence.getDatabaseSummary()
+    ]);
     res.json({
-      seats: hermesBackendStore.getSeatCoverageRecords(),
-      summary: hermesBackendStore.getDatabaseSummary()
+      seats,
+      summary
     });
   });
 
   // 4. Raw Cryptographic Evidence Objects
-  app.get("/api/hermes/evidence", (req, res) => {
+  app.get("/api/hermes/evidence", async (req, res) => {
+    const evidenceObjects = await persistence.getAllEvidenceObjects();
     res.json({
-      evidence_objects: hermesBackendStore.getRawEvidenceObjects()
+      evidence_objects: evidenceObjects
     });
   });
 
   // 5. Forensic Reality Audit & Source Registry
-  app.get("/api/hermes/audit", (req, res) => {
+  app.get("/api/hermes/audit", async (req, res) => {
+    const [sources, summary] = await Promise.all([
+      persistence.getSourceRegistry(),
+      persistence.getDatabaseSummary()
+    ]);
     res.json({
       reality_badge: "REAL_SERVER_SIDE",
       execution_mode: "Node Express Daemon (Background Process)",
-      sources: hermesBackendStore.getSourceRegistry(),
-      summary: hermesBackendStore.getDatabaseSummary()
+      storage_engine: "PostgreSQL + GCS",
+      sources,
+      summary
     });
   });
 
