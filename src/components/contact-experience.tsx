@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from './icons';
-import { trackedOfficials } from '../lib/civic-database';
+import { trackedOfficials } from '../lib/civic-records';
 import { OfficialAvatar } from './official-avatar';
 
 export function ContactExperience() {
-  const [selectedOfficial, setSelectedOfficial] = useState(trackedOfficials[0].slug);
+  const [selectedOfficial, setSelectedOfficial] = useState(trackedOfficials[0]?.slug || '');
   const [topic, setTopic] = useState('Housing');
   const [stance, setStance] = useState<'Support' | 'Oppose' | 'Concern'>('Concern');
   const [draft, setDraft] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSent, setIsSent] = useState(false);
   
-  const official = trackedOfficials.find(o => o.slug === selectedOfficial)!;
+  const official = trackedOfficials.find(o => o.slug === selectedOfficial) || trackedOfficials[0];
 
   const handleGenerate = () => {
+    if (!official) return;
     setIsGenerating(true);
     setTimeout(() => {
       setDraft(`Dear ${official.title} ${official.name},\n\nAs a constituent in your district, I am writing to express my ${stance.toLowerCase()} regarding ${topic.toLowerCase()} issues in our community. I believe it is critical that we address these challenges with transparency and direct action.\n\nI expect your office to prioritize this and look forward to seeing your upcoming votes align with the needs of the community.\n\nSincerely,\n[Your Name]`);

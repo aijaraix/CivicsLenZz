@@ -77,7 +77,7 @@ export function DataArchiveView() {
   const [selectedCategory, setSelectedCategory] = useState<number>(1);
   const [realEvidence, setRealEvidence] = useState<any[]>([]);
   const [daemonTelemetry, setDaemonTelemetry] = useState<any>(null);
-  const [seatCount, setSeatCount] = useState<number>(5508);
+  const [seatCount, setSeatCount] = useState<number>(0);
   const [evidenceCount, setEvidenceCount] = useState<number>(0);
   const [snapshotCount, setSnapshotCount] = useState<number>(0);
 
@@ -162,7 +162,7 @@ export function DataArchiveView() {
           <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4">
             <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Durable Snapshots / Evidence</p>
             <p className="text-2xl font-black text-purple-400 mt-1">
-              {evidenceCount > 0 ? `${evidenceCount} Records` : 'Active / Ingesting'}
+              {evidenceCount > 0 ? `${evidenceCount} Records` : '0 Records (Pending Ingestion)'}
             </p>
             <p className="text-[11px] text-slate-400">Full raw payload preservation</p>
           </div>

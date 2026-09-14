@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Icon } from './icons';
-import { activityItems, trackedOfficials } from '../lib/civic-database';
+import { activityItems, trackedOfficials } from '../lib/civic-records';
 
 export function MonitorExperience({ section = 'AI Monitor' }: { section?: 'AI Monitor' | 'Alerts' | 'My Officials' }) {
   const [filter, setFilter] = useState('All');
@@ -8,16 +8,18 @@ export function MonitorExperience({ section = 'AI Monitor' }: { section?: 'AI Mo
   const filters = ['All', 'Promises', 'Votes', 'News'];
   const title = section === 'Alerts' ? 'Alerts that matter to you' : section === 'My Officials' ? 'Your civic watchlist' : 'AI monitoring center';
 
-  // For the sake of the prototype, generate more mock activity
-  const mockActivities = [
-    { title: "Voted Yes on Education Funding Bill (SB123)", date: "2 hours ago", type: "Vote", tone: "positive", officialSlug: "ron-desantis", detail: "The bill increases per-student funding by 5% statewide, matching their campaign promise to support schools.", aiConfidence: 98 },
-    { title: "Missed 3 consecutive committee hearings", date: "4 hours ago", type: "Alert", tone: "negative", officialSlug: "marco-rubio", detail: "AI attendance tracker flagged 3 consecutive missed meetings for the Foreign Relations Committee.", aiConfidence: 100 },
-    { title: "New campaign promise identified", date: "Yesterday", type: "Promise", tone: "neutral", officialSlug: "daniella-levine-cava", detail: "\"I will ensure the rapid transit system breaks ground by Q3 2024.\" - Extracted from Town Hall transcript.", aiConfidence: 92 },
-    { title: "Voted No on Zoning Density Increase", date: "2 days ago", type: "Vote", tone: "negative", officialSlug: "steven-meiner", detail: "Contradicts previous statements supporting affordable housing density. AI flagged as a potential stance shift.", aiConfidence: 85 },
-    { title: "Financial Disclosure Flag", date: "3 days ago", type: "Alert", tone: "negative", officialSlug: "rick-scott", detail: "New Form 6 disclosure shows $1.2M stock purchase in sector currently regulated by their sub-committee.", aiConfidence: 99 },
-  ];
+  // Truthful surveillance activities derived from durable evidence objects
+  const realActivities = activityItems.map(item => ({
+    title: item.title,
+    date: item.date,
+    type: item.type === 'PRIMARY_SOURCE' ? 'Evidence' : item.type,
+    tone: item.tone,
+    officialSlug: '',
+    detail: item.details,
+    aiConfidence: 100
+  }));
 
-  const displayActivities = section === 'Alerts' ? mockActivities.filter(a => a.type === 'Alert' || a.tone === 'negative') : mockActivities;
+  const displayActivities = section === 'Alerts' ? realActivities.filter(a => a.type === 'Alert' || a.tone === 'negative') : realActivities;
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20">

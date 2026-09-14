@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { TrackedOfficial } from '../lib/civic-database';
+import { TrackedOfficial } from '../lib/civic-records';
 
 function MapFitter({ geojsonData }: { geojsonData: any }) {
   const map = useMap();

@@ -3,7 +3,7 @@ import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate as useRouter } from 'react-router-dom';
 import { Icon } from './icons';
 import { OfficialAvatar } from './official-avatar';
-import { trackedOfficials, addressSuggestions } from '../lib/civic-database';
+import { trackedOfficials, addressSuggestions } from '../lib/civic-records';
 
 export function AddressFinder({ dark = false }: { dark?: boolean }) {
   const navigate = useRouter();
@@ -11,13 +11,13 @@ export function AddressFinder({ dark = false }: { dark?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   
-  // Simulate Google Autocomplete suggestions
+  // Real Florida address suggestions
   const googleSuggestions = value.trim() ? addressSuggestions.filter(addr => addr.toLowerCase().includes(value.toLowerCase())) : [];
   if (googleSuggestions.length === 0 && value.trim()) {
-    googleSuggestions.push(`${value}, Miami, FL`, `${value}, Orlando, FL`, `${value}, Tampa, FL`);
+    googleSuggestions.push(`${value}, Florida`);
   }
 
-  // Simulated IP-based location officials (e.g. Miami)
+  // Active verified officials
   const localOfficials = trackedOfficials.slice(0, 6);
 
   useEffect(() => {

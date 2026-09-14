@@ -1,4 +1,3 @@
-import { ActivityItem } from "../lib/civic-database";
 import React from 'react';
 
 import { Link } from 'react-router-dom';
@@ -6,7 +5,7 @@ import { useState } from 'react';
 import { AppShell } from './app-shell';
 import { OfficialAvatar } from './official-avatar';
 import { Icon } from './icons';
-import { activityItems, trackedOfficials } from '../lib/civic-database';
+import { activityItems, trackedOfficials, ActivityItem } from '../lib/civic-records';
 
 export type WorkspacePage = 'promises' | 'contact' | 'activity' | 'reports' | 'settings';
 

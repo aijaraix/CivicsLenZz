@@ -2,7 +2,7 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { TrackedOfficial } from '../lib/civic-database';
+import { TrackedOfficial } from '../lib/civic-records';
 // @ts-ignore
 import MarkerClusterGroup from 'react-leaflet-cluster';
 

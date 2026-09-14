@@ -106,7 +106,9 @@ export class SourceAdapterBase {
     ok: boolean;
     status: number;
     text: string;
+    rawBytes: Buffer;
     contentType: string;
+    charset: string;
     finalUrl: string;
     byteLength: number;
     sha256: string;
@@ -125,17 +127,38 @@ export class SourceAdapterBase {
       });
       clearTimeout(timer);
       const contentType = response.headers.get('content-type') || 'text/html';
-      const text = await response.text();
-      const byteLength = Buffer.byteLength(text, 'utf-8');
-      const sha256 = crypto.createHash('sha256').update(Buffer.from(text, 'utf-8')).digest('hex');
+      
+      // Exact HTTP byte sequence preservation (Requirement 11 & 12)
+      const arrayBuffer = await response.arrayBuffer();
+      const rawBytes = Buffer.from(arrayBuffer);
+      const byteLength = rawBytes.length;
+      const sha256 = crypto.createHash('sha256').update(rawBytes).digest('hex');
       const finalUrl = response.url || url;
+
+      // Extract charset if present
+      let charset = 'utf-8';
+      const charsetMatch = contentType.match(/charset=([a-zA-Z0-9_-]+)/i);
+      if (charsetMatch && charsetMatch[1]) {
+        charset = charsetMatch[1].toLowerCase();
+      }
+
+      // Decode a COPY for parsing; authoritative retrieval bytes remain separate
+      let text: string;
+      try {
+        text = new TextDecoder(charset).decode(rawBytes);
+      } catch {
+        text = new TextDecoder('utf-8').decode(rawBytes);
+      }
+
       const challengeInspection = detectAccessChallenge(response.status, text);
 
       return {
         ok: response.ok && !challengeInspection.isChallenge,
         status: response.status,
         text,
+        rawBytes,
         contentType,
+        charset,
         finalUrl,
         byteLength,
         sha256,
@@ -146,14 +169,17 @@ export class SourceAdapterBase {
       const isTimeout = err.name === 'AbortError' || (err.message && err.message.includes('timeout'));
       const status = isTimeout ? 504 : 502;
       const errorMsg = isTimeout ? 'RETRIEVAL_FAILED: Connection timed out' : `RETRIEVAL_FAILED: ${err.message || 'Network error'}`;
+      const emptyBuffer = Buffer.alloc(0);
       return {
         ok: false,
         status,
         text: '',
+        rawBytes: emptyBuffer,
         contentType: 'text/plain',
+        charset: 'utf-8',
         finalUrl: url,
         byteLength: 0,
-        sha256: crypto.createHash('sha256').update('').digest('hex'),
+        sha256: crypto.createHash('sha256').update(emptyBuffer).digest('hex'),
         challengeInspection: { isChallenge: true, reason: errorMsg, failureClass: isTimeout ? 'RETRIEVAL_TIMEOUT' : 'NETWORK_ERROR' }
       };
     }
@@ -163,24 +189,28 @@ export class SourceAdapterBase {
     url: string,
     httpStatus: number,
     contentType: string,
-    rawPayload: string,
+    rawBytesOrPayload: Buffer | string,
     extractedItems: Array<{ target_entity: string; field_key: string; extracted_value: string; evidence_locator?: string }>,
     seatUuid?: string,
-    personUuid?: string
+    personUuid?: string,
+    charset?: string
   ): { snapshotUuid: string; evidenceObjects: RawEvidenceObject[] } {
-    // 1. Store Raw Snapshot with exact bytes (Directive 10: Store full bytes without truncation)
+    const rawBuffer = Buffer.isBuffer(rawBytesOrPayload) ? rawBytesOrPayload : Buffer.from(rawBytesOrPayload, 'utf-8');
+    const retrievalSha256 = crypto.createHash('sha256').update(rawBuffer).digest('hex');
+
+    // 1. Store Raw Snapshot with exact bytes (Requirement 11 & 12)
     const snapshot = hermesBackendStore.storeRawSnapshot({
       source_uuid: this.source_id,
       target_url: url,
       http_status: httpStatus,
       content_type: contentType,
-      raw_payload: rawPayload, // Full exact bytes preserved
+      charset: charset || 'utf-8',
+      byte_length: rawBuffer.length,
+      raw_bytes: rawBuffer,
       parser_version: 'v2.2-zero-synthetic'
     });
 
-    const retrievalSha256 = crypto.createHash('sha256').update(rawPayload).digest('hex');
-
-    // 2. Generate Evidence Objects strictly marked EXTRACTED_UNREVIEWED (Directive 11: Separate retrieval hash from claim fingerprint)
+    // 2. Generate Evidence Objects strictly marked EXTRACTED_UNREVIEWED (Requirement 11)
     const evidenceObjects: RawEvidenceObject[] = extractedItems.map(item => {
       const claimFingerprint = crypto.createHash('sha256')
         .update(`${url}_${item.target_entity}_${item.field_key}_${item.extracted_value}`)
@@ -203,7 +233,7 @@ export class SourceAdapterBase {
         person_uuid: personUuid,
         field_key: item.field_key,
         extracted_value: item.extracted_value,
-        content_to_hash: rawPayload // Hashes exact source bytes
+        content_to_hash: rawBuffer
       });
     });
 
@@ -313,8 +343,11 @@ export class FloridaDOSDivisionOfElectionsAdapter extends SourceAdapterBase {
       targetUrl,
       res.status,
       res.contentType,
-      res.text,
-      extractedItems
+      res.rawBytes,
+      extractedItems,
+      undefined,
+      undefined,
+      res.charset
     );
 
     return {
@@ -444,8 +477,11 @@ export class FloridaSenateAdapter extends SourceAdapterBase {
       targetUrl,
       res.status,
       res.contentType,
-      res.text,
-      extractedItems
+      res.rawBytes,
+      extractedItems,
+      seatUuid,
+      undefined,
+      res.charset
     );
 
     return {
@@ -539,8 +575,11 @@ export class FloridaHouseAdapter extends SourceAdapterBase {
       targetUrl,
       res.status,
       res.contentType,
-      res.text,
-      extractedItems
+      res.rawBytes,
+      extractedItems,
+      seatUuid,
+      undefined,
+      res.charset
     );
 
     return {
@@ -631,10 +670,11 @@ export class MiamiDadeCountyElectionsAdapter extends SourceAdapterBase {
       targetUrl,
       res.status,
       res.contentType || 'text/html',
-      res.text,
+      res.rawBytes,
       extractedItems,
       seatUuid,
-      personUuid
+      personUuid,
+      res.charset
     );
 
     return {
@@ -724,10 +764,11 @@ export class FloridaGovernorExecutiveOrdersAdapter extends SourceAdapterBase {
       targetUrl,
       res.status,
       res.contentType || 'text/html',
-      res.text,
+      res.rawBytes,
       extractedItems,
       seatUuid,
-      personUuid
+      personUuid,
+      res.charset
     );
 
     return {
@@ -795,14 +836,16 @@ export class CompletenessAuditAdapter extends SourceAdapterBase {
       { target_entity: seatUuid, field_key: 'AUDIT_VERIFICATION_DISCLAIMER', extracted_value: 'PRODUCER_AUDIT_ONLY_NO_CANONICAL_VERIFICATION', evidence_locator: auditFilePath }
     ];
 
+    const rawPayloadBuffer = Buffer.from(payload, 'utf-8');
     const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
       targetUrl,
       200,
       'application/json',
-      payload,
+      rawPayloadBuffer,
       extractedItems,
       seatUuid,
-      personUuid
+      personUuid,
+      'utf-8'
     );
 
     return {
@@ -872,8 +915,8 @@ export class GapResearchFillAdapter extends SourceAdapterBase {
         const files = fs.readdirSync(gisDir).filter(f => f.includes(seatUuid) || f.endsWith('.geojson') || f.endsWith('.json'));
         if (files.length > 0) {
           const firstGis = path.join(gisDir, files[0]);
-          const payload = fs.readFileSync(firstGis, 'utf-8');
-          const sha256 = crypto.createHash('sha256').update(payload).digest('hex');
+          const rawGisBytes = fs.readFileSync(firstGis);
+          const sha256 = crypto.createHash('sha256').update(rawGisBytes).digest('hex');
           const extractedItems = [
             { target_entity: seatUuid, field_key: 'DISTRICT_BOUNDARY_GIS', extracted_value: `VERIFIED_PHYSICAL_GIS_LAYER_${sha256.slice(0, 8)}`, evidence_locator: firstGis }
           ];
@@ -881,17 +924,18 @@ export class GapResearchFillAdapter extends SourceAdapterBase {
             targetUrl,
             200,
             'application/geo+json',
-            payload,
+            rawGisBytes,
             extractedItems,
             seatUuid,
-            personUuid
+            personUuid,
+            'utf-8'
           );
           return {
             success: true,
             source_id: this.source_id,
             source_url: targetUrl,
             http_status: 200,
-            byte_length: Buffer.byteLength(payload, 'utf-8'),
+            byte_length: rawGisBytes.length,
             content_sha256: sha256,
             records_extracted: extractedItems.length,
             extracted_items: extractedItems,

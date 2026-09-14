@@ -6,7 +6,7 @@ import { Icon, IconName } from './icons';
 import { EvidenceDrawer } from './evidence-drawer';
 import { evidenceEngine } from '../lib/evidence-engine';
 import { EvidenceObject } from '../lib/schema-v2';
-import { trackedOfficials } from '../lib/civic-database';
+import { trackedOfficials } from '../lib/civic-records';
 
 export type DrillDownCategory = 
   | 'VOTES'

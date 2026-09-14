@@ -105,9 +105,11 @@ export interface RawSourceSnapshot {
   target_url: string;
   http_status: number;
   content_type: string;
-  raw_payload: string;
+  charset?: string;
+  byte_length?: number;
+  raw_payload?: string;
   payload_sha256: string;
-  raw_bytes_path?: string;
+  raw_bytes_path: string;
   retrieved_at: string;
   parser_version: string;
 }
@@ -129,7 +131,7 @@ export interface RawEvidenceObject {
   parser_version: string;
   extraction_method: string;
   supporting_locator?: string;
-  verification_state: 'VERIFIED' | 'UNVERIFIED' | 'REJECTED' | 'EXTRACTED_UNREVIEWED';
+  verification_state: 'VERIFIED' | 'UNVERIFIED' | 'REJECTED' | 'EXTRACTED_UNREVIEWED' | 'CANONICAL_VALIDATED';
   seat_uuid?: string;
   person_uuid?: string;
   field_key?: string;
@@ -165,13 +167,16 @@ export interface SeatCoverageStatusRecord {
   government_level: 'Federal' | 'State' | 'County' | 'Municipal' | 'School Board' | 'Judicial';
   current_official_person_uuid?: string;
   current_official_name?: string;
-  is_vacant: boolean;
-  term_start?: string;
-  term_end?: string;
-  next_election_date?: string;
+  is_vacant: boolean | 'UNKNOWN';
+  vacancy_status?: 'VACANT' | 'OCCUPIED' | 'UNKNOWN';
+  tenure_years?: number | null;
+  term_start?: string | null;
+  term_end?: string | null;
+  next_election_date?: string | null;
   in_active_election_cycle: boolean;
   completeness_percentage: number;
   coverage_status: 'NOT_YET_RESEARCHED' | 'RESEARCH_IN_PROGRESS' | 'UNREVIEWED_RESEARCH_INGESTED' | 'BASELINE_COMPLETE' | 'MONITORING';
+  verification_state?: 'RESEARCH_PENDING' | 'EXTRACTED_UNREVIEWED' | 'CANONICAL_VALIDATED';
   last_updated_at: string;
 }
 
@@ -428,7 +433,7 @@ class HermesBackendStore {
           base_url: 'https://dos.elections.myflorida.com',
           jurisdiction: 'State of Florida',
           rate_limit_req_per_sec: 5,
-          status: 'HEALTHY',
+          status: 'UNKNOWN',
           consecutive_failures: 0,
           circuit_opens_count: 0
         },
@@ -440,7 +445,7 @@ class HermesBackendStore {
           base_url: 'https://flsenate.gov',
           jurisdiction: 'State of Florida',
           rate_limit_req_per_sec: 4,
-          status: 'HEALTHY',
+          status: 'UNKNOWN',
           consecutive_failures: 0,
           circuit_opens_count: 0
         },
@@ -452,7 +457,7 @@ class HermesBackendStore {
           base_url: 'https://myfloridahouse.gov',
           jurisdiction: 'State of Florida',
           rate_limit_req_per_sec: 4,
-          status: 'HEALTHY',
+          status: 'UNKNOWN',
           consecutive_failures: 0,
           circuit_opens_count: 0
         },
@@ -464,7 +469,7 @@ class HermesBackendStore {
           base_url: 'https://www.miamidade.gov/elections/',
           jurisdiction: 'Miami-Dade County',
           rate_limit_req_per_sec: 3,
-          status: 'HEALTHY',
+          status: 'UNKNOWN',
           consecutive_failures: 0,
           circuit_opens_count: 0
         },
@@ -476,7 +481,7 @@ class HermesBackendStore {
           base_url: 'https://www.browardvotes.gov/',
           jurisdiction: 'Broward County',
           rate_limit_req_per_sec: 3,
-          status: 'HEALTHY',
+          status: 'UNKNOWN',
           consecutive_failures: 0,
           circuit_opens_count: 0
         },
@@ -488,7 +493,7 @@ class HermesBackendStore {
           base_url: 'https://api.congress.gov',
           jurisdiction: 'Federal',
           rate_limit_req_per_sec: 2,
-          status: 'HEALTHY',
+          status: 'UNKNOWN',
           consecutive_failures: 0,
           circuit_opens_count: 0
         },
@@ -500,7 +505,7 @@ class HermesBackendStore {
           base_url: 'https://ethics.state.fl.us',
           jurisdiction: 'State of Florida',
           rate_limit_req_per_sec: 2,
-          status: 'HEALTHY',
+          status: 'UNKNOWN',
           consecutive_failures: 0,
           circuit_opens_count: 0
         },
@@ -512,7 +517,7 @@ class HermesBackendStore {
           base_url: 'https://search.sunbiz.org',
           jurisdiction: 'State of Florida',
           rate_limit_req_per_sec: 2,
-          status: 'HEALTHY',
+          status: 'UNKNOWN',
           consecutive_failures: 0,
           circuit_opens_count: 0
         }
@@ -522,7 +527,7 @@ class HermesBackendStore {
       modified = true;
     }
 
-    // 2. Seed Florida Priority Seats
+    // 2. Seed Florida Priority Seats (Structural definitions ONLY; no pre-seeded factual civic research)
     if (this.db.seat_coverage_status.length === 0) {
       const prioritySeats: SeatCoverageStatusRecord[] = [
         {
@@ -533,13 +538,16 @@ class HermesBackendStore {
           government_level: 'State',
           current_official_person_uuid: undefined,
           current_official_name: undefined,
-          is_vacant: false,
-          term_start: '2023-01-03',
-          term_end: '2027-01-05',
-          next_election_date: '2026-11-03',
-          in_active_election_cycle: true,
+          is_vacant: 'UNKNOWN',
+          vacancy_status: 'UNKNOWN',
+          tenure_years: null,
+          term_start: null,
+          term_end: null,
+          next_election_date: null,
+          in_active_election_cycle: false,
           completeness_percentage: 0,
-          coverage_status: 'RESEARCH_IN_PROGRESS',
+          coverage_status: 'NOT_YET_RESEARCHED',
+          verification_state: 'RESEARCH_PENDING',
           last_updated_at: new Date().toISOString()
         },
         {
@@ -550,13 +558,16 @@ class HermesBackendStore {
           government_level: 'Federal',
           current_official_person_uuid: undefined,
           current_official_name: undefined,
-          is_vacant: false,
-          term_start: '2019-01-08',
-          term_end: '2025-01-03',
-          next_election_date: '2026-11-03',
-          in_active_election_cycle: true,
+          is_vacant: 'UNKNOWN',
+          vacancy_status: 'UNKNOWN',
+          tenure_years: null,
+          term_start: null,
+          term_end: null,
+          next_election_date: null,
+          in_active_election_cycle: false,
           completeness_percentage: 0,
-          coverage_status: 'RESEARCH_IN_PROGRESS',
+          coverage_status: 'NOT_YET_RESEARCHED',
+          verification_state: 'RESEARCH_PENDING',
           last_updated_at: new Date().toISOString()
         },
         {
@@ -567,13 +578,16 @@ class HermesBackendStore {
           government_level: 'Federal',
           current_official_person_uuid: undefined,
           current_official_name: undefined,
-          is_vacant: false,
-          term_start: '2023-01-03',
-          term_end: '2029-01-03',
-          next_election_date: '2028-11-07',
+          is_vacant: 'UNKNOWN',
+          vacancy_status: 'UNKNOWN',
+          tenure_years: null,
+          term_start: null,
+          term_end: null,
+          next_election_date: null,
           in_active_election_cycle: false,
           completeness_percentage: 0,
-          coverage_status: 'RESEARCH_IN_PROGRESS',
+          coverage_status: 'NOT_YET_RESEARCHED',
+          verification_state: 'RESEARCH_PENDING',
           last_updated_at: new Date().toISOString()
         },
         {
@@ -585,13 +599,16 @@ class HermesBackendStore {
           government_level: 'County',
           current_official_person_uuid: undefined,
           current_official_name: undefined,
-          is_vacant: false,
-          term_start: '2020-11-17',
-          term_end: '2028-11-20',
-          next_election_date: '2028-08-22',
+          is_vacant: 'UNKNOWN',
+          vacancy_status: 'UNKNOWN',
+          tenure_years: null,
+          term_start: null,
+          term_end: null,
+          next_election_date: null,
           in_active_election_cycle: false,
           completeness_percentage: 0,
-          coverage_status: 'RESEARCH_IN_PROGRESS',
+          coverage_status: 'NOT_YET_RESEARCHED',
+          verification_state: 'RESEARCH_PENDING',
           last_updated_at: new Date().toISOString()
         },
         {
@@ -603,13 +620,16 @@ class HermesBackendStore {
           government_level: 'State',
           current_official_person_uuid: undefined,
           current_official_name: undefined,
-          is_vacant: false,
-          term_start: '2022-11-08',
-          term_end: '2026-11-03',
-          next_election_date: '2026-11-03',
-          in_active_election_cycle: true,
+          is_vacant: 'UNKNOWN',
+          vacancy_status: 'UNKNOWN',
+          tenure_years: null,
+          term_start: null,
+          term_end: null,
+          next_election_date: null,
+          in_active_election_cycle: false,
           completeness_percentage: 0,
-          coverage_status: 'RESEARCH_IN_PROGRESS',
+          coverage_status: 'NOT_YET_RESEARCHED',
+          verification_state: 'RESEARCH_PENDING',
           last_updated_at: new Date().toISOString()
         },
         {
@@ -621,13 +641,16 @@ class HermesBackendStore {
           government_level: 'State',
           current_official_person_uuid: undefined,
           current_official_name: undefined,
-          is_vacant: false,
-          term_start: '2024-11-05',
-          term_end: '2028-11-07',
-          next_election_date: '2028-11-07',
+          is_vacant: 'UNKNOWN',
+          vacancy_status: 'UNKNOWN',
+          tenure_years: null,
+          term_start: null,
+          term_end: null,
+          next_election_date: null,
           in_active_election_cycle: false,
           completeness_percentage: 0,
-          coverage_status: 'RESEARCH_IN_PROGRESS',
+          coverage_status: 'NOT_YET_RESEARCHED',
+          verification_state: 'RESEARCH_PENDING',
           last_updated_at: new Date().toISOString()
         }
       ];
@@ -637,14 +660,45 @@ class HermesBackendStore {
     } else {
       // Sanitize legacy loaded records
       for (const seat of this.db.seat_coverage_status) {
-        if (seat.coverage_status === ('BASELINE_COMPLETE' as any)) {
-          seat.coverage_status = 'RESEARCH_IN_PROGRESS';
+        if (seat.coverage_status === ('BASELINE_COMPLETE' as any) || seat.coverage_status === ('UNREVIEWED_RESEARCH_INGESTED' as any)) {
+          seat.coverage_status = 'NOT_YET_RESEARCHED';
           seat.completeness_percentage = 0;
+          modified = true;
+        }
+        if (seat.is_vacant !== 'UNKNOWN' as any && typeof seat.is_vacant === 'boolean') {
+          (seat as any).is_vacant = 'UNKNOWN';
+          seat.vacancy_status = 'UNKNOWN';
+          modified = true;
+        }
+        if (seat.tenure_years !== undefined && seat.tenure_years !== null) {
+          seat.tenure_years = null;
+          modified = true;
+        }
+        if (seat.next_election_date !== null && seat.next_election_date !== undefined) {
+          seat.next_election_date = null;
+          modified = true;
+        }
+        if (seat.term_start !== null && seat.term_start !== undefined) {
+          seat.term_start = null;
+          modified = true;
+        }
+        if (seat.term_end !== null && seat.term_end !== undefined) {
+          seat.term_end = null;
+          modified = true;
+        }
+        if (seat.verification_state !== 'RESEARCH_PENDING') {
+          seat.verification_state = 'RESEARCH_PENDING';
           modified = true;
         }
         if (seat.current_official_name) {
           seat.current_official_name = undefined;
           seat.current_official_person_uuid = undefined;
+          modified = true;
+        }
+      }
+      for (const src of this.db.hermes_source_registry) {
+        if (src.status === 'HEALTHY' && !src.last_checked_at) {
+          src.status = 'UNKNOWN';
           modified = true;
         }
       }
@@ -816,45 +870,83 @@ class HermesBackendStore {
   // EVIDENCE & RAW SNAPSHOT METHODS
   // =========================================================================
 
-  public storeRawSnapshot(snapshot: Omit<RawSourceSnapshot, 'snapshot_uuid' | 'retrieved_at' | 'payload_sha256'> & { raw_payload: string; raw_bytes_path?: string }): RawSourceSnapshot {
+  public storeRawSnapshot(snapshot: {
+    source_uuid: string;
+    target_url: string;
+    http_status: number;
+    content_type: string;
+    charset?: string;
+    byte_length?: number;
+    parser_version: string;
+    raw_bytes?: Buffer | Uint8Array | string;
+    raw_payload?: string;
+    raw_bytes_path?: string;
+  }): RawSourceSnapshot {
     const nowIso = new Date().toISOString();
-    const hash = crypto.createHash('sha256').update(snapshot.raw_payload).digest('hex');
+    
+    const rawBuffer = Buffer.isBuffer(snapshot.raw_bytes)
+      ? snapshot.raw_bytes
+      : typeof snapshot.raw_bytes === 'string'
+      ? Buffer.from(snapshot.raw_bytes, 'utf-8')
+      : snapshot.raw_payload
+      ? Buffer.from(snapshot.raw_payload, 'utf-8')
+      : Buffer.alloc(0);
+
+    const hash = crypto.createHash('sha256').update(rawBuffer).digest('hex');
     const snapshotUuid = `snap_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
 
-    // Exact byte durable storage (Directive 10: Store full bytes without truncation)
+    // Exact byte durable storage (Directive 11 & 12: Exact byte sequence preserved without re-encoding)
     const retrievalsDir = path.join(this.dataDir, 'artifacts', 'retrievals');
     if (!fs.existsSync(retrievalsDir)) {
       fs.mkdirSync(retrievalsDir, { recursive: true });
     }
     const rawFilePath = path.join(retrievalsDir, `${snapshotUuid}.raw`);
-    fs.writeFileSync(rawFilePath, snapshot.raw_payload, 'utf-8');
+    fs.writeFileSync(rawFilePath, rawBuffer);
 
+    // Metadata store retains path, content type, byte length, SHA-256, charset, retrieval time, URL, HTTP status
+    // Entire binary payload is NOT placed into JSON
     const record: RawSourceSnapshot = {
-      ...snapshot,
       snapshot_uuid: snapshotUuid,
+      source_uuid: snapshot.source_uuid,
+      target_url: snapshot.target_url,
+      http_status: snapshot.http_status,
+      content_type: snapshot.content_type,
+      charset: snapshot.charset || 'utf-8',
+      byte_length: rawBuffer.length,
       payload_sha256: hash,
       raw_bytes_path: rawFilePath,
-      retrieved_at: nowIso
+      retrieved_at: nowIso,
+      parser_version: snapshot.parser_version
     };
 
     this.db.raw_source_snapshots.push(record);
     if (this.db.raw_source_snapshots.length > 200) {
-      this.db.raw_source_snapshots.shift(); // Bound memory/disk payload
+      this.db.raw_source_snapshots.shift();
     }
 
     this.saveDatabase();
     return record;
   }
 
+  public getRawSnapshotBytes(snapshotUuid: string): Buffer | null {
+    const snap = this.db.raw_source_snapshots.find(s => s.snapshot_uuid === snapshotUuid);
+    if (!snap || !snap.raw_bytes_path || !fs.existsSync(snap.raw_bytes_path)) return null;
+    return fs.readFileSync(snap.raw_bytes_path);
+  }
+
   public createEvidenceObject(evidenceData: Omit<RawEvidenceObject, 'evidence_uuid' | 'retrieved_at' | 'content_hash'> & {
-    content_to_hash?: string;
+    content_to_hash?: Buffer | string;
     retrieval_content_sha256?: string;
     claim_fingerprint?: string;
   }): RawEvidenceObject {
     const nowIso = new Date().toISOString();
     // Directive 11: Separate retrieval content sha256 from claim fingerprint
     const retrievalSha256 = evidenceData.retrieval_content_sha256 ||
-      (evidenceData.content_to_hash ? crypto.createHash('sha256').update(evidenceData.content_to_hash).digest('hex') : crypto.createHash('sha256').update(`${evidenceData.source_url}_${evidenceData.extracted_value}_${nowIso}`).digest('hex'));
+      (evidenceData.content_to_hash 
+        ? (Buffer.isBuffer(evidenceData.content_to_hash) 
+            ? crypto.createHash('sha256').update(evidenceData.content_to_hash).digest('hex')
+            : crypto.createHash('sha256').update(evidenceData.content_to_hash).digest('hex'))
+        : crypto.createHash('sha256').update(`${evidenceData.source_url}_${evidenceData.extracted_value}_${nowIso}`).digest('hex'));
     
     const claimFingerprint = evidenceData.claim_fingerprint || 
       crypto.createHash('sha256').update(`${evidenceData.source_url}_${evidenceData.seat_uuid || ''}_${evidenceData.field_key || ''}_${evidenceData.extracted_value || ''}`).digest('hex');
@@ -893,8 +985,18 @@ class HermesBackendStore {
     const queuedJobs = this.db.hermes_jobs.filter(j => j.status === 'QUEUED' || j.status === 'LEASED').length;
     const deadLetterCount = this.db.dead_letter_jobs.length;
     const evidenceCount = this.db.raw_evidence_objects.length;
-    const seatsTotal = this.db.seat_coverage_status.length;
-    const seatsComplete = this.db.seat_coverage_status.filter(s => s.coverage_status === 'UNREVIEWED_RESEARCH_INGESTED' || s.coverage_status === 'MONITORING').length;
+    const snapshotsCount = this.db.raw_source_snapshots.length;
+    const structuralSeatsTotal = this.db.seat_coverage_status.length;
+
+    // Requirement 9: baseline_complete_seats is NOT reported unless backed by an evaluated research contract and evidence
+    const baselineCompleteSeats = this.db.seat_coverage_status.filter(s => {
+      if (s.coverage_status !== 'BASELINE_COMPLETE') return false;
+      const contract = this.db.research_contract_status.find(c => c.seat_uuid === s.seat_uuid);
+      const evidence = this.db.raw_evidence_objects.filter(e => e.seat_uuid === s.seat_uuid);
+      return Boolean(contract && contract.completeness_percentage >= 100 && evidence.length > 0);
+    }).length;
+
+    const unreviewedEvidenceCount = this.db.raw_evidence_objects.filter(e => e.verification_state === 'EXTRACTED_UNREVIEWED').length;
 
     return {
       version: this.db.version,
@@ -904,10 +1006,14 @@ class HermesBackendStore {
       queued_jobs: queuedJobs,
       dead_letter_jobs: deadLetterCount,
       active_leases: this.db.hermes_worker_leases.length,
+      raw_snapshots_stored: snapshotsCount,
       raw_evidence_records: evidenceCount,
-      total_seats_tracked: seatsTotal,
-      baseline_complete_seats: seatsComplete,
-      coverage_percentage: seatsTotal > 0 ? Math.round((seatsComplete / seatsTotal) * 100) : 0,
+      unreviewed_evidence_objects_extracted: unreviewedEvidenceCount,
+      structural_seats_known: structuralSeatsTotal,
+      total_seats_tracked: structuralSeatsTotal,
+      baseline_complete_seats: baselineCompleteSeats,
+      gatekeeper_accepted_canonical_records: 0,
+      coverage_percentage: structuralSeatsTotal > 0 ? Math.round((baselineCompleteSeats / structuralSeatsTotal) * 100) : 0,
       sources_registered: this.db.hermes_source_registry.length
     };
   }

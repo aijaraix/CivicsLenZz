@@ -12,6 +12,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { hermesBackendStore } from '../src/lib/hermes-backend-store';
 import { masterFloridaLedger } from '../src/lib/florida-master-ledger';
 import { sourceAdapters, detectAccessChallenge } from '../src/lib/source-adapters';
@@ -206,35 +207,113 @@ export function runProducerInternalTruthAudit(): ProductionTruthAuditReport {
   });
 
   // -------------------------------------------------------------
-  // 5. ZERO SYNTHETIC GENERATOR IN PRODUCTION PATHS
+  // 5. ZERO SYNTHETIC GENERATOR IN PRODUCTION PATHS & NO CIVIC DATABASE IN UI/SERVER
   // -------------------------------------------------------------
   let syntheticImportsInSrc = 0;
-  function scanDirForSyntheticImports(dir: string) {
+  let civicDatabaseImportsInUI = 0;
+  const civicDbViolations: string[] = [];
+
+  function scanDirForImports(dir: string) {
     if (!fs.existsSync(dir)) return;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
-        if (entry.name !== 'node_modules' && entry.name !== '.git' && entry.name !== 'dist') {
-          scanDirForSyntheticImports(full);
+        if (entry.name !== 'node_modules' && entry.name !== '.git' && entry.name !== 'dist' && entry.name !== 'legacy') {
+          scanDirForImports(full);
         }
       } else if (entry.isFile() && (entry.name.endsWith('.ts') || entry.name.endsWith('.tsx'))) {
-        // Exclude master-data-generator.ts itself from checking its own import
-        if (entry.name === 'master-data-generator.ts') continue;
+        // Exclude legacy directory or self
+        if (full.includes('/legacy/') || full.includes('\\legacy\\')) continue;
+        if (entry.name === 'master-data-generator.ts' || entry.name === 'civic-database.ts') continue;
+        
         const content = fs.readFileSync(full, 'utf8');
         if (content.includes('master-data-generator') || content.includes('generateDeterministic100FieldProfile')) {
           syntheticImportsInSrc++;
         }
+        if (content.includes('civic-database') && (full.includes('/components/') || full.endsWith('App.tsx') || full.endsWith('server.ts'))) {
+          civicDatabaseImportsInUI++;
+          civicDbViolations.push(path.relative(process.cwd(), full));
+        }
       }
     }
   }
-  scanDirForSyntheticImports(path.join(process.cwd(), 'src'));
+  scanDirForImports(path.join(process.cwd(), 'src'));
+  scanDirForImports(process.cwd()); // Also scans server.ts
 
   invariants.push({
     id: 'ZERO_SYNTHETIC_GENERATOR_IMPORTS',
     name: 'Zero synthetic generator imports in production src/ tree',
     passed: syntheticImportsInSrc === 0,
     details: `Found ${syntheticImportsInSrc} imports of master-data-generator across src/.`
+  });
+
+  invariants.push({
+    id: 'ZERO_CIVIC_DATABASE_IMPORTS_IN_PUBLIC_UI',
+    name: 'Zero civic-database imports in public UI components, App.tsx, or server.ts',
+    passed: civicDatabaseImportsInUI === 0,
+    details: civicDatabaseImportsInUI === 0
+      ? 'All public UI components and server routes are clean of legacy civic-database imports.'
+      : `Found ${civicDatabaseImportsInUI} violations in: ${civicDbViolations.join(', ')}`
+  });
+
+  // -------------------------------------------------------------
+  // 5B. GETDATABASE SUMMARY SEMANTIC INTEGRITY & SEAT SEED SANITY
+  // -------------------------------------------------------------
+  const dbSummary = hermesBackendStore.getDatabaseSummary();
+  const summarySemanticValid = 
+    dbSummary.baseline_complete_seats === 0 &&
+    dbSummary.gatekeeper_accepted_canonical_records === 0;
+
+  let preseededFactualFieldsCount = 0;
+  for (const s of storeSeats) {
+    if (s.coverage_status === 'BASELINE_COMPLETE' || (s.coverage_status as any) === 'UNREVIEWED_RESEARCH_INGESTED') {
+      preseededFactualFieldsCount++;
+    }
+    if (s.is_vacant !== 'UNKNOWN' && typeof s.is_vacant === 'boolean') {
+      preseededFactualFieldsCount++;
+    }
+    if (s.tenure_years !== null && s.tenure_years !== undefined) {
+      preseededFactualFieldsCount++;
+    }
+    if (s.next_election_date !== null && s.next_election_date !== undefined) {
+      preseededFactualFieldsCount++;
+    }
+  }
+
+  invariants.push({
+    id: 'DATABASE_SUMMARY_SEMANTIC_INTEGRITY',
+    name: 'Database summary semantics truthfully reflect unreviewed vs complete state',
+    passed: summarySemanticValid,
+    details: `baseline_complete_seats: ${dbSummary.baseline_complete_seats} (must be 0), gatekeeper_accepted_canonical_records: ${dbSummary.gatekeeper_accepted_canonical_records} (must be 0), unreviewed_evidence: ${dbSummary.unreviewed_evidence_objects_extracted}.`
+  });
+
+  invariants.push({
+    id: 'ZERO_PRESEEDED_FACTUAL_CIVIC_FIELDS',
+    name: 'Structural seat definitions contain zero pre-seeded factual civic fields',
+    passed: preseededFactualFieldsCount === 0,
+    details: `Evaluated ${storeSeats.length} store seats. Preseeded factual violations: ${preseededFactualFieldsCount}.`
+  });
+
+  // -------------------------------------------------------------
+  // 5C. EXACT BYTE SHA-256 MATCHING FOR STORED RAW ARTIFACTS
+  // -------------------------------------------------------------
+  let artifactShaMismatchCount = 0;
+  for (const snap of snapshots) {
+    if (snap.raw_bytes_path && fs.existsSync(snap.raw_bytes_path)) {
+      const fileBytes = fs.readFileSync(snap.raw_bytes_path);
+      const computedSha = crypto.createHash('sha256').update(fileBytes).digest('hex');
+      if (computedSha !== snap.payload_sha256) {
+        artifactShaMismatchCount++;
+      }
+    }
+  }
+
+  invariants.push({
+    id: 'EXACT_RAW_BYTE_SHA256_INTEGRITY',
+    name: 'Physical raw byte files match stored SHA-256 hashes exactly',
+    passed: artifactShaMismatchCount === 0,
+    details: `Inspected ${snapshots.length} snapshot records. SHA-256 mismatches on disk: ${artifactShaMismatchCount}.`
   });
 
   // -------------------------------------------------------------

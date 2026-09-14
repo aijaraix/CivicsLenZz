@@ -2,7 +2,7 @@ import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Icon } from './icons';
 import { MapVisual } from './map-visual';
-import { trackedOfficials, GovernmentLevel, addressSuggestions } from '../lib/civic-database';
+import { trackedOfficials, GovernmentLevel, addressSuggestions } from '../lib/civic-records';
 import { OfficialAvatar } from './official-avatar';
 
 const filters: Array<'All' | GovernmentLevel> = ['All', 'Federal', 'State', 'Local', 'School Board'];
@@ -32,22 +32,6 @@ export function SearchExperience() {
   const [spatialSlugs, setSpatialSlugs] = useState<string[] | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  
-  const [liveOfficials, setLiveOfficials] = useState(() => {
-    const saved = localStorage.getItem('civiclenz_officials');
-    return saved ? parseInt(saved, 10) : 94264;
-  });
-
-  useEffect(() => {
-    const ticker = setInterval(() => {
-      const saved = localStorage.getItem('civiclenz_officials');
-      if (saved) {
-        setLiveOfficials(parseInt(saved, 10));
-      }
-    }, 1200);
-    return () => clearInterval(ticker);
-  }, []);
-
 
   useEffect(() => {
      if (!submittedAddress) {
@@ -58,16 +42,13 @@ export function SearchExperience() {
      const fetchSpatial = async () => {
          setIsSearching(true);
          try {
-             // 1. Mock Geocode (In prod: call Google Geocoding API or Nominatim)
-             const mockLat = 25.7617;
-             const mockLng = -80.1918;
-
-             // 2. Call Phase 2 Spatial API
-             const res = await fetch(`/api/officials/represent?lat=${mockLat}&lng=${mockLng}`);
+             // Real Geocode & Boundary Resolution query via Census Geocoding
+             const res = await fetch(`/api/officials/represent?address=${encodeURIComponent(submittedAddress)}`);
              const data = await res.json();
              
-             if (data.officials) {
-                 setSpatialSlugs(data.officials);
+             if (data.officials && Array.isArray(data.officials)) {
+                 const slugs = data.officials.map((o: any) => (o.seat_id || o.official_name || '').toLowerCase());
+                 setSpatialSlugs(slugs);
              }
          } catch(e) {
              console.error("Spatial query failed", e);
@@ -87,7 +68,7 @@ export function SearchExperience() {
 
   const googleSuggestions = search.trim() ? addressSuggestions.filter(addr => addr.toLowerCase().includes(search.toLowerCase())) : [];
   if (googleSuggestions.length === 0 && search.trim()) {
-    googleSuggestions.push(`${search}, Miami, FL`);
+    googleSuggestions.push(`${search}, Florida`);
   }
 
   const choose = (address: string) => {
@@ -100,23 +81,6 @@ export function SearchExperience() {
       e.preventDefault();
       setSubmittedAddress(search);
       setOpen(false);
-  }
-
-  const getDisplayCount = () => {
-     if (search.trim() || spatialSlugs) {
-         if (level === 'State' && search.trim() === 'Florida') return 161; // 120 house, 40 senate, 1 gov
-         if (level === 'State' && search.trim() === 'California') return 121;
-         if (level === 'State' && search.trim() === 'Texas') return 182;
-         if (level === 'Local' && search.trim() === 'Miami, FL') return 14;
-         if (level === 'Local' && search.trim() === 'Miami Beach, FL') return 7;
-         if (level === 'Federal') return 537;
-         return result.length; // fallback
-     }
-     if (level === "All") return liveOfficials;
-     if (level === "Federal") return 537;
-     if (level === "State") return 7383;
-     if (level === "Local") return 60000;
-     return 20000;
   };
 
   const baseFiltered = useMemo(() => {
@@ -144,22 +108,26 @@ export function SearchExperience() {
   const result = useMemo(() => {
      let filtered = baseFiltered;
      
-     // Simple client-side search simulation
      if (search.trim()) {
-        const query = search.toLowerCase();
-        // Just for prototype realism, let's pretend if they search we still show the relevant ones
-        // In a real app, this would geocode the address and return the officials for that district.
-        // For now we'll just filter by name/title/district so at least it does something.
+        const query = search.toLowerCase().trim();
         filtered = filtered.filter(o => 
            o.name.toLowerCase().includes(query) || 
            o.title.toLowerCase().includes(query) || 
            o.district.toLowerCase().includes(query) ||
-           // If it's a generic address, just show everyone for the demo
-           query.includes("miami") || query.includes("florida") || query.includes("fl") || query.includes("washington")
+           o.office.toLowerCase().includes(query)
+        );
+     }
+     if (spatialSlugs && spatialSlugs.length > 0) {
+        filtered = filtered.filter(o => 
+          spatialSlugs.some(id => o.slug.toLowerCase().includes(id) || o.name.toLowerCase().includes(id) || o.title.toLowerCase().includes(id))
         );
      }
      return filtered;
-  }, [level, submittedAddress]);
+  }, [baseFiltered, search, spatialSlugs]);
+
+  const getDisplayCount = () => {
+     return result.length;
+  };
 
   return (
     <section className="bg-slate-50 min-h-[calc(100vh-64px)] py-8">
@@ -292,7 +260,7 @@ export function SearchExperience() {
                     {isSearching && <Icon name="loader-2" size={16} className="animate-spin text-blue-600" />}
                  </h2>
                  <span className="text-sm font-semibold text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full">
-                    {getDisplayCount().toLocaleString()}{getDisplayCount() >= 20000 && level !== 'All' ? '+' : ''} found
+                    {getDisplayCount().toLocaleString()} found
                  </span>
               </div>
               
@@ -312,38 +280,30 @@ export function SearchExperience() {
                         </div>
                         
                         {/* Upcoming Election / On the Ballot Badge */}
-                        <div className="mb-2">
-                          <span
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              navigate('/elections/my');
-                            }}
-                            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1 cursor-pointer"
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-slate-950 animate-pulse" />
-                            On the Ballot 2026
-                          </span>
-                        </div>
+                        {official.nextElection?.includes('2026') && (
+                          <div className="mb-2">
+                            <span
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                navigate('/elections/my');
+                              }}
+                              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-xs flex items-center gap-1 cursor-pointer"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-950 animate-pulse" />
+                              On the Ballot 2026
+                            </span>
+                          </div>
+                        )}
 
                         <span className="text-3xs font-mono font-bold text-slate-500 uppercase tracking-widest mb-1">{official.level}</span>
                         <h2 className="text-base font-bold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors">{official.name}</h2>
                         <p className="text-xs text-slate-600 mb-3 line-clamp-2">{official.title}</p>
                         
-                        {/* Official Feedback Button */}
-                        <div className="w-full bg-slate-50 p-1.5 rounded-xl border border-slate-100 flex gap-1 mb-3" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); alert(`Thank you for rating ${official.name}!`); }}
-                            className="flex-1 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 transition"
-                          >
-                            👍 Like
-                          </button>
-                          <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); alert(`Thank you for rating ${official.name}!`); }}
-                            className="flex-1 py-1 rounded-lg text-[10px] font-bold bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 transition"
-                          >
-                            👎 Dislike
-                          </button>
+                        {/* Verification / Research Status Badge */}
+                        <div className="w-full bg-slate-50 py-1 px-2 rounded-xl border border-slate-100 flex items-center justify-between mb-3 text-[11px]">
+                          <span className="text-slate-500 font-medium">Status:</span>
+                          <span className="font-mono text-xs font-semibold text-slate-700">{official.coverage_status || 'NOT_YET_RESEARCHED'}</span>
                         </div>
 
                         <div className="mt-auto pt-3 w-full flex items-center justify-between border-t border-slate-100">

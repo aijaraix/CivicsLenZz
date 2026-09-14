@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { AddressFinder } from './components/address-finder';
 import { Icon } from './components/icons';
-import { dataSources } from './lib/civic-database';
+import { dataSources } from './lib/civic-records';
 import { HermesLiveDashboard } from './components/hermes-live-dashboard';
 import { CompletedOfficialsDirectory } from './components/completed-officials-directory';
 import { hermesOrchestratorV2 } from './lib/hermes-matrix-v2';

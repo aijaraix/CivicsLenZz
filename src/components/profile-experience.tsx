@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { Icon } from './icons';
 import { OfficialAvatar } from './official-avatar';
 import { CoverageMap } from './coverage-map';
-import { getTrackedOfficial, TrackedOfficial, activityItems, ActivityItem } from '../lib/civic-database';
+import { getTrackedOfficial, TrackedOfficial, activityItems, ActivityItem } from '../lib/civic-records';
 import { CompletenessAdmin } from './completeness-admin';
 import { hermesPrime } from '../lib/hermes-prime';
 import { DrillDownCategory, RecordDrillDownModal } from './record-drilldown-modal';
@@ -97,9 +97,9 @@ export function ProfileExperience() {
                     </span>
                   </div>
                   <span className="text-sm font-bold text-white">
-                    {primeLock.completion_percentage >= 100
-                      ? '✓ 100% REQUIRED CHECKS COMPLETE (Continuous Monitoring Active)'
-                      : `● ${primeLock.completion_percentage}% RESEARCH COMPLETE — ${primeLock.assigned_agents.length} Agents Gathering Facts`}
+                    {primeLock.completion_percentage >= 100 && official.coverage_status === 'BASELINE_COMPLETE'
+                      ? '✓ REQUIRED CHECKS AUDITED'
+                      : `● RESEARCH ACTIVE — ${primeLock.research_state || 'EXTRACTED_UNREVIEWED'} (PRODUCER RESEARCH ONLY)`}
                   </span>
                 </div>
               </div>
@@ -115,25 +115,32 @@ export function ProfileExperience() {
           <div className="profile-identity">
             <OfficialAvatar official={official} size="xl" />
             <div className="profile-identity-copy flex-1">
-              <h1 className="flex items-center gap-2">{official.name} <Icon name="check-circle" size={24} className="text-blue-600" /></h1>
+              <h1 className="flex flex-wrap items-center gap-3">
+                <span>{official.name}</span>
+                <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-md bg-amber-50 text-amber-800 border border-amber-300">
+                  {official.verification_state || 'EXTRACTED_UNREVIEWED'}
+                </span>
+              </h1>
               <p className="text-lg font-medium text-slate-700">{official.title}</p>
               
               {/* Upcoming Election / On the Ballot Highlight */}
-              <div className="my-3 bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
-                  <div>
-                    <span className="text-[10px] font-mono font-bold text-amber-700 uppercase tracking-widest block">ON THE BALLOT FOR RE-ELECTION</span>
-                    <span className="text-xs font-bold text-slate-900">2026 Primary & General Election Contest</span>
+              {official.nextElection?.includes('2026') && (
+                <div className="my-3 bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                    <div>
+                      <span className="text-[10px] font-mono font-bold text-amber-700 uppercase tracking-widest block">ON THE BALLOT FOR ELECTION</span>
+                      <span className="text-xs font-bold text-slate-900">2026 Contest Schedule</span>
+                    </div>
                   </div>
+                  <Link
+                    to="/elections/my"
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl transition shadow-xs shrink-0"
+                  >
+                    View Election & Pipeline →
+                  </Link>
                 </div>
-                <Link
-                  to="/elections/race/race-miami-dade-commissioner-d7"
-                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl transition shadow-xs shrink-0"
-                >
-                  View Election & Challengers →
-                </Link>
-              </div>
+              )}
 
               <div className="flex gap-2 items-center mt-1 mb-4">
                 <span className={`text-xs font-bold px-2 py-1 rounded ${official.party === 'Republican' ? 'bg-red-100 text-red-700' : official.party === 'Democratic' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}`}>{official.party}</span>
@@ -610,23 +617,25 @@ function AppointmentsPanel({ official }: { official: TrackedOfficial }) {
   );
 }
 
-function ScorePanel
-({ official }: { official: TrackedOfficial }) {
+function ScorePanel({ official }: { official: TrackedOfficial }) {
   return (
     <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
       <div className="flex justify-between items-start mb-4">
         <div>
-          <span className="text-xs font-bold text-slate-500 tracking-wider uppercase mb-1 block">AI ACCOUNTABILITY SCORE</span>
+          <span className="text-xs font-bold text-slate-500 tracking-wider uppercase mb-1 block">VERIFICATION & EVIDENCE STATUS</span>
           <div className="flex items-baseline gap-1">
-            <span className="text-4xl font-display font-bold text-slate-900">{official.score}</span>
-            <span className="text-sm font-semibold text-slate-500">/100</span>
+            <span className="text-2xl font-mono font-bold text-slate-900">{official.coverage_status || 'RESEARCH_PENDING'}</span>
           </div>
         </div>
-        <span className="text-3xs font-mono font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded uppercase tracking-widest border border-amber-200">Needs Improvement</span>
+        <span className="text-3xs font-mono font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded uppercase tracking-widest border border-slate-200">
+          {official.verification_state || 'EXTRACTED_UNREVIEWED'}
+        </span>
       </div>
-      <p className="text-sm text-slate-600 mb-6">Measured across votes, public commitments, transparency signals, and source coverage.</p>
-      <div className="mt-auto">
-        <SparkChart />
+      <p className="text-sm text-slate-600 mb-4">
+        Zero Synthetic Scoring: CivicsLenZz is an untrusted research producer. Political scores are not fabricated and require canonical evidence review.
+      </p>
+      <div className="mt-auto text-xs text-slate-500 font-mono bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+        Canonical Verification Authority: Awaiting peer-reviewed ingestion
       </div>
     </section>
   );

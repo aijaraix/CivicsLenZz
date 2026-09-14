@@ -1,21 +1,24 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from './icons';
-import { trackedOfficials, GovernmentLevel } from '../lib/civic-database';
+import { trackedOfficials, GovernmentLevel } from '../lib/civic-records';
 import { OfficialAvatar } from './official-avatar';
 import { EvidenceDrawer } from './evidence-drawer';
 import { evidenceEngine } from '../lib/evidence-engine';
 import { EvidenceObject } from '../lib/schema-v2';
 
-// Mock promises data mapped to Master Schema
-const allPromises = [
-  { id: '1', officialSlug: 'ron-desantis', title: 'Cut property taxes by $500M', status: 'Kept', date: '2023-01-15', source: 'State of the State Address', aiConfidence: 95, detail: 'Signed HB 7063 into law, resulting in over $500M in tax relief, including property tax components.', sourceUrl: 'https://www.flgov.com/2023/05/25/governor-ron-desantis-signs-largest-tax-relief-package-in-florida-history/' },
-  { id: '2', officialSlug: 'daniella-levine-cava', title: 'Expand Rapid Transit across the county', status: 'In Progress', date: '2020-10-12', source: 'Campaign Website', aiConfidence: 85, detail: 'SMART Plan is advancing, but South Dade TransitWay is behind original 2023 schedule.', sourceUrl: 'https://www.miamidade.gov/global/mayor/home.page' },
-  { id: '3', officialSlug: 'marco-rubio', title: 'Increase child tax credit to $4,000', status: 'Stalled', date: '2023-04-20', source: 'Senate Floor Speech', aiConfidence: 90, detail: 'Introduced legislation, but it has not advanced past the Senate Finance Committee.', sourceUrl: 'https://www.rubio.senate.gov/child-tax-credit' },
-  { id: '4', officialSlug: 'shevrin-jones', title: 'Increase teacher pay statewide', status: 'Kept', date: '2022-03-05', source: 'Town Hall Meeting', aiConfidence: 88, detail: 'Voted yes on SB 256 which included significant teacher salary increases.', sourceUrl: 'https://www.flsenate.gov/Session/Bill/2022/256' },
-  { id: '5', officialSlug: 'rick-scott', title: 'Balance the federal budget in 5 years', status: 'Broken', date: '2022-02-14', source: '11-Point Plan', aiConfidence: 92, detail: 'Deficit has increased; no balanced budget resolution has passed.', sourceUrl: 'https://rickscott.senate.gov/11-point-plan' },
-  { id: '6', officialSlug: 'steven-meiner', title: 'Add 50 new police officers to Miami Beach', status: 'In Progress', date: '2023-11-05', source: 'Mayoral Debate', aiConfidence: 75, detail: 'Budget passed for 20 new officers so far.', sourceUrl: 'https://www.miamibeachfl.gov/city-hall/mayor-and-commission/' }
-];
+// Evidence-backed promises list (populated only when supported by primary evidence contracts)
+const allPromises: Array<{
+  id: string;
+  officialSlug: string;
+  title: string;
+  status: 'Kept' | 'Broken' | 'In Progress' | 'Stalled';
+  date: string;
+  source: string;
+  aiConfidence: number;
+  detail: string;
+  sourceUrl: string;
+}> = [];
 
 export function PromisesExperience() {
   const [levelFilter, setLevelFilter] = useState<'All' | GovernmentLevel>('All');

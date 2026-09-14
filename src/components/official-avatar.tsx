@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrackedOfficial } from '../lib/civic-database';
+import { TrackedOfficial } from '../lib/civic-records';
 import { verifyPhotoSource } from '../lib/photo-verifier';
 
 // Map of verified official government & Wikipedia Commons public domain portraits ONLY

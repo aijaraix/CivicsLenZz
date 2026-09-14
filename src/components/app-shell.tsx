@@ -4,7 +4,7 @@ import { OfficialAvatar } from './official-avatar';
 import { Icon } from './icons';
 import { MapVisual } from './map-visual';
 
-import { activityItems, trackedOfficials } from '../lib/civic-database';
+import { activityItems, trackedOfficials } from '../lib/civic-records';
 
 const sidebarItems = [
   ['Dashboard', '/dashboard/', 'home'], ['My Officials', '/watchlist/', 'users'], ['Alerts', '/alerts/', 'bell'], ['AI Monitor', '/monitor/', 'watch'], ['Promise Tracker', '/promises/', 'target'], ['Contact Officials', '/contact-official/', 'message'], ['Petitions', '/petitions/', 'edit'], ['My Activity', '/activity/', 'chart'], ['Reports', '/reports/', 'file'], ['Settings', '/settings/', 'settings'],

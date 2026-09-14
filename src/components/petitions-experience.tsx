@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { OfficialAvatar } from './official-avatar';
 import { Icon } from './icons';
-import { trackedOfficials, trackedPetitions } from '../lib/civic-database';
+import { trackedOfficials, trackedPetitions } from '../lib/civic-records';
 
 export function PetitionsExperience() {
   const [active, setActive] = useState('Active Petitions');

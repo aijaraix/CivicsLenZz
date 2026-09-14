@@ -5,6 +5,7 @@ import { createServer as createViteServer } from "vite";
 import { hermesBackendStore } from "./src/lib/hermes-backend-store";
 import { hermesWorkerDaemon } from "./src/lib/hermes-worker-daemon";
 import { masterFloridaLedger } from "./src/lib/florida-master-ledger";
+import { cohortReadinessEngine } from "./src/lib/cohort-readiness-engine";
 
 async function startServer() {
   const app = express();
@@ -65,6 +66,35 @@ async function startServer() {
       sources: hermesBackendStore.getSourceRegistry(),
       summary: hermesBackendStore.getDatabaseSummary()
     });
+  });
+
+  // Election Readiness & Statutory Compliance Status
+  app.get("/api/elections/readiness", (req, res) => {
+    try {
+      const senate = cohortReadinessEngine.getCohortPackage("FLORIDA_STATE_SENATE");
+      const sfl = cohortReadinessEngine.getCohortPackage("SOUTH_FLORIDA_CORE");
+      res.json({
+        status: "SUCCESS",
+        timestamp: new Date().toISOString(),
+        producer_role: "UNTRUSTED_RESEARCH_PRODUCER",
+        statutory_qualifying_window: {
+          statute: "§ 99.061(2), F.S.",
+          period: "Noon June 8, 2026 – Noon June 12, 2026",
+          status: "NOT_YET_OPEN"
+        },
+        pre_qualifying_acceptance: {
+          statute: "§ 99.061(8), F.S.",
+          period: "May 25, 2026 – Noon June 8, 2026",
+          status: "NOT_YET_OPEN"
+        },
+        cohorts: {
+          FLORIDA_STATE_SENATE: senate,
+          SOUTH_FLORIDA_CORE: sfl
+        }
+      });
+    } catch (err: any) {
+      res.status(500).json({ status: "ERROR", error: err.message });
+    }
   });
 
   // 6. Trigger Real Research Job
@@ -1006,9 +1036,8 @@ async function startServer() {
   });
 
   // 3k. Cohort Readiness Package (FLORIDA_STATE_SENATE, SOUTH_FLORIDA_CORE)
-  app.get("/api/harvester/cohort-readiness/:cohort", async (req, res) => {
+  app.get("/api/harvester/cohort-readiness/:cohort", (req, res) => {
     try {
-      const { cohortReadinessEngine } = await import("./src/lib/cohort-readiness-engine");
       const pkg = cohortReadinessEngine.getCohortPackage(req.params.cohort);
       if (!pkg) {
         return res.status(404).json({
