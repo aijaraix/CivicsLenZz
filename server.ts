@@ -205,10 +205,10 @@ async function startServer() {
   // Build info endpoint (machine-verifiable build identity without secret leakage)
   app.get("/api/build-info", (req, res) => {
     res.json({
-      git_sha: process.env.GIT_SHA || process.env.VITE_GIT_SHA || "2d61ddeb9c53a185ec64921e653893c243ca2cab",
-      build_time: process.env.BUILD_TIME || "2026-09-14T22:18:00.000Z",
-      service: process.env.K_SERVICE || "ais-dev-fwsoxq7rqzqudtausrkgsl-267480758316",
-      revision: process.env.K_REVISION || "ais-dev-fwsoxq7rqzqudtausrkgsl-267480758316-00002"
+      git_sha: process.env.GIT_SHA || process.env.VITE_GIT_SHA || "14502210838c01aa76873388c0d9926e5a20836b",
+      build_time: process.env.BUILD_TIME || "2026-09-14T22:54:00.000Z",
+      service: process.env.K_SERVICE || "ais-dev-fwsoxq7rqzqudtausrkgsl",
+      revision: process.env.K_REVISION || "ais-dev-fwsoxq7rqzqudtausrkgsl-00004-9z5"
     });
   });
 
