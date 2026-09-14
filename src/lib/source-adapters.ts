@@ -168,18 +168,24 @@ export class SourceAdapterBase {
     seatUuid?: string,
     personUuid?: string
   ): { snapshotUuid: string; evidenceObjects: RawEvidenceObject[] } {
-    // 1. Store Raw Snapshot with exact bytes
+    // 1. Store Raw Snapshot with exact bytes (Directive 10: Store full bytes without truncation)
     const snapshot = hermesBackendStore.storeRawSnapshot({
       source_uuid: this.source_id,
       target_url: url,
       http_status: httpStatus,
       content_type: contentType,
-      raw_payload: rawPayload.substring(0, 100000), // Cap size for store
+      raw_payload: rawPayload, // Full exact bytes preserved
       parser_version: 'v2.2-zero-synthetic'
     });
 
-    // 2. Generate Evidence Objects strictly marked EXTRACTED_UNREVIEWED
+    const retrievalSha256 = crypto.createHash('sha256').update(rawPayload).digest('hex');
+
+    // 2. Generate Evidence Objects strictly marked EXTRACTED_UNREVIEWED (Directive 11: Separate retrieval hash from claim fingerprint)
     const evidenceObjects: RawEvidenceObject[] = extractedItems.map(item => {
+      const claimFingerprint = crypto.createHash('sha256')
+        .update(`${url}_${item.target_entity}_${item.field_key}_${item.extracted_value}`)
+        .digest('hex');
+
       return hermesBackendStore.createEvidenceObject({
         source_uuid: this.source_id,
         source_url: url,
@@ -187,6 +193,8 @@ export class SourceAdapterBase {
         document_type: 'PRIMARY_GOVERNMENT_PORTAL',
         source_tier: this.authority_tier,
         raw_snapshot_uuid: snapshot.snapshot_uuid,
+        retrieval_content_sha256: retrievalSha256,
+        claim_fingerprint: claimFingerprint,
         parser_version: 'v2.2-zero-synthetic',
         extraction_method: 'DETERMINISTIC_PARSER_V2',
         supporting_locator: item.evidence_locator || url,
@@ -195,7 +203,7 @@ export class SourceAdapterBase {
         person_uuid: personUuid,
         field_key: item.field_key,
         extracted_value: item.extracted_value,
-        content_to_hash: `${url}_${item.target_entity}_${item.field_key}_${item.extracted_value}`
+        content_to_hash: rawPayload // Hashes exact source bytes
       });
     });
 
@@ -777,7 +785,7 @@ export class CompletenessAuditAdapter extends SourceAdapterBase {
     };
 
     const payload = JSON.stringify(auditReport, null, 2);
-    const auditDir = path.resolve(process.cwd(), 'data/artifacts/audits');
+    const auditDir = path.resolve(process.env.CIVICSLENZZ_DATA_DIR || path.join(process.cwd(), 'data'), 'artifacts/audits');
     if (!fs.existsSync(auditDir)) fs.mkdirSync(auditDir, { recursive: true });
     const auditFilePath = path.join(auditDir, `audit_${seatUuid}_${Date.now()}.json`);
     fs.writeFileSync(auditFilePath, payload);

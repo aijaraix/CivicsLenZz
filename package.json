@@ -8,6 +8,7 @@
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
+    "production:truth-audit": "tsx scripts/producer-internal-truth-audit.ts",
     "test": "tsx test/election-semantics-contract.test.ts && tsx test/hermes-bridge-contract.test.ts && tsx test/master-harvester-capability.test.ts && tsx test/zero-hardcoded-truth-and-no-fabricated-ids.test.ts",
     "lint": "tsc --noEmit"
   },

@@ -16,11 +16,20 @@
 
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
+
+// Directive 12: Tests must use isolated storage via CIVICSLENZZ_DATA_DIR and mkdtemp
+const isolatedTestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'civicslenzz-test-'));
+process.env.CIVICSLENZZ_DATA_DIR = isolatedTestDir;
+
 import { hermesBackendStore } from '../src/lib/hermes-backend-store';
 import { masterFloridaLedger } from '../src/lib/florida-master-ledger';
 import { hermesWorkerDaemon } from '../src/lib/hermes-worker-daemon';
 import { sourceAdapters, detectAccessChallenge } from '../src/lib/source-adapters';
 import { HermesBridgeClient } from '../src/lib/hermes-bridge-client';
+
+// Reinitialize store to guarantee isolated temporary storage
+hermesBackendStore.reinitialize(isolatedTestDir);
 
 async function runTests() {
   console.log('=======================================================');
@@ -198,6 +207,15 @@ async function runTests() {
   console.log('=======================================================');
   console.log(`TEST SUMMARY: ${passed} PASSED | ${failed} FAILED`);
   console.log('=======================================================');
+
+  // Clean up isolated test storage
+  try {
+    if (fs.existsSync(isolatedTestDir)) {
+      fs.rmSync(isolatedTestDir, { recursive: true, force: true });
+    }
+  } catch (err) {
+    // Ignore cleanup error
+  }
 
   if (failed > 0) {
     process.exit(1);

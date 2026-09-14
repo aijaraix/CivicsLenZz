@@ -1,34 +1,118 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from './icons';
 import { SystemZipExporter } from './system-zip-exporter';
-import { ALL_50_STATES, generateDeterministic100FieldProfile, Complete100FieldOfficialProfile } from '../lib/master-data-generator';
 import { southFloridaRaces } from '../lib/elections-database';
-import { hermesOrchestratorV2 } from '../lib/hermes-matrix-v2';
+
+// Standard 50 US States definition without manufactured statistics
+const US_50_STATES = [
+  { code: 'AL', name: 'Alabama', slug: 'alabama', region: 'South', capital: 'Montgomery' },
+  { code: 'AK', name: 'Alaska', slug: 'alaska', region: 'West', capital: 'Juneau' },
+  { code: 'AZ', name: 'Arizona', slug: 'arizona', region: 'West', capital: 'Phoenix' },
+  { code: 'AR', name: 'Arkansas', slug: 'arkansas', region: 'South', capital: 'Little Rock' },
+  { code: 'CA', name: 'California', slug: 'california', region: 'West', capital: 'Sacramento' },
+  { code: 'CO', name: 'Colorado', slug: 'colorado', region: 'West', capital: 'Denver' },
+  { code: 'CT', name: 'Connecticut', slug: 'connecticut', region: 'Northeast', capital: 'Hartford' },
+  { code: 'DE', name: 'Delaware', slug: 'delaware', region: 'South', capital: 'Dover' },
+  { code: 'FL', name: 'Florida', slug: 'florida', region: 'South', capital: 'Tallahassee' },
+  { code: 'GA', name: 'Georgia', slug: 'georgia', region: 'South', capital: 'Atlanta' },
+  { code: 'HI', name: 'Hawaii', slug: 'hawaii', region: 'West', capital: 'Honolulu' },
+  { code: 'ID', name: 'Idaho', slug: 'idaho', region: 'West', capital: 'Boise' },
+  { code: 'IL', name: 'Illinois', slug: 'illinois', region: 'Midwest', capital: 'Springfield' },
+  { code: 'IN', name: 'Indiana', slug: 'indiana', region: 'Midwest', capital: 'Indianapolis' },
+  { code: 'IA', name: 'Iowa', slug: 'iowa', region: 'Midwest', capital: 'Des Moines' },
+  { code: 'KS', name: 'Kansas', slug: 'kansas', region: 'Midwest', capital: 'Topeka' },
+  { code: 'KY', name: 'Kentucky', slug: 'kentucky', region: 'South', capital: 'Frankfort' },
+  { code: 'LA', name: 'Louisiana', slug: 'louisiana', region: 'South', capital: 'Baton Rouge' },
+  { code: 'ME', name: 'Maine', slug: 'maine', region: 'Northeast', capital: 'Augusta' },
+  { code: 'MD', name: 'Maryland', slug: 'maryland', region: 'South', capital: 'Annapolis' },
+  { code: 'MA', name: 'Massachusetts', slug: 'massachusetts', region: 'Northeast', capital: 'Boston' },
+  { code: 'MI', name: 'Michigan', slug: 'michigan', region: 'Midwest', capital: 'Lansing' },
+  { code: 'MN', name: 'Minnesota', slug: 'minnesota', region: 'Midwest', capital: 'St. Paul' },
+  { code: 'MS', name: 'Mississippi', slug: 'mississippi', region: 'South', capital: 'Jackson' },
+  { code: 'MO', name: 'Missouri', slug: 'missouri', region: 'Midwest', capital: 'Jefferson City' },
+  { code: 'MT', name: 'Montana', slug: 'montana', region: 'West', capital: 'Helena' },
+  { code: 'NE', name: 'Nebraska', slug: 'nebraska', region: 'Midwest', capital: 'Lincoln' },
+  { code: 'NV', name: 'Nevada', slug: 'nevada', region: 'West', capital: 'Carson City' },
+  { code: 'NH', name: 'New Hampshire', slug: 'new-hampshire', region: 'Northeast', capital: 'Concord' },
+  { code: 'NJ', name: 'New Jersey', slug: 'new-jersey', region: 'Northeast', capital: 'Trenton' },
+  { code: 'NM', name: 'New Mexico', slug: 'new-mexico', region: 'West', capital: 'Santa Fe' },
+  { code: 'NY', name: 'New York', slug: 'new-york', region: 'Northeast', capital: 'Albany' },
+  { code: 'NC', name: 'North Carolina', slug: 'north-carolina', region: 'South', capital: 'Raleigh' },
+  { code: 'ND', name: 'North Dakota', slug: 'north-dakota', region: 'Midwest', capital: 'Bismarck' },
+  { code: 'OH', name: 'Ohio', slug: 'ohio', region: 'Midwest', capital: 'Columbus' },
+  { code: 'OK', name: 'Oklahoma', slug: 'oklahoma', region: 'South', capital: 'Oklahoma City' },
+  { code: 'OR', name: 'Oregon', slug: 'oregon', region: 'West', capital: 'Salem' },
+  { code: 'PA', name: 'Pennsylvania', slug: 'pennsylvania', region: 'Northeast', capital: 'Harrisburg' },
+  { code: 'RI', name: 'Rhode Island', slug: 'rhode-island', region: 'Northeast', capital: 'Providence' },
+  { code: 'SC', name: 'South Carolina', slug: 'south-carolina', region: 'South', capital: 'Columbia' },
+  { code: 'SD', name: 'South Dakota', slug: 'south-dakota', region: 'Midwest', capital: 'Pierre' },
+  { code: 'TN', name: 'Tennessee', slug: 'tennessee', region: 'South', capital: 'Nashville' },
+  { code: 'TX', name: 'Texas', slug: 'texas', region: 'South', capital: 'Austin' },
+  { code: 'UT', name: 'Utah', slug: 'utah', region: 'West', capital: 'Salt Lake City' },
+  { code: 'VT', name: 'Vermont', slug: 'vermont', region: 'Northeast', capital: 'Montpelier' },
+  { code: 'VA', name: 'Virginia', slug: 'virginia', region: 'South', capital: 'Richmond' },
+  { code: 'WA', name: 'Washington', slug: 'washington', region: 'West', capital: 'Olympia' },
+  { code: 'WV', name: 'West Virginia', slug: 'west-virginia', region: 'South', capital: 'Charleston' },
+  { code: 'WI', name: 'Wisconsin', slug: 'wisconsin', region: 'Midwest', capital: 'Madison' },
+  { code: 'WY', name: 'Wyoming', slug: 'wyoming', region: 'West', capital: 'Cheyenne' }
+];
+
+const CONTRACT_CATEGORIES = [
+  { id: 1, name: 'Category 1: Identity & Contact', fieldCount: 12, description: 'Legal name, preferred name, official email, phone, physical address, verified portrait.' },
+  { id: 2, name: 'Category 2: Office & Jurisdiction', fieldCount: 14, description: 'Seat identifier, government level, statutory district, term start/end dates, qualification status.' },
+  { id: 3, name: 'Category 3: Biography & Career', fieldCount: 12, description: 'Birthplace, verified education degrees, military branch/rank, prior offices, career milestones.' },
+  { id: 4, name: 'Category 4: Campaign Finance & PACs', fieldCount: 18, description: 'Total contributions, PAC ratios, itemized donors, independent expenditures, cash on hand.' },
+  { id: 5, name: 'Category 5: Platform Promises & Pledges', fieldCount: 15, description: 'Platform statements, exact quotes, stated date, primary .gov citation, status verification.' },
+  { id: 6, name: 'Category 6: Roll-Call Votes & Legislative Record', fieldCount: 15, description: 'Bills sponsored, bills enacted into law, roll call dockets, committee chairs and assignments.' },
+  { id: 7, name: 'Category 7: Legal & Ethics Clearances', fieldCount: 12, description: 'Statutory financial disclosures (Form 6), outside income, real estate holdings, dockets.' },
+  { id: 8, name: 'Category 8: Campaign Ads & Polling', fieldCount: 10, description: 'Digital ad library spend (Meta/Google), broadcast buys, polling samples, margin of error.' },
+  { id: 9, name: 'Category 9: Public Stances & Ideology', fieldCount: 8, description: 'Platform summary, high-profile endorsements, documented town halls, public hearings.' },
+  { id: 10, name: 'Category 10: Cryptographic Provenance', fieldCount: 6, description: 'Producer research agent ID, ISO timestamp, retrieval SHA-256, claim fingerprint, docket URL.' }
+];
 
 export function DataArchiveView() {
-  const [activeTab, setActiveTab] = useState<'overview' | '50_states' | '100_fields_inspector' | 'ledger_5m' | 'candidates' | 'hermes' | 'github_tree'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | '50_states' | '100_fields_inspector' | 'evidence_ledger' | 'candidates' | 'daemon_status' | 'storage_tree'>('overview');
   const [selectedStateSlug, setSelectedStateSlug] = useState('florida');
   const [stateSearchTerm, setStateSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<number>(1);
+  const [selectedCategory, setSelectedCategory] = useState<number>(1);
+  const [realEvidence, setRealEvidence] = useState<any[]>([]);
+  const [daemonTelemetry, setDaemonTelemetry] = useState<any>(null);
+  const [seatCount, setSeatCount] = useState<number>(5508);
+  const [evidenceCount, setEvidenceCount] = useState<number>(0);
+  const [snapshotCount, setSnapshotCount] = useState<number>(0);
 
-  // Generate deterministic 100-field profile for selected official
-  const [selectedOfficialProfile, setSelectedOfficialProfile] = useState<Complete100FieldOfficialProfile>(() => {
-    return generateDeterministic100FieldProfile({
-      name: 'Ron DeSantis',
-      title: 'Governor of Florida',
-      level: 'State',
-      party: 'Republican',
-      stateCode: 'FL',
-      stateName: 'Florida',
-      district: 'Florida Statewide',
-      jurisdiction: 'State of Florida',
-      photoUrl: 'https://flgov.com/wp-content/uploads/2023/01/GovDeSantis_Official.jpg'
-    });
-  });
+  useEffect(() => {
+    // Fetch live physical telemetry from server API
+    fetch('/api/hermes/status')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data) {
+          setDaemonTelemetry(data);
+          if (data.counts) {
+            if (typeof data.counts.evidence === 'number') setEvidenceCount(data.counts.evidence);
+            if (typeof data.counts.snapshots === 'number') setSnapshotCount(data.counts.snapshots);
+            if (typeof data.counts.seats === 'number') setSeatCount(data.counts.seats);
+          }
+        }
+      })
+      .catch(() => {
+        // Fallback gracefully if API unavailable
+      });
 
-  const selectedStateObj = ALL_50_STATES.find((s) => s.slug === selectedStateSlug) || ALL_50_STATES[8]; // Florida default
+    fetch('/api/hermes/evidence')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && Array.isArray(data.evidence_objects)) {
+          setRealEvidence(data.evidence_objects);
+          setEvidenceCount(data.evidence_objects.length);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
-  const filteredStates = ALL_50_STATES.filter(
+  const selectedStateObj = US_50_STATES.find((s) => s.slug === selectedStateSlug) || US_50_STATES[8]; // Florida default
+
+  const filteredStates = US_50_STATES.filter(
     (s) =>
       s.name.toLowerCase().includes(stateSearchTerm.toLowerCase()) ||
       s.code.toLowerCase().includes(stateSearchTerm.toLowerCase()) ||
@@ -36,145 +120,154 @@ export function DataArchiveView() {
   );
 
   return (
-    <div className="site-width py-8 space-y-8" style={{ minHeight: '85vh' }}>
+    <div id="data_archive_view_container" className="site-width py-8 space-y-8" style={{ minHeight: '85vh' }}>
       {/* Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white space-y-6 shadow-2xl">
+      <div id="data_archive_header" className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 text-white space-y-6 shadow-2xl">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-mono font-bold tracking-wider uppercase">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
-              Open Civic Intelligence Vault
+              CivicsLenZz Research Vault (Zero-Synthetic)
             </div>
             <h1 className="text-2xl sm:text-4xl font-display font-black text-white">
-              Master Civic Data & 50-State System Vault
+              Civic Data Vault & Evidence Ledger
             </h1>
             <p className="text-sm sm:text-base text-slate-300 max-w-3xl leading-relaxed">
-              Research Harvester vault indexing 50-state government seats, primary evidence snapshots with SHA-256 validation, 100+ field schemas, and autonomous background monitoring pipelines.
+              Autonomous research harvester vault preserving primary source government snapshots, full raw bytes, SHA-256 evidence seals, and non-canonical extracted records under strict fail-closed governance.
             </p>
           </div>
 
           <div className="shrink-0 flex flex-col sm:flex-row items-center gap-3">
-            <SystemZipExporter buttonText="📦 Download Full Master Archive (.ZIP)" className="w-full sm:w-auto text-sm" />
+            <SystemZipExporter buttonText="📦 Download Physical Data Archive (.ZIP)" className="w-full sm:w-auto text-sm" />
           </div>
         </div>
 
-        {/* Quick Stats Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-800">
+        {/* Runtime Derived Physical Metrics */}
+        <div id="runtime_metrics_grid" className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-800">
           <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4">
-            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Florida Seat Ledger</p>
-            <p className="text-2xl font-black text-amber-400 mt-1">20,739</p>
-            <p className="text-[11px] text-slate-400">Seats cataloged across 67 counties</p>
+            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Florida Master Ledger</p>
+            <p className="text-2xl font-black text-amber-400 mt-1">{seatCount.toLocaleString()}</p>
+            <p className="text-[11px] text-slate-400">Structural seats across 67 counties</p>
           </div>
           <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4">
-            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Primary Evidence Vault</p>
-            <p className="text-2xl font-black text-emerald-400 mt-1">100% Verified</p>
-            <p className="text-[11px] text-slate-400">Cryptographic SHA-256 seals</p>
+            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Producer Research State</p>
+            <p className="text-2xl font-black text-emerald-400 mt-1">UNREVIEWED</p>
+            <p className="text-[11px] text-slate-400">EXTRACTED_UNREVIEWED (No validation claims)</p>
           </div>
           <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4">
-            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Schema Completeness</p>
-            <p className="text-2xl font-black text-blue-400 mt-1">100 Fields</p>
-            <p className="text-[11px] text-slate-400">10 comprehensive categories</p>
+            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Research Contract Schema</p>
+            <p className="text-2xl font-black text-blue-400 mt-1">100+ Fields</p>
+            <p className="text-[11px] text-slate-400">10 standardized research categories</p>
           </div>
           <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4">
-            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Active Hermes Swarm</p>
-            <p className="text-2xl font-black text-purple-400 mt-1">102 Workers</p>
-            <p className="text-[11px] text-slate-400">Continuous background sync</p>
+            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase">Durable Snapshots / Evidence</p>
+            <p className="text-2xl font-black text-purple-400 mt-1">
+              {evidenceCount > 0 ? `${evidenceCount} Records` : 'Active / Ingesting'}
+            </p>
+            <p className="text-[11px] text-slate-400">Full raw payload preservation</p>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-gray-200 gap-2 overflow-x-auto pb-2">
+      {/* Navigation Tabs */}
+      <div id="data_archive_tabs" className="flex border-b border-gray-200 gap-2 overflow-x-auto pb-2">
         <button
+          id="tab_btn_overview"
           onClick={() => setActiveTab('overview')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'overview' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-gray-100'
           }`}
         >
           <Icon name="file" size={15} />
-          <span>Archive Overview</span>
+          <span>Vault Overview</span>
         </button>
 
         <button
+          id="tab_btn_50_states"
           onClick={() => setActiveTab('50_states')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
             activeTab === '50_states' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-gray-100'
           }`}
         >
           <Icon name="landmark" size={15} />
-          <span>50-State Roster Explorer</span>
+          <span>50-State Scope Explorer</span>
         </button>
 
         <button
+          id="tab_btn_100_fields"
           onClick={() => setActiveTab('100_fields_inspector')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
             activeTab === '100_fields_inspector' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-gray-100'
           }`}
         >
           <Icon name="check-circle" size={15} />
-          <span>100+ Field Record Inspector</span>
+          <span>100+ Field Contract Schema</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('ledger_5m')}
+          id="tab_btn_evidence_ledger"
+          onClick={() => setActiveTab('evidence_ledger')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-            activeTab === 'ledger_5m' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-gray-100'
+            activeTab === 'evidence_ledger' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-gray-100'
           }`}
         >
           <Icon name="activity" size={15} />
-          <span>5.12M Data Points Ledger</span>
+          <span>Durable Evidence Ledger</span>
         </button>
 
         <button
+          id="tab_btn_candidates"
           onClick={() => setActiveTab('candidates')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'candidates' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-gray-100'
           }`}
         >
           <Icon name="flag" size={15} />
-          <span>2026 Candidates & Races</span>
+          <span>2026 Florida Races</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('hermes')}
+          id="tab_btn_daemon_status"
+          onClick={() => setActiveTab('daemon_status')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-            activeTab === 'hermes' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-gray-100'
+            activeTab === 'daemon_status' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-gray-100'
           }`}
         >
           <Icon name="settings" size={15} />
-          <span>102 HERMES Swarm</span>
+          <span>Hermes Daemon & Telemetry</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('github_tree')}
+          id="tab_btn_storage_tree"
+          onClick={() => setActiveTab('storage_tree')}
           className={`px-4 py-2 text-xs sm:text-sm font-bold rounded-xl transition cursor-pointer flex items-center gap-2 whitespace-nowrap ${
-            activeTab === 'github_tree' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-gray-100'
+            activeTab === 'storage_tree' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-gray-100'
           }`}
         >
           <Icon name="external-link" size={15} />
-          <span>GitHub Structure (/data)</span>
+          <span>Storage Tree (/data)</span>
         </button>
       </div>
 
       {/* TAB 1: OVERVIEW */}
       {activeTab === 'overview' && (
-        <div className="space-y-6">
+        <div id="tab_content_overview" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
               <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center">
                 <Icon name="landmark" size={20} />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-base">50-State Partitioned Vault</h3>
+                <h3 className="font-bold text-slate-900 text-base">Florida Active Primary Scope</h3>
                 <p className="text-xs text-slate-600 mt-1">
-                  Individual directories for every state (e.g. <code>/data/officials/florida/</code>, <code>/california/</code>, <code>/texas/</code>) with state summary CSVs, full 100+ field NDJSON streams, and individual profiles.
+                  Florida represents the active primary research scope with 5,508 structural seats cataloged across all 67 counties. Zero hardcoded officeholders; seat occupancy is discovered solely via verified primary evidence.
                 </p>
               </div>
               <button
                 onClick={() => setActiveTab('50_states')}
                 className="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1 cursor-pointer"
               >
-                <span>Explore 50 States</span>
+                <span>Inspect State Scopes</span>
                 <Icon name="chevron-right" size={14} />
               </button>
             </div>
@@ -184,16 +277,16 @@ export function DataArchiveView() {
                 <Icon name="check-circle" size={20} />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-base">100+ Fields per Official</h3>
+                <h3 className="font-bold text-slate-900 text-base">Zero-Synthetic Architecture</h3>
                 <p className="text-xs text-slate-600 mt-1">
-                  10 comprehensive categories: Identity, Jurisdiction, Education & Career, Campaign Finance & PACs, Promises, Roll-Call Votes, Legal & NCIC Ethics, Polling & Ads, Stances, and SHA-256 Provenance.
+                  Synthetic data generation has been permanently decommissioned. No simulated officeholders, no fabricated candidate timelines, and no fallback placeholders. Adapters fail closed on retrieval errors.
                 </p>
               </div>
               <button
                 onClick={() => setActiveTab('100_fields_inspector')}
                 className="text-xs font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer"
               >
-                <span>Inspect 100-Field Record</span>
+                <span>View Contract Specifications</span>
                 <Icon name="chevron-right" size={14} />
               </button>
             </div>
@@ -203,31 +296,31 @@ export function DataArchiveView() {
                 <Icon name="activity" size={20} />
               </div>
               <div>
-                <h3 className="font-bold text-slate-900 text-base">5.12 Million Data Points</h3>
+                <h3 className="font-bold text-slate-900 text-base">Non-Canonical Producer Research</h3>
                 <p className="text-xs text-slate-600 mt-1">
-                  Categorical ledgers covering 1.84M promises, 1.24M legislative roll-calls, 985k campaign finance filings, $350.95B in public grants, and 345k court/ethics clearances.
+                  CivicsLenZz operates as an autonomous research producer. All ingested evidence is labeled <code>EXTRACTED_UNREVIEWED</code>. Canonical verification and publication authority reside exclusively in CivicLenZ.
                 </p>
               </div>
               <button
-                onClick={() => setActiveTab('ledger_5m')}
+                onClick={() => setActiveTab('evidence_ledger')}
                 className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
               >
-                <span>View 5.12M Ledgers</span>
+                <span>View Evidence Records</span>
                 <Icon name="chevron-right" size={14} />
               </button>
             </div>
           </div>
 
-          {/* Quick Download Strip */}
+          {/* Real Storage Export Strip */}
           <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700 rounded-2xl p-6 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-lg">
             <div className="space-y-1">
-              <h3 className="text-lg font-bold text-amber-300">Ready to export all data or individual state packages?</h3>
+              <h3 className="text-lg font-bold text-amber-300">Physical Research Archive (.ZIP)</h3>
               <p className="text-xs text-slate-300">
-                You can download the entire nationwide database or export state-by-state ZIP packages.
+                Packs authentic durable disk artifacts, raw retrieval byte payloads, and the structural Florida ledger into a verified ZIP archive.
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <SystemZipExporter buttonText="📦 Download Master System Archive (.ZIP)" variant="primary" />
+              <SystemZipExporter buttonText="📦 Download Physical Data Archive (.ZIP)" variant="primary" />
             </div>
           </div>
         </div>
@@ -235,21 +328,22 @@ export function DataArchiveView() {
 
       {/* TAB 2: 50-STATE ROSTER EXPLORER */}
       {activeTab === '50_states' && (
-        <div className="space-y-6">
+        <div id="tab_content_50_states" className="space-y-6">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-black text-slate-900">50-State Official Roster & Directory Explorer</h2>
+              <h2 className="text-lg font-black text-slate-900">50-State Jurisdiction Scope Explorer</h2>
               <p className="text-xs text-slate-500">
-                Select any of the 50 states to view its seat universe, monitored officials, download its <code>state_roster_summary.csv</code>, or export its state-specific ZIP package.
+                Authoritative distinction between active research jurisdictions and pending national scopes. No synthetic metrics or fabricated seat totals.
               </p>
             </div>
 
             <div className="w-full md:w-64">
               <input
+                id="state_search_input"
                 type="text"
                 value={stateSearchTerm}
                 onChange={(e) => setStateSearchTerm(e.target.value)}
-                placeholder="Search state (e.g. Florida, CA)..."
+                placeholder="Filter state (e.g. Florida, TX)..."
                 className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
               />
             </div>
@@ -258,9 +352,10 @@ export function DataArchiveView() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* States List */}
             <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm max-h-[600px] overflow-y-auto space-y-2">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2">All 50 States</p>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-2">Jurisdictions</p>
               {filteredStates.map((st) => {
                 const isSelected = st.slug === selectedStateSlug;
+                const isFlorida = st.slug === 'florida';
                 return (
                   <button
                     key={st.slug}
@@ -277,6 +372,11 @@ export function DataArchiveView() {
                           {st.code}
                         </span>
                         <span className="text-xs font-bold">{st.name}</span>
+                        {isFlorida && (
+                          <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500 text-slate-950 uppercase">
+                            Active
+                          </span>
+                        )}
                       </div>
                       <p className={`text-[10px] mt-0.5 ${isSelected ? 'text-slate-300' : 'text-slate-500'}`}>
                         {st.region} Region • Capital: {st.capital}
@@ -284,8 +384,8 @@ export function DataArchiveView() {
                     </div>
 
                     <div className="text-right">
-                      <span className={`text-xs font-mono font-bold ${isSelected ? 'text-amber-300' : 'text-slate-700'}`}>
-                        {st.totalSeats.toLocaleString()} seats
+                      <span className={`text-[11px] font-mono font-bold ${isFlorida ? (isSelected ? 'text-amber-300' : 'text-amber-700') : (isSelected ? 'text-slate-400' : 'text-slate-500')}`}>
+                        {isFlorida ? '5,508 seats' : 'Scope Pending'}
                       </span>
                     </div>
                   </button>
@@ -298,32 +398,36 @@ export function DataArchiveView() {
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
                   <div>
-                    <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-mono font-bold">
-                      STATE DIRECTORY: /data/officials/{selectedStateObj.slug}/
+                    <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-[11px] font-mono font-bold">
+                      JURISDICTION: {selectedStateObj.name.toUpperCase()} ({selectedStateObj.code})
                     </div>
                     <h3 className="text-xl font-black text-slate-900 mt-1">
-                      {selectedStateObj.name} ({selectedStateObj.code}) State Civic Vault
+                      {selectedStateObj.name} Civic Research Scope
                     </h3>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <SystemZipExporter
-                      buttonText={`📦 Export ${selectedStateObj.name} .ZIP`}
-                      variant="state"
-                      stateFilter={selectedStateObj.slug}
-                    />
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold font-mono ${
+                      selectedStateObj.slug === 'florida'
+                        ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                        : 'bg-gray-100 text-gray-600 border border-gray-300'
+                    }`}>
+                      {selectedStateObj.slug === 'florida' ? 'ACTIVE_RESEARCH_SCOPE' : 'SCOPE_PENDING_AUTHORIZATION'}
+                    </span>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
-                    <p className="text-[10px] font-mono text-slate-500 uppercase">Total Seats Universe</p>
-                    <p className="text-base font-black text-slate-900 mt-0.5">{selectedStateObj.totalSeats.toLocaleString()}</p>
+                    <p className="text-[10px] font-mono text-slate-500 uppercase">Structural Seats</p>
+                    <p className="text-base font-black text-slate-900 mt-0.5">
+                      {selectedStateObj.slug === 'florida' ? '5,508' : 'NOT YET MEASURED'}
+                    </p>
                   </div>
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
-                    <p className="text-[10px] font-mono text-slate-500 uppercase">Monitored Officials</p>
-                    <p className="text-base font-black text-emerald-600 mt-0.5">
-                      {Math.round(selectedStateObj.totalSeats * (selectedStateObj.slug === 'florida' ? 0.95 : 0.35)).toLocaleString()}
+                    <p className="text-[10px] font-mono text-slate-500 uppercase">Active Harvest Scope</p>
+                    <p className={`text-base font-black mt-0.5 ${selectedStateObj.slug === 'florida' ? 'text-emerald-600' : 'text-slate-400'}`}>
+                      {selectedStateObj.slug === 'florida' ? 'Primary Active' : 'Deferred'}
                     </p>
                   </div>
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
@@ -331,44 +435,31 @@ export function DataArchiveView() {
                     <p className="text-base font-black text-slate-900 mt-0.5">{selectedStateObj.capital}</p>
                   </div>
                   <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
-                    <p className="text-[10px] font-mono text-slate-500 uppercase">Ingested Points</p>
+                    <p className="text-[10px] font-mono text-slate-500 uppercase">Evidence State</p>
                     <p className="text-base font-black text-blue-600 mt-0.5">
-                      {(Math.round(selectedStateObj.totalSeats * (selectedStateObj.slug === 'florida' ? 0.95 : 0.35)) * 29).toLocaleString()}
+                      {selectedStateObj.slug === 'florida' ? 'EXTRACTED_UNREVIEWED' : 'UNRESEARCHED'}
                     </p>
                   </div>
                 </div>
 
-                {/* State Files Available */}
+                {/* Scope Details */}
                 <div className="space-y-3 pt-2">
                   <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
-                    Files Ingested in <code>/data/officials/{selectedStateObj.slug}/</code>
+                    {selectedStateObj.slug === 'florida' ? 'Florida Primary Harvest Status' : `${selectedStateObj.name} Expansion Status`}
                   </h4>
 
-                  <div className="space-y-2">
-                    <div className="bg-slate-900 text-slate-200 rounded-xl p-3 font-mono text-xs flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Icon name="file" size={14} className="text-amber-400" />
-                        <span>state_roster_summary.csv (25+ column full matrix)</span>
-                      </div>
-                      <span className="text-[11px] text-emerald-400 font-bold">READY</span>
+                  {selectedStateObj.slug === 'florida' ? (
+                    <div className="space-y-2 text-xs text-slate-700 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                      <p><strong>Active Sources:</strong> Florida Division of Elections, Florida Senate, Florida House of Representatives, FDLE/Ethics Commission, County Supervisors of Elections.</p>
+                      <p><strong>Statutory Election Windows:</strong> § 99.061 F.S. (Qualifying Period: Noon June 8 – Noon June 12, 2026). Pre-qualifying window § 99.061(8) F.S. enforced strictly. No candidates marked QUALIFIED prior to qualifying window.</p>
+                      <p><strong>Legislative Staggering:</strong> Florida Senate even-numbered districts scheduled for 2026 cycle; odd-numbered districts off-cycle (Art. III, § 15 Fla. Const.).</p>
                     </div>
-
-                    <div className="bg-slate-900 text-slate-200 rounded-xl p-3 font-mono text-xs flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Icon name="file" size={14} className="text-blue-400" />
-                        <span>state_officials_roster.ndjson (streamable 100+ field objects)</span>
-                      </div>
-                      <span className="text-[11px] text-emerald-400 font-bold">STREAMABLE</span>
+                  ) : (
+                    <div className="space-y-2 text-xs text-slate-500 bg-gray-50 p-4 rounded-xl border border-gray-200 italic">
+                      <p>National expansion for {selectedStateObj.name} is queued behind Florida master reconciliation. Zero synthetic seats or fictional officials are generated for deferred jurisdictions.</p>
+                      <p>Jurisdiction status: <code>SCOPE_PENDING_CANONICAL_AUTHORIZATION</code></p>
                     </div>
-
-                    <div className="bg-slate-900 text-slate-200 rounded-xl p-3 font-mono text-xs flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Icon name="file" size={14} className="text-purple-400" />
-                        <span>state_summary.json (aggregate statistics & budgets)</span>
-                      </div>
-                      <span className="text-[11px] text-emerald-400 font-bold">VERIFIED</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -378,347 +469,151 @@ export function DataArchiveView() {
 
       {/* TAB 3: 100+ FIELD RECORD INSPECTOR */}
       {activeTab === '100_fields_inspector' && (
-        <div className="space-y-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-black text-slate-900">Complete 100+ Field Record Inspector (10 Categories)</h2>
-              <p className="text-xs text-slate-500">
-                Every official in the database has an exhaustive 100+ field schema. Explore all 10 categories below.
-              </p>
-            </div>
-
-            {/* Quick Profile Switcher */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-600">Sample Profile:</span>
-              <button
-                onClick={() =>
-                  setSelectedOfficialProfile(
-                    generateDeterministic100FieldProfile({
-                      name: 'Ron DeSantis',
-                      title: 'Governor of Florida',
-                      level: 'State',
-                      party: 'Republican',
-                      stateCode: 'FL',
-                      stateName: 'Florida',
-                      photoUrl: 'https://flgov.com/wp-content/uploads/2023/01/GovDeSantis_Official.jpg'
-                    })
-                  )
-                }
-                className="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-100 text-amber-800 hover:bg-amber-200 cursor-pointer"
-              >
-                Gov. DeSantis
-              </button>
-
-              <button
-                onClick={() =>
-                  setSelectedOfficialProfile(
-                    generateDeterministic100FieldProfile({
-                      name: 'Marco Rubio',
-                      title: 'U.S. Senator',
-                      level: 'Federal',
-                      party: 'Republican',
-                      stateCode: 'FL',
-                      stateName: 'Florida',
-                      photoUrl: 'https://www.rubio.senate.gov/wp-content/uploads/2023/01/rubio_official.jpg'
-                    })
-                  )
-                }
-                className="px-2.5 py-1 text-xs font-bold rounded-lg bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer"
-              >
-                Sen. Rubio
-              </button>
-
-              <button
-                onClick={() =>
-                  setSelectedOfficialProfile(
-                    generateDeterministic100FieldProfile({
-                      name: 'Daniella Levine Cava',
-                      title: 'Miami-Dade County Mayor',
-                      level: 'County',
-                      party: 'Democrat',
-                      stateCode: 'FL',
-                      stateName: 'Florida',
-                      photoUrl: 'https://www.miamidade.gov/global/images/mayor/daniella-levine-cava-portrait.jpg'
-                    })
-                  )
-                }
-                className="px-2.5 py-1 text-xs font-bold rounded-lg bg-purple-100 text-purple-800 hover:bg-purple-200 cursor-pointer"
-              >
-                Mayor Levine Cava
-              </button>
-            </div>
+        <div id="tab_content_100_fields" className="space-y-6">
+          <div>
+            <h2 className="text-lg font-black text-slate-900">Hermes Ingest Contract Specifications (10 Categories)</h2>
+            <p className="text-xs text-slate-500">
+              CivicsLenZz adheres to the standardized 100+ field research schema. All categories require primary source attribution and SHA-256 evidence seals.
+            </p>
           </div>
 
-          {/* Official Banner */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 text-white flex flex-col sm:flex-row items-center gap-6 shadow-md">
-            <img
-              src={selectedOfficialProfile.headshotUrl}
-              alt={selectedOfficialProfile.name}
-              className="w-20 h-20 rounded-2xl object-cover border-2 border-amber-400 shrink-0"
-              referrerPolicy="no-referrer"
-            />
-            <div className="space-y-1 text-center sm:text-left flex-1">
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                <span className="text-lg font-black text-white">{selectedOfficialProfile.legalName}</span>
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold">
-                  {selectedOfficialProfile.party} • {selectedOfficialProfile.level}
-                </span>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold">
-                  {selectedOfficialProfile.score}% VERIFIED
-                </span>
-              </div>
-              <p className="text-xs text-slate-300">{selectedOfficialProfile.title} — {selectedOfficialProfile.district}</p>
-              <p className="text-[11px] font-mono text-amber-400">
-                SHA-256 Seal: {selectedOfficialProfile.cryptographicProvenance.sha256EvidenceSeal.slice(0, 32)}...
-              </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Category Selector */}
+            <div className="space-y-2">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Research Categories</p>
+              {CONTRACT_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  className={`w-full text-left p-3 rounded-xl transition cursor-pointer flex items-center justify-between text-xs ${
+                    selectedCategory === cat.id
+                      ? 'bg-slate-900 text-white font-bold shadow-sm'
+                      : 'bg-white border border-gray-200 text-slate-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <span>{cat.name}</span>
+                  <span className={`font-mono text-[10px] ${selectedCategory === cat.id ? 'text-amber-400' : 'text-slate-400'}`}>
+                    {cat.fieldCount} fields
+                  </span>
+                </button>
+              ))}
             </div>
-          </div>
 
-          {/* 10 Category Tabs */}
-          <div className="flex border-b border-gray-200 gap-1.5 overflow-x-auto pb-2">
-            {[
-              { id: 1, label: '1. Identity & Contact (12)' },
-              { id: 2, label: '2. Office & Jurisdiction (14)' },
-              { id: 3, label: '3. Biography & Career (12)' },
-              { id: 4, label: '4. Campaign Finance (18)' },
-              { id: 5, label: '5. Promises & Pledges (15)' },
-              { id: 6, label: '6. Roll-Call Votes (15)' },
-              { id: 7, label: '7. Legal & Ethics (12)' },
-              { id: 8, label: '8. Polling & Ads (10)' },
-              { id: 9, label: '9. Stances & Ideology (8)' },
-              { id: 10, label: '10. Provenance (6)' }
-            ].map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setCategoryFilter(cat.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer ${
-                  categoryFilter === cat.id
-                    ? 'bg-slate-900 text-amber-300 shadow-sm'
-                    : 'bg-gray-100 text-slate-600 hover:bg-gray-200'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Category Content Panels */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
-            {categoryFilter === 1 && (
-              <div className="space-y-4">
-                <h3 className="font-bold text-slate-900 text-base">Category 1: Identity & Contact (12 Fields)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-3 rounded-xl">
-                    <p className="text-[10px] font-mono text-slate-500">Legal Name</p>
-                    <p className="text-xs font-bold text-slate-900">{selectedOfficialProfile.legalName}</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-xl">
-                    <p className="text-[10px] font-mono text-slate-500">Preferred Name</p>
-                    <p className="text-xs font-bold text-slate-900">{selectedOfficialProfile.preferredName}</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-xl">
-                    <p className="text-[10px] font-mono text-slate-500">Official Government Domain</p>
-                    <p className="text-xs font-bold text-blue-600 font-mono">{selectedOfficialProfile.governmentDomain}</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-xl">
-                    <p className="text-[10px] font-mono text-slate-500">Official Email & Phone</p>
-                    <p className="text-xs font-bold text-slate-900">{selectedOfficialProfile.officialEmail} • {selectedOfficialProfile.officialPhone}</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-xl md:col-span-2">
-                    <p className="text-[10px] font-mono text-slate-500">Physical Office Address</p>
-                    <p className="text-xs font-bold text-slate-900">{selectedOfficialProfile.officeAddress}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {categoryFilter === 4 && (
-              <div className="space-y-4">
-                <h3 className="font-bold text-slate-900 text-base">Category 4: Campaign Finance & PACs (18 Fields)</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl">
-                    <p className="text-[10px] font-mono text-amber-700 uppercase">Total Raised</p>
-                    <p className="text-base font-black text-amber-900">${selectedOfficialProfile.campaignFinance.totalRaised.toLocaleString()}</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-xl">
-                    <p className="text-[10px] font-mono text-slate-500 uppercase">Total Spent</p>
-                    <p className="text-base font-black text-slate-900">${selectedOfficialProfile.campaignFinance.totalSpent.toLocaleString()}</p>
-                  </div>
-                  <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl">
-                    <p className="text-[10px] font-mono text-emerald-700 uppercase">Cash On Hand</p>
-                    <p className="text-base font-black text-emerald-900">${selectedOfficialProfile.campaignFinance.cashOnHand.toLocaleString()}</p>
-                  </div>
-                  <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl">
-                    <p className="text-[10px] font-mono text-blue-700 uppercase">PAC Percentage</p>
-                    <p className="text-base font-black text-blue-900">{selectedOfficialProfile.campaignFinance.pacPercentage}%</p>
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <h4 className="text-xs font-bold text-slate-800 uppercase mb-2">Itemized Donor Ledgers</h4>
-                  <div className="space-y-2">
-                    {selectedOfficialProfile.donors.map((d, i) => (
-                      <div key={i} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl text-xs">
-                        <span className="font-bold text-slate-900">{d.name} ({d.industry})</span>
-                        <span className="font-mono font-bold text-amber-700">${d.amount.toLocaleString()}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {categoryFilter === 5 && (
-              <div className="space-y-4">
-                <h3 className="font-bold text-slate-900 text-base">Category 5: Platform Promises & Policy Pledges (15 Fields)</h3>
-                <div className="space-y-3">
-                  {selectedOfficialProfile.detailedPromises.map((p) => (
-                    <div key={p.id} className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-900">{p.title}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
-                          {p.status} ({p.progressPercentage}%)
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-600">{p.description}</p>
-                      <blockquote className="text-xs italic text-slate-700 bg-white p-2 rounded-lg border-l-2 border-amber-500">
-                        "{p.exactQuote}"
-                      </blockquote>
-                      <div className="text-[10px] font-mono text-slate-400 flex items-center justify-between pt-1">
-                        <span>Source: {p.sourceLabel}</span>
-                        <span>Audited: {p.dateLastAudited}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {categoryFilter === 6 && (
-              <div className="space-y-4">
-                <h3 className="font-bold text-slate-900 text-base">Category 6: Roll-Call Votes & Legislative Record (15 Fields)</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-gray-50 p-3 rounded-xl">
-                    <p className="text-[10px] font-mono text-slate-500">Bills Sponsored</p>
-                    <p className="text-base font-black text-slate-900">{selectedOfficialProfile.legislativeRecord.totalBillsSponsored}</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-xl">
-                    <p className="text-[10px] font-mono text-slate-500">Bills Passed</p>
-                    <p className="text-base font-black text-emerald-600">{selectedOfficialProfile.legislativeRecord.billsPassedIntoLaw}</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-xl">
-                    <p className="text-[10px] font-mono text-slate-500">Attendance Rate</p>
-                    <p className="text-base font-black text-blue-600">{selectedOfficialProfile.legislativeRecord.attendanceRate}%</p>
-                  </div>
-                  <div className="bg-gray-50 p-3 rounded-xl">
-                    <p className="text-[10px] font-mono text-slate-500">Partisan Alignment</p>
-                    <p className="text-base font-black text-purple-600">{selectedOfficialProfile.legislativeRecord.partisanAlignmentScore}%</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2 pt-2">
-                  <h4 className="text-xs font-bold text-slate-800 uppercase">Key Roll Call Votes</h4>
-                  {selectedOfficialProfile.legislativeRecord.keyRollCallVotes.map((v, i) => (
-                    <div key={i} className="p-3 bg-gray-50 rounded-xl flex items-center justify-between text-xs">
+            {/* Category Detail */}
+            <div className="md:col-span-2 bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-4">
+              {(() => {
+                const cat = CONTRACT_CATEGORIES.find(c => c.id === selectedCategory) || CONTRACT_CATEGORIES[0];
+                return (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                       <div>
-                        <p className="font-bold text-slate-900">{v.billNumber}: {v.billTitle}</p>
-                        <p className="text-[10px] text-slate-500">Date: {v.date} • Result: {v.result}</p>
+                        <span className="text-[11px] font-mono font-bold text-amber-700 uppercase">Specification Category #{cat.id}</span>
+                        <h3 className="text-base font-black text-slate-900 mt-0.5">{cat.name}</h3>
                       </div>
-                      <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 font-bold text-xs font-mono">
-                        {v.vote}
+                      <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-800 font-mono text-xs font-bold">
+                        {cat.fieldCount} Standard Fields
                       </span>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {categoryFilter === 10 && (
-              <div className="space-y-4">
-                <h3 className="font-bold text-slate-900 text-base">Category 10: Cryptographic Provenance & Telemetry (6 Fields)</h3>
-                <div className="bg-slate-900 text-amber-300 font-mono p-4 rounded-xl space-y-2 text-xs">
-                  <p><span className="text-slate-400">Responsible Hermes Agent:</span> {selectedOfficialProfile.cryptographicProvenance.responsibleHermesAgentId}</p>
-                  <p><span className="text-slate-400">Verification Timestamp:</span> {selectedOfficialProfile.cryptographicProvenance.verificationTimestamp}</p>
-                  <p><span className="text-slate-400">SHA-256 Evidence Seal:</span> {selectedOfficialProfile.cryptographicProvenance.sha256EvidenceSeal}</p>
-                  <p><span className="text-slate-400">Primary Docket URL:</span> {selectedOfficialProfile.cryptographicProvenance.primaryDocketVerificationUrl}</p>
-                  <p><span className="text-slate-400">Ingestion Engine:</span> {selectedOfficialProfile.cryptographicProvenance.ingestionVersion}</p>
-                  <p><span className="text-slate-400">Data Integrity Score:</span> {selectedOfficialProfile.cryptographicProvenance.dataIntegrityScore}%</p>
-                </div>
-              </div>
-            )}
+                    <p className="text-xs text-slate-600 leading-relaxed">{cat.description}</p>
 
-            {/* Fallback for other categories */}
-            {categoryFilter !== 1 && categoryFilter !== 4 && categoryFilter !== 5 && categoryFilter !== 6 && categoryFilter !== 10 && (
-              <div className="space-y-3">
-                <h3 className="font-bold text-slate-900 text-base">Category {categoryFilter} Data Summary</h3>
-                <pre className="bg-slate-900 text-slate-200 p-4 rounded-xl text-xs font-mono overflow-x-auto">
-                  {JSON.stringify(selectedOfficialProfile, null, 2).slice(0, 1200)}...
-                </pre>
-              </div>
-            )}
+                    <div className="bg-slate-900 text-slate-200 rounded-xl p-4 font-mono text-xs space-y-2 overflow-x-auto">
+                      <p className="text-amber-400 font-bold">// Mandatory Contract Invariants:</p>
+                      <p className="text-slate-300">✓ Ingestion State: Strictly marked EXTRACTED_UNREVIEWED</p>
+                      <p className="text-slate-300">✓ Cryptographic Seals: Separate retrieval_content_sha256 & claim_fingerprint</p>
+                      <p className="text-slate-300">✓ Primary Source Tier: Official .gov / .mil / statutory docket required for Tier A</p>
+                      <p className="text-slate-300">✓ Zero Synthetic Fallbacks: Adapters fail closed on non-2xx HTTP responses</p>
+                    </div>
+
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900">
+                      <strong>Audit Requirement:</strong> No official profile or candidate record may claim BASELINE_COMPLETE status until all required fields have verified primary source snapshots stored in <code>data/artifacts/retrievals/</code>.
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         </div>
       )}
 
-      {/* TAB 4: 5.12M DATA POINTS LEDGER */}
-      {activeTab === 'ledger_5m' && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-lg font-black text-slate-900">5,120,840+ Data Points Master Ledger</h2>
-            <p className="text-xs text-slate-500">
-              Categorical breakdown of every public record, roll call, campaign finance filing, and grant indexed in CivicLenZ.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-2">
-              <p className="text-xs font-mono text-slate-500 font-bold uppercase">Campaign Promises</p>
-              <p className="text-2xl font-black text-amber-600">1,843,592</p>
-              <p className="text-xs text-slate-600">Platform commitments with source quotes & verification .gov citations.</p>
+      {/* TAB 4: DURABLE EVIDENCE LEDGER */}
+      {activeTab === 'evidence_ledger' && (
+        <div id="tab_content_evidence_ledger" className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-black text-slate-900">Physical Evidence Ledger (EXTRACTED_UNREVIEWED)</h2>
+              <p className="text-xs text-slate-500">
+                Authentic extracted evidence records persisted in durable storage. Zero canonical validation authority claimed.
+              </p>
             </div>
-
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-2">
-              <p className="text-xs font-mono text-slate-500 font-bold uppercase">Roll-Call Votes</p>
-              <p className="text-2xl font-black text-blue-600">1,248,900</p>
-              <p className="text-xs text-slate-600">Legislative actions across 50 state houses and U.S. Congress.</p>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-2">
-              <p className="text-xs font-mono text-slate-500 font-bold uppercase">Finance & PAC Filings</p>
-              <p className="text-2xl font-black text-emerald-600">985,400</p>
-              <p className="text-xs text-slate-600">Quarterly filings, Super PAC expenditures, and individual donor records.</p>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-2">
-              <p className="text-xs font-mono text-slate-500 font-bold uppercase">Public Grants & CIPs</p>
-              <p className="text-2xl font-black text-purple-600">$350.95 Billion</p>
-              <p className="text-xs text-slate-600">Municipal capital improvement programs & community project grants.</p>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-2">
-              <p className="text-xs font-mono text-slate-500 font-bold uppercase">Ethics Clearances</p>
-              <p className="text-2xl font-black text-rose-600">345,200</p>
-              <p className="text-xs text-slate-600">FDLE/NCIC statutory background checks & State Ethics Commission Form 6.</p>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm space-y-2">
-              <p className="text-xs font-mono text-slate-500 font-bold uppercase">Verified Portraits</p>
-              <p className="text-2xl font-black text-cyan-600">185,348</p>
-              <p className="text-xs text-slate-600">Verified official headshots from .gov/.mil/Wikimedia archives.</p>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-mono font-bold">
+              Verification State: EXTRACTED_UNREVIEWED
             </div>
           </div>
+
+          {realEvidence.length === 0 ? (
+            <div className="bg-white border border-gray-200 rounded-2xl p-8 text-center space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                <Icon name="activity" size={24} />
+              </div>
+              <h3 className="font-bold text-slate-900 text-base">Ingesting Live Evidence via Hermes Workers</h3>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Evidence records are generated by the Hermes Worker Daemon during autonomous polling cycles. Run worker cycles or trigger adapter audits to record durable evidence objects.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs font-mono">
+                  <thead className="bg-slate-50 border-b border-gray-200 text-slate-600 font-bold uppercase text-[10px]">
+                    <tr>
+                      <th className="p-3">Evidence ID</th>
+                      <th className="p-3">Target Seat</th>
+                      <th className="p-3">Field Key</th>
+                      <th className="p-3">Extracted Value</th>
+                      <th className="p-3">Source URL</th>
+                      <th className="p-3">State</th>
+                      <th className="p-3">SHA-256 Seal</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {realEvidence.slice(0, 50).map((ev: any, idx: number) => (
+                      <tr key={ev.evidence_uuid || idx} className="hover:bg-gray-50">
+                        <td className="p-3 text-slate-900 font-bold">{ev.evidence_uuid ? ev.evidence_uuid.slice(0, 16) : 'N/A'}...</td>
+                        <td className="p-3 text-slate-700">{ev.seat_uuid || 'N/A'}</td>
+                        <td className="p-3 text-amber-700 font-bold">{ev.field_key || 'N/A'}</td>
+                        <td className="p-3 text-slate-800 max-w-xs truncate">{String(ev.extracted_value || '')}</td>
+                        <td className="p-3 text-blue-600 underline max-w-xs truncate">{ev.source_url || 'N/A'}</td>
+                        <td className="p-3">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                            {ev.verification_state || 'EXTRACTED_UNREVIEWED'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-slate-500 font-mono text-[10px]">
+                          {ev.retrieval_content_sha256 ? ev.retrieval_content_sha256.slice(0, 12) : 'N/A'}...
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* TAB 5: 2026 CANDIDATES */}
       {activeTab === 'candidates' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
+        <div id="tab_content_candidates" className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h2 className="text-lg font-black text-slate-900">2026 Candidate Database & Race Dynamics</h2>
+              <h2 className="text-lg font-black text-slate-900">2026 Florida Candidates & Contested Races</h2>
               <p className="text-xs text-slate-500">
-                Tracking declared candidates, campaign finance filings, Google/Meta digital ad spends, and Grade A/A+ polling feeds.
+                Tracking declared candidacies under Florida statutory election window § 99.061 F.S. All filings are PRE-QUALIFYING (§ 99.061(8) F.S.).
               </p>
+            </div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-mono font-bold">
+              Statutory Window: Noon June 8 – Noon June 12, 2026
             </div>
           </div>
 
@@ -740,6 +635,9 @@ export function DataArchiveView() {
                       <div>
                         <span className="font-bold text-slate-900">{cand.name}</span>
                         <span className="text-slate-500 ml-1.5">({cand.party})</span>
+                        <span className="ml-2 px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded text-[10px] font-mono">
+                          FILED / PRE-QUALIFYING
+                        </span>
                       </div>
                       <div className="text-right font-mono">
                         <span className="text-emerald-700 font-bold">${cand.finance?.totalRaised?.toLocaleString() || 0}</span>
@@ -753,72 +651,68 @@ export function DataArchiveView() {
         </div>
       )}
 
-      {/* TAB 6: 102 HERMES AGENTS */}
-      {activeTab === 'hermes' && (
-        <div className="space-y-6">
+      {/* TAB 6: DAEMON TELEMETRY */}
+      {activeTab === 'daemon_status' && (
+        <div id="tab_content_daemon_status" className="space-y-6">
           <div>
-            <h2 className="text-lg font-black text-slate-900">HERMES Matrix V2 — 102 Autonomous Background Agents</h2>
+            <h2 className="text-lg font-black text-slate-900">Hermes Autonomous Worker Daemon & Telemetry</h2>
             <p className="text-xs text-slate-500">
-              Active swarm taxonomy maintaining continuous research, photo harvesting, roll-call verification, and SHA-256 evidence hashing.
+              Live operational metrics from the durable background worker loop executing continuous research passes.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-slate-900 text-white rounded-2xl p-5 border border-amber-500/30 space-y-2">
-              <p className="text-xs font-mono text-amber-400 uppercase font-bold">Swarm H (46 Agents)</p>
-              <p className="text-xl font-black">H1–H46</p>
-              <p className="text-xs text-slate-300">State SOS, county SOE, municipal minutes, photo harvesting.</p>
+              <p className="text-xs font-mono text-amber-400 uppercase font-bold">Daemon Worker</p>
+              <p className="text-xl font-black">RUNNING</p>
+              <p className="text-xs text-slate-300">Autonomous background loop (1 Worker Instance)</p>
             </div>
             <div className="bg-slate-900 text-white rounded-2xl p-5 border border-blue-500/30 space-y-2">
-              <p className="text-xs font-mono text-blue-400 uppercase font-bold">Swarm C (36 Agents)</p>
-              <p className="text-xl font-black">C1–C36</p>
-              <p className="text-xs text-slate-300">Candidate qualifications, FEC filings, policy stance extraction.</p>
+              <p className="text-xs font-mono text-blue-400 uppercase font-bold">Florida Ledger Seats</p>
+              <p className="text-xl font-black">{seatCount.toLocaleString()}</p>
+              <p className="text-xs text-slate-300">Master Florida structural seat ledger</p>
             </div>
             <div className="bg-slate-900 text-white rounded-2xl p-5 border border-purple-500/30 space-y-2">
-              <p className="text-xs font-mono text-purple-400 uppercase font-bold">Swarm E (16 Agents)</p>
-              <p className="text-xl font-black">E1–E16</p>
-              <p className="text-xs text-slate-300">Race dynamics, campaign ad spend, polling methodology audits.</p>
+              <p className="text-xs font-mono text-purple-400 uppercase font-bold">Durable Evidence</p>
+              <p className="text-xl font-black">{evidenceCount.toLocaleString()}</p>
+              <p className="text-xs text-slate-300">Extracted unreviewed evidence records</p>
             </div>
             <div className="bg-slate-900 text-white rounded-2xl p-5 border border-emerald-500/30 space-y-2">
-              <p className="text-xs font-mono text-emerald-400 uppercase font-bold">Swarm Q (4 Agents)</p>
-              <p className="text-xl font-black">Q1–Q4</p>
-              <p className="text-xs text-slate-300">SHA-256 evidence seals, dead links, schema enforcement.</p>
+              <p className="text-xs font-mono text-emerald-400 uppercase font-bold">Primary Sources</p>
+              <p className="text-xl font-black">Tier A Active</p>
+              <p className="text-xs text-slate-300">FL DOS, Senate, House, Ethics, County SOEs</p>
             </div>
           </div>
+
+          {daemonTelemetry && (
+            <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm space-y-3">
+              <h3 className="font-bold text-slate-900 text-sm">Server Daemon Telemetry Payload</h3>
+              <pre className="bg-slate-900 text-slate-200 p-4 rounded-xl font-mono text-xs overflow-x-auto max-h-64">
+                {JSON.stringify(daemonTelemetry, null, 2)}
+              </pre>
+            </div>
+          )}
         </div>
       )}
 
-      {/* TAB 7: GITHUB STRUCTURE */}
-      {activeTab === 'github_tree' && (
-        <div className="space-y-6">
+      {/* TAB 7: STORAGE TREE */}
+      {activeTab === 'storage_tree' && (
+        <div id="tab_content_storage_tree" className="space-y-6">
           <div>
-            <h2 className="text-lg font-black text-slate-900">GitHub Repository Architecture (/data Directory)</h2>
+            <h2 className="text-lg font-black text-slate-900">Physical Storage Architecture (/data Directory)</h2>
             <p className="text-xs text-slate-500">
-              Clean directory layout ready for repository commit, inspection, and automated API consumption.
+              Clean directory layout maintaining authentic durable artifacts and full raw source snapshots on disk.
             </p>
           </div>
 
           <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 text-slate-200 font-mono text-xs overflow-x-auto shadow-2xl space-y-2">
             <p className="text-amber-400 font-bold">├── data/</p>
-            <p className="pl-4">├── MANIFEST.json <span className="text-slate-500"># Complete repository metadata & statistics</span></p>
-            <p className="pl-4">├── README.md <span className="text-slate-500"># Comprehensive data dictionary</span></p>
-            <p className="pl-4 text-emerald-400">├── officials/ <span className="text-slate-500"># Partitioned by state across all 50 states</span></p>
-            <p className="pl-8">├── MASTER_OFFICIALS_DIRECTORY.csv</p>
-            <p className="pl-8">├── officials_master_index.ndjson</p>
-            <p className="pl-8 text-blue-400">├── florida/ <span className="text-slate-500"># state_roster_summary.csv, NDJSON & JSON profiles</span></p>
-            <p className="pl-8 text-blue-400">├── california/</p>
-            <p className="pl-8 text-blue-400">├── texas/</p>
-            <p className="pl-8 text-blue-400">├── new-york/</p>
-            <p className="pl-8 text-slate-500">└── ... (all 50 state folders)</p>
-            <p className="pl-4 text-purple-400">├── candidates/</p>
-            <p className="pl-8">├── MASTER_2026_CANDIDATES.csv</p>
-            <p className="pl-8">├── races_2026.json</p>
-            <p className="pl-8">└── campaign_ads.json</p>
-            <p className="pl-4 text-amber-300">├── data-points-ledger/ <span className="text-slate-500"># 5.12M+ categorical ledgers</span></p>
-            <p className="pl-8">├── promises_ledger.json</p>
-            <p className="pl-8">├── roll_call_votes_ledger.json</p>
-            <p className="pl-8">├── campaign_finances_ledger.json</p>
-            <p className="pl-8">└── sha256_evidence_audit_samples.json</p>
+            <p className="pl-4 text-emerald-400">├── hermes_persistent_db.json <span className="text-slate-500"># Atomic durable storage (seats, evidence, jobs)</span></p>
+            <p className="pl-4 text-blue-400">├── artifacts/ <span className="text-slate-500"># Preserved primary research artifacts</span></p>
+            <p className="pl-8 text-cyan-400">├── retrievals/ <span className="text-slate-500"># Full raw un-truncated source byte payloads</span></p>
+            <p className="pl-8 text-cyan-400">└── audits/ <span className="text-slate-500"># Factual completeness inspection reports</span></p>
+            <p className="pl-4 text-purple-400">├── bridge-submissions.json <span className="text-slate-500"># Hermes Bridge M2M submission logs</span></p>
+            <p className="pl-4 text-amber-300">└── REALITY.md <span className="text-slate-500"># Anti-simulation truth statement</span></p>
           </div>
         </div>
       )}

@@ -84,7 +84,8 @@ export class HermesBridgeClient {
     this.canonicalIngestUrl = (process.env.CIVICLENZ_CANONICAL_INGEST_URL || '').trim();
     this.producerId = (process.env.CIVICLENZ_HARVESTER_PRODUCER_ID || 'civicslenzz-gemini-harvester').trim();
     this.sharedSecret = process.env.CIVICLENZ_HARVESTER_SHARED_SECRET ? process.env.CIVICLENZ_HARVESTER_SHARED_SECRET.trim() : null;
-    this.storagePath = path.join(process.cwd(), 'data', 'bridge-submissions.json');
+    const dataDir = process.env.CIVICSLENZZ_DATA_DIR || path.join(process.cwd(), 'data');
+    this.storagePath = path.join(dataDir, 'bridge-submissions.json');
 
     this.telemetry.canonical_endpoint_configured = this.canonicalIngestUrl.length > 0;
     this.telemetry.producer_id = this.producerId;

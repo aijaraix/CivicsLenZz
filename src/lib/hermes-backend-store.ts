@@ -107,6 +107,7 @@ export interface RawSourceSnapshot {
   content_type: string;
   raw_payload: string;
   payload_sha256: string;
+  raw_bytes_path?: string;
   retrieved_at: string;
   parser_version: string;
 }
@@ -122,6 +123,8 @@ export interface RawEvidenceObject {
   published_at?: string;
   source_tier: 'TIER_A' | 'TIER_B' | 'TIER_C' | 'TIER_D';
   raw_snapshot_uuid?: string;
+  retrieval_content_sha256?: string;
+  claim_fingerprint?: string;
   content_hash: string;
   parser_version: string;
   extraction_method: string;
@@ -305,15 +308,30 @@ export interface HermesPersistentSchema {
 class HermesBackendStore {
   private dbFilePath: string;
   private db: HermesPersistentSchema;
+  private dataDir: string;
 
-  constructor() {
-    const dataDir = path.join(process.cwd(), 'data');
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
+  constructor(customDataDir?: string) {
+    this.dataDir = customDataDir || process.env.CIVICSLENZZ_DATA_DIR || path.join(process.cwd(), 'data');
+    if (!fs.existsSync(this.dataDir)) {
+      fs.mkdirSync(this.dataDir, { recursive: true });
     }
-    this.dbFilePath = path.join(dataDir, 'hermes_persistent_db.json');
+    this.dbFilePath = path.join(this.dataDir, 'hermes_persistent_db.json');
     this.db = this.loadDatabase();
     this.seedInitialFloridaSourcesAndSeats();
+  }
+
+  public reinitialize(customDataDir?: string) {
+    this.dataDir = customDataDir || process.env.CIVICSLENZZ_DATA_DIR || path.join(process.cwd(), 'data');
+    if (!fs.existsSync(this.dataDir)) {
+      fs.mkdirSync(this.dataDir, { recursive: true });
+    }
+    this.dbFilePath = path.join(this.dataDir, 'hermes_persistent_db.json');
+    this.db = this.loadDatabase();
+    this.seedInitialFloridaSourcesAndSeats();
+  }
+
+  public getDataDir(): string {
+    return this.dataDir;
   }
 
   private loadDatabase(): HermesPersistentSchema {
@@ -798,14 +816,24 @@ class HermesBackendStore {
   // EVIDENCE & RAW SNAPSHOT METHODS
   // =========================================================================
 
-  public storeRawSnapshot(snapshot: Omit<RawSourceSnapshot, 'snapshot_uuid' | 'retrieved_at' | 'payload_sha256'> & { raw_payload: string }): RawSourceSnapshot {
+  public storeRawSnapshot(snapshot: Omit<RawSourceSnapshot, 'snapshot_uuid' | 'retrieved_at' | 'payload_sha256'> & { raw_payload: string; raw_bytes_path?: string }): RawSourceSnapshot {
     const nowIso = new Date().toISOString();
     const hash = crypto.createHash('sha256').update(snapshot.raw_payload).digest('hex');
+    const snapshotUuid = `snap_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+
+    // Exact byte durable storage (Directive 10: Store full bytes without truncation)
+    const retrievalsDir = path.join(this.dataDir, 'artifacts', 'retrievals');
+    if (!fs.existsSync(retrievalsDir)) {
+      fs.mkdirSync(retrievalsDir, { recursive: true });
+    }
+    const rawFilePath = path.join(retrievalsDir, `${snapshotUuid}.raw`);
+    fs.writeFileSync(rawFilePath, snapshot.raw_payload, 'utf-8');
 
     const record: RawSourceSnapshot = {
       ...snapshot,
-      snapshot_uuid: `snap_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
+      snapshot_uuid: snapshotUuid,
       payload_sha256: hash,
+      raw_bytes_path: rawFilePath,
       retrieved_at: nowIso
     };
 
@@ -818,15 +846,26 @@ class HermesBackendStore {
     return record;
   }
 
-  public createEvidenceObject(evidenceData: Omit<RawEvidenceObject, 'evidence_uuid' | 'retrieved_at' | 'content_hash'> & { content_to_hash?: string }): RawEvidenceObject {
+  public createEvidenceObject(evidenceData: Omit<RawEvidenceObject, 'evidence_uuid' | 'retrieved_at' | 'content_hash'> & {
+    content_to_hash?: string;
+    retrieval_content_sha256?: string;
+    claim_fingerprint?: string;
+  }): RawEvidenceObject {
     const nowIso = new Date().toISOString();
-    const contentToHash = evidenceData.content_to_hash || `${evidenceData.source_url}_${evidenceData.extracted_value}_${nowIso}`;
-    const hash = crypto.createHash('sha256').update(contentToHash).digest('hex');
+    // Directive 11: Separate retrieval content sha256 from claim fingerprint
+    const retrievalSha256 = evidenceData.retrieval_content_sha256 ||
+      (evidenceData.content_to_hash ? crypto.createHash('sha256').update(evidenceData.content_to_hash).digest('hex') : crypto.createHash('sha256').update(`${evidenceData.source_url}_${evidenceData.extracted_value}_${nowIso}`).digest('hex'));
+    
+    const claimFingerprint = evidenceData.claim_fingerprint || 
+      crypto.createHash('sha256').update(`${evidenceData.source_url}_${evidenceData.seat_uuid || ''}_${evidenceData.field_key || ''}_${evidenceData.extracted_value || ''}`).digest('hex');
 
     const evidence: RawEvidenceObject = {
       ...evidenceData,
       evidence_uuid: `evi_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
-      content_hash: hash,
+      retrieval_content_sha256: retrievalSha256,
+      claim_fingerprint: claimFingerprint,
+      content_hash: retrievalSha256, // Stable backward compatible field representing exact raw bytes hash
+      verification_state: 'EXTRACTED_UNREVIEWED', // Producer evidence is strictly unreviewed!
       retrieved_at: nowIso
     };
 
