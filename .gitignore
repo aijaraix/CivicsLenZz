@@ -13,6 +13,11 @@ data/jobs.json
 data/hermes_persistent_db.json
 data/coverage-atlas.json
 data/boundary-evolution.json
+data/artifacts/retrievals/*
+!data/artifacts/retrievals/.gitkeep
+data/artifacts/*
+!data/artifacts/.gitkeep
+!data/artifacts/retrievals/
 temp_db.txt
 home_jsx.txt
 civicslenzz-harvester-sync.*

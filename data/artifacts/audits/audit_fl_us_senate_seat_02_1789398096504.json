@@ -1,9 +1,0 @@
-{
-  "audit_timestamp": "2026-09-14T15:01:36.504Z",
-  "target_seat_uuid": "fl_us_senate_seat_02",
-  "seat_found": true,
-  "current_official": "Marco Rubio",
-  "evidence_objects_count": 0,
-  "coverage_status": "RESEARCH_IN_PROGRESS",
-  "total_seats_in_scope": 6
-}

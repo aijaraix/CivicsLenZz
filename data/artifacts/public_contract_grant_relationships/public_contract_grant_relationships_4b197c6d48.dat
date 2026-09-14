@@ -1,9 +1,0 @@
-{
-  "snapshotId": "snap_person_byron_donalds",
-  "sourceUrl": "https://donalds.house.gov/",
-  "fetchedAt": "2026-09-01T12:00:00Z",
-  "sha256": "b973130724eddb06900f97513075b5fd776bed3d188f49a751ec7b940c4bb91a",
-  "bytes": 536,
-  "content": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Official Government Record - Byron Donalds</title>\n</head>\n<body>\n    <header><h1>Official Government Record - Byron Donalds</h1></header>\n    <main>\n        <p>Source URL: <a href=\"https://donalds.house.gov/\">https://donalds.house.gov/</a></p>\n        <p>Extraction Payload: Official public record for Byron Donalds (Republican) extracted from https://donalds.house.gov/</p>\n        <p>Extraction Status: extracted_unreviewed</p>\n    </main>\n</body>\n</html>",
-  "extractionStatus": "extracted_unreviewed"
-}
