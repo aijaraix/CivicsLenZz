@@ -1475,6 +1475,13 @@ class HermesBackendStore {
   public getMonitoringProofRecords(): DurableMonitoringProofRecord[] {
     return [...this.db.monitoring_proof_records];
   }
+
+  public getStorageMode(): 'CLOUD_SQL_POSTGRES' | 'FAIL_CLOSED_NO_DB' {
+    if (process.env.SQL_HOST && process.env.SQL_DB_NAME && process.env.SQL_USER) {
+      return 'CLOUD_SQL_POSTGRES';
+    }
+    return 'FAIL_CLOSED_NO_DB';
+  }
 }
 
 export const hermesBackendStore = new HermesBackendStore();

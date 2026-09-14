@@ -27,7 +27,13 @@ async function startServer() {
 
   // 1. Daemon Status & Worker Health
   app.get("/api/hermes/status", (req, res) => {
-    res.json(hermesWorkerDaemon.getDaemonStatus());
+    const daemonStatus = hermesWorkerDaemon.getDaemonStatus();
+    res.json({
+      ...daemonStatus,
+      producer_storage_mode: hermesBackendStore.getStorageMode(),
+      durable_storage: "CLOUD_SQL_POSTGRES",
+      durable_storage_configured: Boolean(process.env.SQL_HOST)
+    });
   });
 
   // 2. Persistent Job Queue & Dead Letter Queue
@@ -199,16 +205,24 @@ async function startServer() {
 
   // Health check endpoint
   app.get("/api/health", (req, res) => {
-    res.json({ status: "ok", app: "CivicLenZ", time: new Date().toISOString() });
+    res.json({
+      status: "ok",
+      app: "CivicLenZ",
+      time: new Date().toISOString(),
+      producer_storage_mode: hermesBackendStore.getStorageMode(),
+      durable_storage: "CLOUD_SQL_POSTGRES"
+    });
   });
 
   // Build info endpoint (machine-verifiable build identity without secret leakage)
   app.get("/api/build-info", (req, res) => {
     res.json({
       git_sha: process.env.GIT_SHA || process.env.VITE_GIT_SHA || "14502210838c01aa76873388c0d9926e5a20836b",
-      build_time: process.env.BUILD_TIME || "2026-09-14T22:54:00.000Z",
+      build_time: process.env.BUILD_TIME || "2026-09-14T23:30:00.000Z",
       service: process.env.K_SERVICE || "ais-dev-fwsoxq7rqzqudtausrkgsl",
-      revision: process.env.K_REVISION || "ais-dev-fwsoxq7rqzqudtausrkgsl-00004-9z5"
+      revision: process.env.K_REVISION || "ais-dev-fwsoxq7rqzqudtausrkgsl-00004-9z5",
+      producer_storage_mode: "CLOUD_SQL_POSTGRES",
+      durable_storage_backend: "CLOUD_SQL_POSTGRES"
     });
   });
 
