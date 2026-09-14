@@ -14,7 +14,16 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import * as cheerio from 'cheerio';
-import { hermesBackendStore, RawSourceSnapshot, RawEvidenceObject } from './hermes-backend-store';
+import {
+  hermesBackendStore,
+  RawSourceSnapshot,
+  RawEvidenceObject,
+  detectAccessChallenge
+} from './hermes-backend-store';
+import type { AccessChallengeInspection } from './hermes-backend-store';
+
+export type { AccessChallengeInspection };
+export { detectAccessChallenge };
 
 export interface AdapterParseResult {
   success: boolean;
@@ -36,49 +45,6 @@ export interface AdapterParseResult {
   evidence_objects: RawEvidenceObject[];
   error_message?: string;
   failure_class?: string;
-}
-
-export interface AccessChallengeInspection {
-  isChallenge: boolean;
-  reason?: string;
-  failureClass?: string;
-}
-
-export function detectAccessChallenge(status: number, text: string): AccessChallengeInspection {
-  if (status === 403) {
-    const lower = text.toLowerCase();
-    if (lower.includes('cf-mitigated') || lower.includes('cloudflare') || lower.includes('challenges.cloudflare.com')) {
-      return { isChallenge: true, reason: 'ACCESS_RESTRICTED: Cloudflare bot challenge mitigation (HTTP 403)', failureClass: 'ACCESS_RESTRICTED' };
-    }
-    return { isChallenge: true, reason: 'ACCESS_RESTRICTED: HTTP 403 Forbidden', failureClass: 'ACCESS_RESTRICTED' };
-  }
-
-  if (status === 429) {
-    return { isChallenge: true, reason: 'RATE_LIMITED: HTTP 429 Too Many Requests', failureClass: 'RATE_LIMITED' };
-  }
-
-  if (status === 503 || status === 502 || status === 504) {
-    return { isChallenge: true, reason: `SOURCE_UNAVAILABLE: HTTP ${status}`, failureClass: 'SOURCE_UNAVAILABLE' };
-  }
-
-  if (status < 200 || status >= 300) {
-    return { isChallenge: true, reason: `RETRIEVAL_FAILED: HTTP ${status}`, failureClass: 'RETRIEVAL_FAILED' };
-  }
-
-  const lower = text.toLowerCase();
-  if (lower.includes('cf-turnstile') || lower.includes('challenge-platform') || lower.includes('just a moment...') || lower.includes('attention required! | cloudflare')) {
-    return { isChallenge: true, reason: 'ACCESS_RESTRICTED: Cloudflare interstitial challenge detected', failureClass: 'ACCESS_RESTRICTED' };
-  }
-
-  if (lower.includes('robot or human?') || lower.includes('bot verification') || lower.includes('security check to continue') || lower.includes('captcha') || lower.includes('ddos-guard')) {
-    return { isChallenge: true, reason: 'ACCESS_RESTRICTED: Bot mitigation challenge page detected', failureClass: 'ACCESS_RESTRICTED' };
-  }
-
-  if (text.trim().length === 0) {
-    return { isChallenge: true, reason: 'SOURCE_UNAVAILABLE: Empty response body received from source', failureClass: 'SOURCE_UNAVAILABLE' };
-  }
-
-  return { isChallenge: false };
 }
 
 export class SourceAdapterBase {

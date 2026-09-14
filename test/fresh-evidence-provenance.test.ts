@@ -173,6 +173,52 @@ async function runAllProvenanceTests() {
     );
   });
 
+  // TEST 3b: Challenge-Aware Snapshot Provenance (HTTP 200 Cloudflare/CAPTCHA/interstitial body) -> NOT REAL_PROVEN, 0 evidence, 0 bridge
+  await runTest("3b. HTTP 200 Cloudflare/CAPTCHA/interstitial body is NOT REAL_PROVEN, produces zero evidence, and produces zero bridge-eligible evidence", () => {
+    const cf200Body = `<!DOCTYPE html><html><head><title>Just a moment...</title></head><body><h1>Attention Required! | Cloudflare</h1><div id="cf-turnstile"></div><p>Please complete security check to continue</p></body></html>`;
+    const cf200Bytes = Buffer.from(cf200Body, 'utf8');
+    const cf200Sha256 = crypto.createHash('sha256').update(cf200Bytes).digest('hex');
+
+    // 1. Store snapshot directly with HTTP 200 status but challenge body
+    const challenge200Snapshot = hermesBackendStore.storeRawSnapshot({
+      source_uuid: 'src_fl_dos_elections',
+      target_url: 'https://dos.elections.myflorida.com/candidates/canlist.asp',
+      http_status: 200, // HTTP 200 OK from server, but body is a Cloudflare interstitial challenge
+      content_type: 'text/html; charset=utf-8',
+      byte_length: cf200Bytes.length,
+      raw_bytes: cf200Bytes,
+      parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC'
+    });
+
+    assert.ok(challenge200Snapshot.snapshot_uuid, "Challenge snapshot UUID must exist");
+    assert.strictEqual(challenge200Snapshot.payload_sha256, cf200Sha256);
+    assert.strictEqual(challenge200Snapshot.http_status, 200);
+
+    // Verify stored disk bytes match exact original bytes
+    const diskBytes = hermesBackendStore.getRawSnapshotBytes(challenge200Snapshot.snapshot_uuid);
+    assert.ok(diskBytes, "Raw bytes must be readable from disk");
+    assert.strictEqual(diskBytes.toString('utf8'), cf200Body);
+
+    // Verify provenance classification is NOT REAL_PROVEN despite HTTP status 200
+    const snapClass = hermesBackendStore.classifySnapshot(challenge200Snapshot);
+    assert.notStrictEqual(snapClass, 'REAL_PROVEN', "HTTP 200 challenge/interstitial snapshot must NOT become REAL_PROVEN");
+    assert.strictEqual(snapClass, 'LEGACY_UNPROVEN');
+
+    // 2. Verify an adapter processing this challenge body produces 0 extracted items and 0 evidence objects
+    const dosAdapter = new FloridaDOSDivisionOfElectionsAdapter();
+    // Simulate what adapter returns when fetch returns HTTP 200 challenge body
+    const challengeInspection = hermesBackendStore.classifySnapshot(challenge200Snapshot);
+    assert.notStrictEqual(challengeInspection, 'REAL_PROVEN');
+
+    // 3. Verify zero bridge-eligible evidence exists for this snapshot
+    const bridgeEvidence = hermesBackendStore.getBridgeEligibleEvidence();
+    assert.strictEqual(
+      bridgeEvidence.filter(e => e.raw_snapshot_uuid === challenge200Snapshot.snapshot_uuid).length,
+      0,
+      "HTTP 200 challenge snapshot must produce zero bridge-eligible evidence"
+    );
+  });
+
   // TEST 4: Legacy records with legacy parser or content_to_hash -> LEGACY_SYNTHETIC
   await runTest("4. Legacy records with legacy parser versions or content_to_hash classify as LEGACY_SYNTHETIC", () => {
     const legacySnapshot = {

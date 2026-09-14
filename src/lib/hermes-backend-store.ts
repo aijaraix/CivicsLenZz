@@ -11,6 +11,65 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
+export interface AccessChallengeInspection {
+  isChallenge: boolean;
+  reason?: string;
+  failureClass?: string;
+}
+
+export function detectAccessChallenge(status: number, text: string): AccessChallengeInspection {
+  if (status === 403) {
+    const lower = text.toLowerCase();
+    if (lower.includes('cf-mitigated') || lower.includes('cloudflare') || lower.includes('challenges.cloudflare.com')) {
+      return { isChallenge: true, reason: 'ACCESS_RESTRICTED: Cloudflare bot challenge mitigation (HTTP 403)', failureClass: 'ACCESS_RESTRICTED' };
+    }
+    return { isChallenge: true, reason: 'ACCESS_RESTRICTED: HTTP 403 Forbidden', failureClass: 'ACCESS_RESTRICTED' };
+  }
+
+  if (status === 429) {
+    return { isChallenge: true, reason: 'RATE_LIMITED: HTTP 429 Too Many Requests', failureClass: 'RATE_LIMITED' };
+  }
+
+  if (status === 503 || status === 502 || status === 504) {
+    return { isChallenge: true, reason: `SOURCE_UNAVAILABLE: HTTP ${status}`, failureClass: 'SOURCE_UNAVAILABLE' };
+  }
+
+  if (status < 200 || status >= 300) {
+    return { isChallenge: true, reason: `RETRIEVAL_FAILED: HTTP ${status}`, failureClass: 'RETRIEVAL_FAILED' };
+  }
+
+  const lower = text.toLowerCase();
+  if (
+    lower.includes('cf-turnstile') ||
+    lower.includes('challenge-platform') ||
+    lower.includes('just a moment...') ||
+    lower.includes('attention required! | cloudflare') ||
+    lower.includes('challenges.cloudflare.com') ||
+    lower.includes('cf-mitigated') ||
+    lower.includes('cf-chl-bypass') ||
+    lower.includes('cloudflare')
+  ) {
+    return { isChallenge: true, reason: 'ACCESS_RESTRICTED: Cloudflare interstitial challenge detected', failureClass: 'ACCESS_RESTRICTED' };
+  }
+
+  if (
+    lower.includes('robot or human?') ||
+    lower.includes('bot verification') ||
+    lower.includes('security check to continue') ||
+    lower.includes('captcha') ||
+    lower.includes('ddos-guard') ||
+    lower.includes('access denied') ||
+    lower.includes('enable javascript and cookies to continue')
+  ) {
+    return { isChallenge: true, reason: 'ACCESS_RESTRICTED: Bot mitigation challenge page detected', failureClass: 'ACCESS_RESTRICTED' };
+  }
+
+  if (text.trim().length === 0) {
+    return { isChallenge: true, reason: 'SOURCE_UNAVAILABLE: Empty response body received from source', failureClass: 'SOURCE_UNAVAILABLE' };
+  }
+
+  return { isChallenge: false };
+}
 export type JobStatus =
   | 'QUEUED'
   | 'LEASED'
@@ -910,12 +969,20 @@ class HermesBackendStore {
     const rawFilePath = path.join(retrievalsDir, `${snapshotUuid}.raw`);
     fs.writeFileSync(rawFilePath, rawBuffer);
 
-    const initialProvenance: EvidenceProvenance =
-      snapshot.parser_version === 'v2.1' || snapshot.parser_version === 'DETERMINISTIC_PARSER_V2'
-        ? 'LEGACY_SYNTHETIC'
-        : snapshot.http_status === 200
-        ? 'REAL_PROVEN'
-        : 'LEGACY_UNPROVEN';
+    const textSample = rawBuffer.toString('utf-8');
+    const challengeCheck = detectAccessChallenge(snapshot.http_status, textSample);
+
+    const isSynthetic =
+      snapshot.parser_version === 'v2.1' ||
+      snapshot.parser_version === 'DETERMINISTIC_PARSER_V2' ||
+      snapshot.target_url?.includes('synthetic') ||
+      snapshot.target_url?.includes('mock');
+
+    const initialProvenance: EvidenceProvenance = isSynthetic
+      ? 'LEGACY_SYNTHETIC'
+      : snapshot.http_status === 200 && !challengeCheck.isChallenge
+      ? 'REAL_PROVEN'
+      : 'LEGACY_UNPROVEN';
 
     // Metadata store retains path, content type, byte length, SHA-256, charset, retrieval time, URL, HTTP status
     // Entire binary payload is NOT placed into JSON
@@ -951,9 +1018,6 @@ class HermesBackendStore {
 
   public classifySnapshot(snap: RawSourceSnapshot): EvidenceProvenance {
     if (!snap) return 'UNKNOWN';
-    if (snap.provenance_classification && snap.provenance_classification !== 'UNKNOWN') {
-      return snap.provenance_classification;
-    }
     if (
       snap.parser_version === 'v2.1' ||
       snap.parser_version === 'DETERMINISTIC_PARSER_V2' ||
@@ -983,7 +1047,9 @@ class HermesBackendStore {
         const fileBytes = fs.readFileSync(snap.raw_bytes_path);
         const computedSha = crypto.createHash('sha256').update(fileBytes).digest('hex');
         const lengthMatches = snap.byte_length !== undefined ? fileBytes.length === snap.byte_length : true;
-        if (computedSha === snap.payload_sha256 && lengthMatches) {
+        const textSample = fileBytes.toString('utf-8');
+        const challengeCheck = detectAccessChallenge(snap.http_status, textSample);
+        if (computedSha === snap.payload_sha256 && lengthMatches && !challengeCheck.isChallenge) {
           return 'REAL_PROVEN';
         }
       } catch {

@@ -6,6 +6,12 @@ import { hermesBackendStore } from "./src/lib/hermes-backend-store";
 import { hermesWorkerDaemon } from "./src/lib/hermes-worker-daemon";
 import { masterFloridaLedger } from "./src/lib/florida-master-ledger";
 import { cohortReadinessEngine } from "./src/lib/cohort-readiness-engine";
+import {
+  FL_2026_FEDERAL_STATE_QUALIFYING_PERIOD,
+  FL_2026_FEDERAL_STATE_PRE_QUALIFYING_ACCEPTANCE,
+  FL_2026_STATUTORY_QUALIFYING_PERIOD,
+  FL_2026_PRE_QUALIFYING_ACCEPTANCE
+} from "./src/lib/fl-senate-house-seats";
 
 async function startServer() {
   const app = express();
@@ -77,15 +83,31 @@ async function startServer() {
         status: "SUCCESS",
         timestamp: new Date().toISOString(),
         producer_role: "UNTRUSTED_RESEARCH_PRODUCER",
+        first_qualifying_period_federal_judicial: {
+          statute: "§ 99.061(1), F.S.",
+          applicable_offices: "U.S. Representative, Judicial, State Attorney, Public Defender",
+          period: "Noon April 20, 2026 – Noon April 24, 2026",
+          status: FL_2026_FEDERAL_STATE_QUALIFYING_PERIOD.status
+        },
+        first_pre_qualifying_acceptance: {
+          statute: "§ 99.061(8), F.S.",
+          period: "April 6, 2026 – Noon April 20, 2026",
+          status: FL_2026_FEDERAL_STATE_PRE_QUALIFYING_ACCEPTANCE.status
+        },
         statutory_qualifying_window: {
           statute: "§ 99.061(2), F.S.",
+          applicable_offices: "Governor, Cabinet, State Senate, State House, County",
           period: "Noon June 8, 2026 – Noon June 12, 2026",
-          status: "NOT_YET_OPEN"
+          status: FL_2026_STATUTORY_QUALIFYING_PERIOD.status
         },
         pre_qualifying_acceptance: {
           statute: "§ 99.061(8), F.S.",
           period: "May 25, 2026 – Noon June 8, 2026",
-          status: "NOT_YET_OPEN"
+          status: FL_2026_PRE_QUALIFYING_ACCEPTANCE.status
+        },
+        continuous_filing_authority: {
+          statute: "§ 106.021, F.S.",
+          status: "ACTIVE_ACCEPTING_FILINGS"
         },
         cohorts: {
           FLORIDA_STATE_SENATE: senate,
