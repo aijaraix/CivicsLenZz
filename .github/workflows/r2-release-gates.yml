@@ -45,6 +45,7 @@ jobs:
         run: cp -a data "$RUNNER_TEMP/producer-audit-baseline"
       - run: npm run test:r2
         id: r2
+      - run: npx tsx test/durability-probe.test.ts
       - run: npm test
       - if: ${{ !cancelled() && steps.r2.outcome == 'success' }}
         env:

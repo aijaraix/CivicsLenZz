@@ -1,9 +1,10 @@
+import { createDurabilityProbeRouter } from "./src/lib/durability-probe";
 import express from "express";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { hermesWorkerDaemon } from "./src/lib/hermes-worker-daemon";
-import { getProducerPersistence } from "./src/lib/producer-storage/index";
+import { getProducerPersistence, getRawObjectStore } from "./src/lib/producer-storage/index";
 import { masterFloridaLedger } from "./src/lib/florida-master-ledger";
 import { cohortReadinessEngine } from "./src/lib/cohort-readiness-engine";
 import {
@@ -19,6 +20,7 @@ async function startServer() {
   const PORT = 3000;
 
   const persistence = getProducerPersistence();
+  app.use("/api/internal/durability-probe", createDurabilityProbeRouter(persistence, getRawObjectStore()));
 
   // Start Real Server-Side HERMES Background Worker Daemon
   hermesWorkerDaemon.startDaemon().catch(err => {
