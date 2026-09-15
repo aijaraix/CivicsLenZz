@@ -43,6 +43,21 @@ jobs:
         run: npx drizzle-kit push --config=src/db/drizzle.config.ts
       - name: Preserve checkout data baseline before mutation by tests
         run: cp -a data "$RUNNER_TEMP/producer-audit-baseline"
+      - uses: actions/checkout@v4
+        with:
+          repository: aijaraix/CivicLenZ
+          ref: adb35dee3e8af4a9f09c32a6018970d6cf28a9aa
+          path: canonical-upstream
+          persist-credentials: false
+      - name: Verify exact canonical runtime validator and authorization suite
+        run: |
+          cmp src/lib/canonical-ingest-v1/contract.ts canonical-upstream/services/hermes-ingest/src/contract.ts
+          cmp src/lib/canonical-ingest-v1/canary.ts canonical-upstream/services/hermes-ingest/src/canary.ts
+          cmp src/lib/canonical-ingest-v1/types.ts canonical-upstream/services/hermes-ingest/src/types.ts
+          node --experimental-strip-types --no-warnings --test canonical-upstream/services/hermes-ingest/tests/*.test.ts
+          mv canonical-upstream "$RUNNER_TEMP/canonical-upstream"
+      - run: npx tsx test/canonical-ingest-v1.test.ts
+      - run: npx tsx test/canary-attempt-reservation.test.ts
       - run: npm run test:r2
         id: r2
       - run: npx tsx test/durability-probe.test.ts

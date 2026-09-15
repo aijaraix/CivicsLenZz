@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { buildRetainedCanaryEnvelope, assertCanonicalEnvelope } from '../src/lib/canonical-canary-envelope.ts';
+import { validateResearchIngestEnvelope } from '../src/lib/canonical-ingest-v1/contract.ts';
+const upstream = JSON.parse(readFileSync('src/lib/canonical-ingest-v1/UPSTREAM.json','utf8'));
+for (const [file, hash] of Object.entries(upstream.sha256)) assert.equal(createHash('sha256').update(readFileSync(`src/lib/canonical-ingest-v1/${file}`)).digest('hex'),hash);
+const bytes = Buffer.from('isolated NON-CIVIC contract fixture\x00\xff');
+const hash = createHash('sha256').update(bytes).digest('hex');
+const snapshot = { snapshot_uuid:'fixture-snapshot', source_uuid:'fixture-source', target_url:'https://example.org/fixture', retrieved_at:'2026-09-01T00:00:00Z', content_type:'application/octet-stream', parser_version:'fixture-v1', payload_sha256:hash, byte_length:bytes.length, object_locator:'r2://fixture/fixture-snapshot.raw', provenance_classification:'REAL_PROVEN', http_status:200, charset:null };
+const evidence = { evidence_uuid:'fixture-evidence', source_uuid:snapshot.source_uuid, source_url:snapshot.target_url, raw_snapshot_uuid:snapshot.snapshot_uuid, retrieval_content_sha256:hash, retrieved_at:snapshot.retrieved_at, parser_version:'fixture-v1', extraction_method:'fixture', provenance_classification:'REAL_PROVEN', supporting_locator:'#fixture', extracted_value:'isolated fixture', field_key:'fixture' };
+const prior = { contract_version:'CIVICLENZ_RESEARCH_INGEST_CONTRACT_V1', producer:{producer_id:'civicslenzz-gemini-harvester',producer_version:'fixture-v1',execution_id:'old',authorization_id:'never-send'}, job:{job_id:'fixture-job',research_work_identity:'isolated_fixture_work',authorization_id:'never-send'}, extraction_status:'extracted_unreviewed',capability:'advance_research_harvest',cohort:{cohort_key:'fixture',state:'HARVESTING'}, sources:[{source_key:'fixture-source',source_url:snapshot.target_url}],retrievals:[{source_key:'fixture-source',source_url:snapshot.target_url,raw_object_key:'extra'}],evidence:[{evidence_key:evidence.evidence_uuid}] };
+const correlation = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const result = buildRetainedCanaryEnvelope(prior,snapshot,evidence,bytes,correlation);
+assert.equal(validateResearchIngestEnvelope(result).ok,true);
+assert.equal(result.producer.producer_id,prior.producer.producer_id);
+assert.equal(result.producer.execution_id,correlation);
+assert.deepEqual(result.job,{job_id:`canary_job_${correlation}`,research_work_identity:'isolated_fixture_work'});
+assert.equal(result.extraction_status,'extracted_unreviewed');
+assert.equal(result.evidence[0].sha256,hash);
+assert.equal(result.evidence[0].byte_length,bytes.length);
+assert.deepEqual(Buffer.from(result.evidence[0].content_base64!,'base64'),bytes);
+assert.equal(JSON.parse(result.evidence[0].locator!).object_locator,snapshot.object_locator);
+assert.equal(JSON.parse(result.evidence[0].locator!).snapshot_uuid,snapshot.snapshot_uuid);
+assert.equal(JSON.parse(result.evidence[0].locator!).supporting_locator,evidence.supporting_locator);
+assert.equal(JSON.stringify(result).includes('authorization'),false);
+assert.deepEqual(result.claims,[]);
+assert.deepEqual(result.entities.occupancy_candidates,[]);
+for (const path of [['authorization_id'],['producer','authorization_id'],['producer','authorization_expires'],['job','execution_id'],['job','authorization_id'],['retrievals',0,'raw_object_key'],['retrievals',0,'raw_artifact_reference'],['retrievals',0,'object_locator'],['evidence',0,'raw_snapshot_uuid'],['publication_allowed']]) {
+ const bad:any=structuredClone(result);let target=bad;for(const part of path.slice(0,-1))target=target[part];target[path.at(-1)!]='extra';assert.throws(()=>assertCanonicalEnvelope(bad),/not allowed/);
+}
+assert.throws(()=>assertCanonicalEnvelope({...result,extraction_status:'verified'}),/extracted_unreviewed/);
+assert.throws(()=>buildRetainedCanaryEnvelope(prior,snapshot,evidence,Buffer.from('tampered'),correlation),/integrity mismatch/);
+assert.throws(()=>buildRetainedCanaryEnvelope(prior,{...snapshot,challenge_reason:'challenge'},evidence,bytes,correlation),/not clean/);
+console.log('Canonical production validator + producer serialization: PASS');

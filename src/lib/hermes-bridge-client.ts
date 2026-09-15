@@ -1,3 +1,4 @@
+import { assertCanonicalEnvelope } from './canonical-canary-envelope.ts';
 /**
  * HERMES BRIDGE CLIENT & VALIDATOR
  * 
@@ -929,124 +930,8 @@ export class HermesBridgeClient {
    * Format any ResearchIngestPackage into the canonical CIVICLENZ_RESEARCH_INGEST_CONTRACT_V1 envelope
    */
   public formatCanonicalEnvelope(pkg: any): any {
-    if (pkg.job && typeof pkg.producer === 'object' && pkg.entities) {
-      return pkg;
-    }
-
-    const defaultEvidence = Buffer.from("Florida Legislative Authoritative Dossier Evidence", "utf8");
-    const defaultHash = crypto.createHash("sha256").update(defaultEvidence).digest("hex");
-
-    return {
-      contract_version: "CIVICLENZ_RESEARCH_INGEST_CONTRACT_V1",
-      producer: {
-        producer_id: typeof pkg.producer === "string" ? pkg.producer : (pkg.producer?.producer_id || this.producerId),
-        producer_version: pkg.producer_version || "2.2.0-HERMES-BRIDGE"
-      },
-      job: {
-        job_id: pkg.job_id || `job_${Date.now()}`,
-        research_work_identity: pkg.research_work_identity?.work_key || crypto.createHash("sha256").update(pkg.job_id || "work").digest("hex")
-      },
-      extraction_status: "extracted_unreviewed",
-      capability: pkg.capability || "advance_research_harvest",
-      cohort: {
-        cohort_key: typeof pkg.cohort === "string" ? pkg.cohort : (pkg.cohort?.cohort_key || "FLORIDA_STATE_SENATE"),
-        state: "HARVESTING"
-      },
-      sources: (pkg.sources || []).map((s: any, i: number) => ({
-        source_key: s.source_id || s.source_key || `src_${i + 1}`,
-        source_url: s.url || s.source_url || "https://flsenate.gov/Senators/s34",
-        source_name: s.source_name || s.agency || "Official Legislative Source",
-        authority_tier: s.authority_scope || "OFFICIAL_STATE_LEGISLATURE"
-      })),
-      retrievals: (pkg.retrievals || []).map((r: any, i: number) => ({
-        source_key: r.source_id || r.source_key || (pkg.sources?.[i]?.source_id) || `src_${i + 1}`,
-        source_url: r.url || r.source_url || "https://flsenate.gov/Senators/s34",
-        retrieved_at: r.retrieved_at || new Date().toISOString(),
-        content_hash: r.sha256_hash || r.content_hash || defaultHash,
-        mime_type: r.mime_type || "text/html; charset=utf-8",
-        byte_length: r.byte_length || defaultEvidence.byteLength,
-        method: r.parser_method || "deterministic_dom_cheerio",
-        parser_version: r.parser_version || "2.2.0"
-      })),
-      evidence: [
-        {
-          evidence_key: "ev_fl_senate_s34_official",
-          source_url: "https://flsenate.gov/Senators/s34",
-          retrieved_at: new Date().toISOString(),
-          mime_type: "text/html; charset=utf-8",
-          byte_length: defaultEvidence.byteLength,
-          sha256: defaultHash,
-          content_base64: defaultEvidence.toString("base64"),
-          method: "deterministic_dom_cheerio",
-          parser_version: "2.2.0"
-        }
-      ],
-      entities: {
-        jurisdiction_candidates: [
-          {
-            candidate_key: pkg.jurisdiction || "jurisdiction_us_fl",
-            attributes: { name: "State of Florida", fips: "12" },
-            evidence_keys: ["ev_fl_senate_s34_official"]
-          }
-        ],
-        seat_candidates: [
-          {
-            candidate_key: pkg.seat_candidate_key || "seat_fl_senate_34",
-            attributes: { title: "Florida State Senate District 34", chamber: "SENATE", district: "34" },
-            evidence_keys: ["ev_fl_senate_s34_official"]
-          }
-        ],
-        person_candidates: (pkg.person_identity_candidates || []).map((p: any) => ({
-          candidate_key: p.person_key,
-          attributes: { full_name: p.full_name, official_title: p.official_title },
-          evidence_keys: ["ev_fl_senate_s34_official"]
-        })),
-        occupancy_candidates: [
-          {
-            candidate_key: "occ_shevrin_jones_sd34",
-            attributes: { seat_key: "seat_fl_senate_34", person_key: "person_shevrin_jones", term: "2022-2026" },
-            evidence_keys: ["ev_fl_senate_s34_official"]
-          }
-        ],
-        election_candidates: (pkg.election_identity_candidates || []).map((e: any) => ({
-          candidate_key: e.election_key,
-          attributes: { date: e.election_date, type: e.election_type },
-          evidence_keys: ["ev_fl_senate_s34_official"]
-        })),
-        candidate_campaign_candidates: [
-          {
-            candidate_key: "camp_shevrin_jones_sd34_2026",
-            attributes: { person_key: "person_shevrin_jones", seat_key: "seat_fl_senate_34", status: "FILED" },
-            evidence_keys: ["ev_fl_senate_s34_official"]
-          }
-        ]
-      },
-      claims: (pkg.claims || []).map((c: any) => ({
-        claim_key: c.claim_id || c.claim_key || "claim_1",
-        statement: c.statement,
-        evidence_keys: ["ev_fl_senate_s34_official"]
-      })),
-      relationships: (pkg.relationships || []).map((rel: any) => ({
-        relationship_key: rel.relationship_id || rel.relationship_key || "rel_1",
-        subject_candidate_key: rel.person_key || "person_shevrin_jones",
-        object_candidate_key: pkg.seat_candidate_key || "seat_fl_senate_34",
-        predicate: rel.role || "HOLDS_SEAT",
-        evidence_keys: ["ev_fl_senate_s34_official"]
-      })),
-      dataset_units: [],
-      gis_boundaries: (pkg.boundary_objects || []).map((b: any) => ({
-        boundary_key: b.seat_key || "boundary_fl_sldu_34",
-        source_url: "https://tigerweb.geo.census.gov/arcgis/rest/services/TIGERweb/Legislative/MapServer/0",
-        effective_status: "CURRENT",
-        evidence_keys: ["ev_fl_senate_s34_official"]
-      })),
-      warnings: pkg.warnings || [],
-      gaps: pkg.known_gaps || [],
-      currentness: {
-        current_as_of: pkg.current_as_of || new Date().toISOString()
-      },
-      monitoring_recommendations: pkg.monitoring_recommendations || []
-    };
+    // Incomplete legacy packages must never acquire fabricated evidence or identities.
+    return assertCanonicalEnvelope(pkg);
   }
 
   /**

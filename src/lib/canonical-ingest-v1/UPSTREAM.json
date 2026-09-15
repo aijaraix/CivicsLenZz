@@ -1,0 +1,10 @@
+{
+  "repository": "aijaraix/CivicLenZ",
+  "commit": "adb35dee3e8af4a9f09c32a6018970d6cf28a9aa",
+  "path": "services/hermes-ingest/src",
+  "sha256": {
+    "contract.ts": "c92c226d5ce6a6e96f6575612526fa5d62f18b3931e820d88cbd63bafacb1817",
+    "types.ts": "c47c38a9f9b10bbe51bc6380545bece19ac8d0400af8a101197ff04aee3cbfcb",
+    "canary.ts": "91a9a7d9ed488cef07dd431f7fcbe3b48e411cbe926f2e8fe35ac5758b461ad8"
+  }
+}
