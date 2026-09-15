@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: '22'
       - name: Regenerate lockfile without lifecycle scripts
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+        run: npm install --legacy-peer-deps --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Commit generated lockfile to this review branch
         env:
           GH_TOKEN: ${{ github.token }}
@@ -33,7 +33,7 @@ jobs:
           git add package-lock.json
           git commit -m "build: lock R2 SDK dependencies"
           git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" push origin HEAD:refs/heads/codex/r2-raw-storage-cutover
-      - run: npm ci --no-audit --no-fund
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
       - run: npm run test:r2
       - run: npm test
       - run: npm run production:truth-audit
