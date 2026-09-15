@@ -331,12 +331,8 @@ async function runAllBridgeContractTests() {
       seat_key: "seat_fl_senate_34",
       jurisdiction: "jurisdiction_us_fl"
     });
-    const envelope = bridgeClient.formatCanonicalEnvelope(rawJob.job);
-    assert.strictEqual(envelope.contract_version, "CIVICLENZ_RESEARCH_INGEST_CONTRACT_V1");
-    assert.ok(envelope.producer, "Envelope must include producer metadata");
-    assert.ok(envelope.job, "Envelope must include job identity");
-    assert.ok(envelope.entities, "Envelope must include candidate entities structure");
-    assert.ok(Array.isArray(envelope.evidence), "Envelope must include evidence array");
+    assert.throws(() => bridgeClient.formatCanonicalEnvelope(rawJob.job), /Canonical V1 schema rejection/);
+
   });
 
   console.log("\n=======================================================");
