@@ -85,6 +85,7 @@ export type JobStatus =
 export interface PersistentHermesJob {
   job_uuid: string;
   agent_id: string;
+  logical_work_key?: string;
   mission_uuid?: string;
   seat_uuid?: string;
   person_uuid?: string;
@@ -783,6 +784,13 @@ class HermesBackendStore {
   // =========================================================================
 
   public createJob(jobData: Omit<PersistentHermesJob, 'job_uuid' | 'created_at' | 'updated_at' | 'attempt_count' | 'status' | 'max_attempts' | 'available_at'> & { status?: JobStatus; max_attempts?: number; available_at?: string }): PersistentHermesJob {
+    if (jobData.logical_work_key) {
+      const existing = this.db.hermes_jobs.find(j => j.logical_work_key === jobData.logical_work_key && ['QUEUED', 'LEASED', 'RUNNING', 'CHECKPOINTED'].includes(j.status));
+      if (existing) {
+        return existing;
+      }
+    }
+
     const now = new Date().toISOString();
     const newJob: PersistentHermesJob = {
       ...jobData,
@@ -940,6 +948,7 @@ class HermesBackendStore {
   // =========================================================================
 
   public storeRawSnapshot(snapshot: {
+    snapshot_uuid?: string;
     source_uuid: string;
     target_url: string;
     http_status: number;
@@ -950,6 +959,7 @@ class HermesBackendStore {
     raw_bytes?: Buffer | Uint8Array | string;
     raw_payload?: string;
     raw_bytes_path?: string;
+    provenance_classification?: EvidenceProvenance;
   }): RawSourceSnapshot {
     const nowIso = new Date().toISOString();
     
@@ -962,7 +972,7 @@ class HermesBackendStore {
       : Buffer.alloc(0);
 
     const hash = crypto.createHash('sha256').update(rawBuffer).digest('hex');
-    const snapshotUuid = `snap_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+    const snapshotUuid = snapshot.snapshot_uuid || `snap_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
 
     // Exact byte durable storage (Directive 11 & 12: Exact byte sequence preserved without re-encoding)
     const retrievalsDir = path.join(this.dataDir, 'artifacts', 'retrievals');
@@ -981,7 +991,9 @@ class HermesBackendStore {
       snapshot.target_url?.includes('synthetic') ||
       snapshot.target_url?.includes('mock');
 
-    const initialProvenance: EvidenceProvenance = isSynthetic
+    const initialProvenance: EvidenceProvenance = snapshot.provenance_classification
+      ? snapshot.provenance_classification
+      : isSynthetic
       ? 'LEGACY_SYNTHETIC'
       : snapshot.http_status === 200 && !challengeCheck.isChallenge
       ? 'REAL_PROVEN'
@@ -1013,6 +1025,15 @@ class HermesBackendStore {
     return record;
   }
 
+  public registerSnapshot(snapshot: RawSourceSnapshot): void {
+    const existingIdx = this.db.raw_source_snapshots.findIndex(s => s.snapshot_uuid === snapshot.snapshot_uuid);
+    if (existingIdx >= 0) {
+      this.db.raw_source_snapshots[existingIdx] = snapshot;
+    } else {
+      this.db.raw_source_snapshots.push(snapshot);
+    }
+  }
+
   public getRawSnapshotBytes(snapshotUuid: string): Buffer | null {
     const snap = this.db.raw_source_snapshots.find(s => s.snapshot_uuid === snapshotUuid);
     if (!snap || !snap.raw_bytes_path || !fs.existsSync(snap.raw_bytes_path)) return null;
@@ -1035,6 +1056,10 @@ class HermesBackendStore {
     }
     if (snap.target_url?.includes('fixture') || snap.target_url?.includes('test')) {
       return 'TEST_FIXTURE';
+    }
+
+    if (snap.provenance_classification && snap.provenance_classification !== 'UNKNOWN') {
+      return snap.provenance_classification;
     }
     if (
       snap.raw_bytes_path &&

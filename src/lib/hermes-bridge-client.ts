@@ -91,14 +91,41 @@ export class HermesBridgeClient {
     this.telemetry.canonical_endpoint_configured = this.canonicalIngestUrl.length > 0;
     this.telemetry.producer_id = this.producerId;
 
-    this.loadSubmissions();
+    this.initStore().catch(err => {
+      console.warn("[HermesBridgeClient] Async store init warning:", err);
+    });
+  }
+
+  public isProductionEnvironment(): boolean {
+    if (process.env.NODE_ENV === 'test' || process.env.PRODUCER_STORAGE_MODE === 'LOCAL_TEST') {
+      return false;
+    }
+    return process.env.NODE_ENV === 'production' || Boolean(process.env.K_SERVICE || process.env.K_REVISION);
+  }
+
+  public async initStore(): Promise<void> {
+    if (this.isProductionEnvironment()) {
+      try {
+        const persistence = getProducerPersistence();
+        const subs = await persistence.getAllBridgeSubmissions();
+        for (const item of subs) {
+          if (item.job_id) {
+            this.submissions.set(item.job_id, item);
+          }
+        }
+        return;
+      } catch (err) {
+        console.error("[HermesBridgeClient] Failed to load bridge submissions from Postgres:", err);
+      }
+    }
+    this.loadSubmissionsFromJson();
   }
 
   public getProducerId(): string {
     return this.producerId;
   }
 
-  private loadSubmissions() {
+  private loadSubmissionsFromJson() {
     try {
       if (fs.existsSync(this.storagePath)) {
         const raw = fs.readFileSync(this.storagePath, 'utf-8');
@@ -117,24 +144,25 @@ export class HermesBridgeClient {
   }
 
   private saveSubmissions() {
-    try {
-      const dataDir = path.join(process.cwd(), 'data');
-      if (!fs.existsSync(dataDir)) {
-        fs.mkdirSync(dataDir, { recursive: true });
-      }
-      const array = Array.from(this.submissions.values());
-      fs.writeFileSync(this.storagePath, JSON.stringify(array, null, 2), 'utf-8');
+    const persistence = getProducerPersistence();
+    const array = Array.from(this.submissions.values());
+    for (const item of array) {
+      const pkg = this.resultPackages.get(item.job_id);
+      persistence.upsertBridgeSubmission(item, pkg).catch(e => {
+        console.warn('[HermesBridgeClient] Postgres bridge submission upsert deferred:', e.message);
+      });
+    }
 
-      // Persist to PostgreSQL asynchronously
-      const persistence = getProducerPersistence();
-      for (const item of array) {
-        const pkg = this.resultPackages.get(item.job_id);
-        persistence.upsertBridgeSubmission(item, pkg).catch(e => {
-          console.warn('[HermesBridgeClient] Postgres bridge submission upsert deferred:', e.message);
-        });
+    if (!this.isProductionEnvironment()) {
+      try {
+        const dataDir = path.join(process.cwd(), 'data');
+        if (!fs.existsSync(dataDir)) {
+          fs.mkdirSync(dataDir, { recursive: true });
+        }
+        fs.writeFileSync(this.storagePath, JSON.stringify(array, null, 2), 'utf-8');
+      } catch (err) {
+        console.error("[HermesBridgeClient] Could not save submissions to local file", err);
       }
-    } catch (err) {
-      console.error("[HermesBridgeClient] Could not save submissions", err);
     }
   }
 
@@ -602,6 +630,7 @@ export class HermesBridgeClient {
   }
 
   public getTelemetry(): BridgeTelemetry {
+    const isProd = this.isProductionEnvironment();
     // Redact any secrets and return telemetry
     return {
       ...this.telemetry,
@@ -610,7 +639,11 @@ export class HermesBridgeClient {
       canonical_connection_tested: false, // Strict: remains false until canonical receiver exists
       direct_supabase_access: false,
       publication_authority: false,
-      verification_authority: false
+      verification_authority: false,
+      BRIDGE_POSTGRES_AUTHORITATIVE: isProd,
+      BRIDGE_LOCAL_JSON_AUTHORITY: !isProd,
+      bridge_postgres_authoritative: isProd,
+      bridge_local_json_authority: !isProd
     };
   }
 

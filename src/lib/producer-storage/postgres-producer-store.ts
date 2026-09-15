@@ -36,6 +36,7 @@ import {
   ClaimLeaseResult
 } from './storage-interface';
 import {
+  hermesBackendStore,
   PersistentHermesJob,
   HermesWorkerLease,
   HermesJobAttempt,
@@ -148,12 +149,26 @@ export class PostgresProducerStore implements ProducerPersistence {
     race_uuid?: string;
     campaign_uuid?: string;
     source_uuid?: string;
+    target_url?: string;
     priority?: number;
     max_attempts?: number;
     available_at?: string;
     checkpoint?: any;
     status?: JobStatus;
   }): Promise<PersistentHermesJob> {
+    if (jobData.logical_work_key) {
+      const existing = await this.findJobByLogicalKey(jobData.logical_work_key);
+      if (existing && ['QUEUED', 'LEASED', 'RUNNING', 'CHECKPOINTED'].includes(existing.status)) {
+        return existing;
+      }
+    }
+
+    if (!process.env.SQL_HOST) {
+      return hermesBackendStore.createJob({
+        ...jobData,
+        priority: jobData.priority ?? 5
+      });
+    }
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -195,7 +210,7 @@ export class PostgresProducerStore implements ProducerPersistence {
         )
       `, [
         jobUuid,
-        jobData.agent_id,
+        jobData.agent_id || 'fl_dos_elections',
         jobData.logical_work_key || null,
         jobData.seat_uuid || null,
         jobData.person_uuid || null,
@@ -227,6 +242,10 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async findJobByLogicalKey(logicalWorkKey: string): Promise<PersistentHermesJob | null> {
+    if (!process.env.SQL_HOST) {
+      const all = hermesBackendStore.getJobs();
+      return all.find(j => j.logical_work_key === logicalWorkKey) || null;
+    }
     const rows = await db.select().from(hermesJobs)
       .where(eq(hermesJobs.logicalWorkKey, logicalWorkKey))
       .orderBy(desc(hermesJobs.createdAt))
@@ -237,17 +256,27 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getJob(jobUuid: string): Promise<PersistentHermesJob | null> {
+    if (!process.env.SQL_HOST) {
+      const all = hermesBackendStore.getJobs();
+      return all.find(j => j.job_uuid === jobUuid) || null;
+    }
     const rows = await db.select().from(hermesJobs).where(eq(hermesJobs.jobUuid, jobUuid)).limit(1);
     if (rows.length === 0) return null;
     return this.mapJobRow(rows[0]);
   }
 
   public async getAllJobs(): Promise<PersistentHermesJob[]> {
+    if (!process.env.SQL_HOST) {
+      return hermesBackendStore.getJobs();
+    }
     const rows = await db.select().from(hermesJobs).orderBy(desc(hermesJobs.createdAt));
     return rows.map(r => this.mapJobRow(r));
   }
 
   public async getQueuedJobsCount(): Promise<number> {
+    if (!process.env.SQL_HOST) {
+      return hermesBackendStore.getJobs().filter(j => j.status === 'QUEUED').length;
+    }
     const res = await db.select({ count: sql<number>`count(*)` })
       .from(hermesJobs)
       .where(eq(hermesJobs.status, 'QUEUED'));
@@ -266,6 +295,23 @@ export class PostgresProducerStore implements ProducerPersistence {
     const now = new Date();
     const nowIso = now.toISOString();
     const expiresAt = new Date(now.getTime() + leaseDurationSec * 1000).toISOString();
+
+    if (!process.env.SQL_HOST) {
+      const res = hermesBackendStore.claimAvailableJob(agentId, workerInstance);
+      if (!res) return null;
+      return {
+        job: res.job,
+        lease: res.lease,
+        attempt: {
+          attempt_uuid: `att_${res.job.job_uuid}_${Date.now()}`,
+          job_uuid: res.job.job_uuid,
+          worker_instance: workerInstance,
+          started_at: new Date().toISOString(),
+          status: 'RUNNING',
+          records_extracted: 0
+        }
+      };
+    }
 
     const client = await pool.connect();
     try {
@@ -437,6 +483,10 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async completeJob(jobUuid: string, attemptUuid: string, recordsExtracted: number = 0): Promise<void> {
+    if (!process.env.SQL_HOST) {
+      hermesBackendStore.completeJob(jobUuid, 'local-worker', { recordsExtracted });
+      return;
+    }
     const nowIso = new Date().toISOString();
     const client = await pool.connect();
     try {
@@ -479,6 +529,10 @@ export class PostgresProducerStore implements ProducerPersistence {
     retryable: boolean = true,
     httpStatus?: number
   ): Promise<void> {
+    if (!process.env.SQL_HOST) {
+      hermesBackendStore.failJob(jobUuid, 'local-worker', errorMessage, !retryable);
+      return;
+    }
     const nowIso = new Date().toISOString();
     const client = await pool.connect();
     try {
@@ -548,6 +602,43 @@ export class PostgresProducerStore implements ProducerPersistence {
       throw err;
     } finally {
       client.release();
+    }
+  }
+
+  public async getJobAttempts(jobUuid?: string): Promise<HermesJobAttempt[]> {
+    if (!process.env.SQL_HOST) {
+      return hermesBackendStore.getJobAttempts(jobUuid);
+    }
+    try {
+      const client = await pool.connect();
+      try {
+        let query = `
+          SELECT attempt_uuid, job_uuid, worker_instance, started_at, finished_at, status, error_message, http_status, records_extracted
+          FROM hermes_job_attempts
+        `;
+        const params: any[] = [];
+        if (jobUuid) {
+          query += ` WHERE job_uuid = $1`;
+          params.push(jobUuid);
+        }
+        query += ` ORDER BY started_at DESC`;
+        const res = await client.query(query, params);
+        return res.rows.map(r => ({
+          attempt_uuid: r.attempt_uuid,
+          job_uuid: r.job_uuid,
+          worker_instance: r.worker_instance,
+          started_at: r.started_at,
+          finished_at: r.finished_at || undefined,
+          status: r.status,
+          error_message: r.error_message || undefined,
+          http_status: r.http_status || undefined,
+          records_extracted: r.records_extracted || 0
+        }));
+      } finally {
+        client.release();
+      }
+    } catch {
+      return hermesBackendStore.getJobAttempts(jobUuid);
     }
   }
 
@@ -708,17 +799,19 @@ export class PostgresProducerStore implements ProducerPersistence {
         rawPayload = '';
       }
       if (this.rawObjectStore) {
-        try {
-          const stored = await this.rawObjectStore.putObject(
-            rawBytesPath,
-            snapshot.raw_bytes,
-            snapshot.content_type
-          );
-          rawBytesPath = stored.locator;
-          objectLocator = stored.locator;
-        } catch (err) {
-          console.warn("[POSTGRES-STORE] Failed to store raw bytes in object store:", err);
+        const stored = await this.rawObjectStore.putObject(
+          rawBytesPath,
+          snapshot.raw_bytes,
+          snapshot.content_type
+        );
+        if (stored.byteLength !== byteLength) {
+          throw new Error(`[POSTGRES-STORE] Raw object storage byte length mismatch: expected ${byteLength}, got ${stored.byteLength}`);
         }
+        if (stored.sha256 && stored.sha256 !== payloadSha256) {
+          throw new Error(`[POSTGRES-STORE] Raw object storage SHA256 mismatch: expected ${payloadSha256}, got ${stored.sha256}`);
+        }
+        rawBytesPath = stored.locator;
+        objectLocator = stored.locator;
       }
     } else if (rawPayload && !payloadSha256) {
       payloadSha256 = crypto.createHash('sha256').update(rawPayload, 'utf-8').digest('hex');
@@ -732,9 +825,9 @@ export class PostgresProducerStore implements ProducerPersistence {
     let classification = snapshot.provenance_classification;
     if (!classification) {
       if (snapshot.http_status >= 200 && snapshot.http_status < 300) {
-        classification = 'REAL_PROVEN';
+        classification = 'UNKNOWN';
       } else {
-        classification = 'FAILED_RETRIEVAL';
+        classification = 'LEGACY_UNPROVEN';
       }
     }
 
@@ -776,6 +869,7 @@ export class PostgresProducerStore implements ProducerPersistence {
       failureClass: fullSnapshot.failure_class || null
     }).onConflictDoNothing();
 
+    hermesBackendStore.registerSnapshot(fullSnapshot);
     return fullSnapshot;
   }
 

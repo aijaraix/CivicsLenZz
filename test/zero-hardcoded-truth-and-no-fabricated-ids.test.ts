@@ -21,6 +21,8 @@ import os from 'os';
 // Directive 12: Tests must use isolated storage via CIVICSLENZZ_DATA_DIR and mkdtemp
 const isolatedTestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'civicslenzz-test-'));
 process.env.CIVICSLENZZ_DATA_DIR = isolatedTestDir;
+process.env.NODE_ENV = 'test';
+process.env.PRODUCER_STORAGE_MODE = 'LOCAL_TEST';
 
 import { hermesBackendStore } from '../src/lib/hermes-backend-store';
 import { masterFloridaLedger } from '../src/lib/florida-master-ledger';

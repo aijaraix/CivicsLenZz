@@ -176,7 +176,8 @@ export class SourceAdapterBase {
       charset: charset || 'utf-8',
       byte_length: rawBuffer.length,
       raw_bytes: rawBuffer,
-      parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC'
+      parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',
+      provenance_classification: 'REAL_PROVEN'
     });
 
     // 2. Generate Evidence Objects strictly marked EXTRACTED_UNREVIEWED (Requirement 1)
@@ -207,31 +208,34 @@ export class SourceAdapterBase {
 
     const evidenceObjects = await persistence.saveEvidenceObjects(evidenceInputs);
 
-    // Sync to hermesBackendStore for local filesystem / test runner compatibility
-    let snapshotUuid = snapshot.snapshot_uuid;
-    try {
-      const memSnap = hermesBackendStore.storeRawSnapshot({
-        source_uuid: this.source_id,
-        target_url: url,
-        http_status: httpStatus,
-        content_type: contentType,
-        charset: charset || 'utf-8',
-        byte_length: rawBuffer.length,
-        raw_bytes: rawBuffer,
-        parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC'
-      });
-      snapshotUuid = memSnap.snapshot_uuid;
-      for (const ev of evidenceObjects) {
-        hermesBackendStore.recordEvidence({
-          ...ev,
-          raw_snapshot_uuid: memSnap.snapshot_uuid
+    // Local hermesBackendStore mirroring is permitted ONLY in test / local test mode (Requirement 3)
+    const isTestMode = process.env.NODE_ENV === 'test' || process.env.PRODUCER_STORAGE_MODE === 'LOCAL_TEST';
+    if (isTestMode) {
+      try {
+        hermesBackendStore.storeRawSnapshot({
+          snapshot_uuid: snapshot.snapshot_uuid,
+          source_uuid: this.source_id,
+          target_url: url,
+          http_status: httpStatus,
+          content_type: contentType,
+          charset: charset || 'utf-8',
+          byte_length: rawBuffer.length,
+          raw_bytes: rawBuffer,
+          parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',
+          provenance_classification: 'REAL_PROVEN'
         });
+        for (const ev of evidenceObjects) {
+          hermesBackendStore.recordEvidence({
+            ...ev,
+            raw_snapshot_uuid: snapshot.snapshot_uuid
+          });
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
     }
 
-    return { snapshotUuid, evidenceObjects };
+    return { snapshotUuid: snapshot.snapshot_uuid, evidenceObjects };
   }
 }
 
@@ -261,7 +265,10 @@ export class FloridaDOSDivisionOfElectionsAdapter extends SourceAdapterBase {
           charset: res.charset || 'utf-8',
           byte_length: res.rawBytes.length,
           raw_bytes: res.rawBytes,
-          parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC'
+          parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',
+          provenance_classification: res.challengeInspection.isChallenge ? 'FAILED_RETRIEVAL' : 'LEGACY_UNPROVEN',
+          challenge_reason: res.challengeInspection.reason,
+          failure_class: res.challengeInspection.failureClass || 'RETRIEVAL_FAILED'
         });
         snapshotUuid = snap.snapshot_uuid;
       }
@@ -336,30 +343,47 @@ export class FloridaDOSDivisionOfElectionsAdapter extends SourceAdapterBase {
       };
     }
 
-    const { snapshotUuid, evidenceObjects } = await this.storeSnapshotAndEvidence(
-      targetUrl,
-      res.status,
-      res.contentType,
-      res.rawBytes,
-      extractedItems,
-      undefined,
-      undefined,
-      res.charset
-    );
+    try {
+      const { snapshotUuid, evidenceObjects } = await this.storeSnapshotAndEvidence(
+        targetUrl,
+        res.status,
+        res.contentType,
+        res.rawBytes,
+        extractedItems,
+        undefined,
+        undefined,
+        res.charset
+      );
 
-    return {
-      success: true,
-      source_id: this.source_id,
-      source_url: targetUrl,
-      final_url: res.finalUrl,
-      http_status: res.status,
-      byte_length: res.byteLength,
-      content_sha256: res.sha256,
-      records_extracted: extractedItems.length,
-      extracted_items: extractedItems,
-      raw_snapshot_uuid: snapshotUuid,
-      evidence_objects: evidenceObjects
-    };
+      return {
+        success: true,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        final_url: res.finalUrl,
+        http_status: res.status,
+        byte_length: res.byteLength,
+        content_sha256: res.sha256,
+        records_extracted: extractedItems.length,
+        extracted_items: extractedItems,
+        raw_snapshot_uuid: snapshotUuid,
+        evidence_objects: evidenceObjects
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        final_url: res.finalUrl,
+        http_status: res.status,
+        byte_length: res.byteLength,
+        content_sha256: res.sha256,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: `STORAGE_FAILURE: ${err.message}`,
+        failure_class: 'STORAGE_FAILURE'
+      };
+    }
   }
 }
 
@@ -862,29 +886,43 @@ export class CompletenessAuditAdapter extends SourceAdapterBase {
     ];
 
     const rawPayloadBuffer = Buffer.from(payload, 'utf-8');
-    const { snapshotUuid, evidenceObjects } = await this.storeSnapshotAndEvidence(
-      targetUrl,
-      200,
-      'application/json',
-      rawPayloadBuffer,
-      extractedItems,
-      seatUuid,
-      personUuid,
-      'utf-8'
-    );
+    try {
+      const { snapshotUuid, evidenceObjects } = await this.storeSnapshotAndEvidence(
+        targetUrl,
+        200,
+        'application/json',
+        rawPayloadBuffer,
+        extractedItems,
+        seatUuid,
+        personUuid,
+        'utf-8'
+      );
 
-    return {
-      success: true,
-      source_id: this.source_id,
-      source_url: targetUrl,
-      http_status: 200,
-      byte_length: Buffer.byteLength(payload, 'utf-8'),
-      content_sha256: crypto.createHash('sha256').update(Buffer.from(payload, 'utf-8')).digest('hex'),
-      records_extracted: extractedItems.length,
-      extracted_items: extractedItems,
-      raw_snapshot_uuid: snapshotUuid,
-      evidence_objects: evidenceObjects
-    };
+      return {
+        success: true,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        http_status: 200,
+        byte_length: Buffer.byteLength(payload, 'utf-8'),
+        content_sha256: crypto.createHash('sha256').update(Buffer.from(payload, 'utf-8')).digest('hex'),
+        records_extracted: extractedItems.length,
+        extracted_items: extractedItems,
+        raw_snapshot_uuid: snapshotUuid,
+        evidence_objects: evidenceObjects
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: targetUrl,
+        http_status: 500,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: `STORAGE_FAILURE: ${err.message}`,
+        failure_class: 'STORAGE_FAILURE'
+      };
+    }
   }
 }
 

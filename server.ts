@@ -233,24 +233,52 @@ async function startServer() {
   // Health check endpoint
   app.get("/api/health", async (req, res) => {
     const health = await persistence.checkHealth();
-    res.json({
-      status: "ok",
+    const daemonStatus = await hermesWorkerDaemon.getDaemonStatus();
+
+    const isHealthy = Boolean(
+      health.postgresConnected &&
+      health.postgresSchemaReady &&
+      health.rawObjectStorageConnected &&
+      !health.localFallbackEnabled &&
+      daemonStatus.daemon_active
+    );
+
+    const httpStatus = isHealthy ? 200 : 503;
+    res.status(httpStatus).json({
+      status: isHealthy ? "ok" : "degraded",
       app: "CivicLenZ",
       time: new Date().toISOString(),
       producer_storage_mode: health.storageMode,
-      durable_storage: "CLOUD_SQL_POSTGRES_GCS"
+      durable_storage: "CLOUD_SQL_POSTGRES_GCS",
+      postgres_connected: health.postgresConnected,
+      postgres_schema_ready: health.postgresSchemaReady,
+      raw_object_storage_connected: health.rawObjectStorageConnected,
+      local_fallback_enabled: health.localFallbackEnabled,
+      daemon_active: daemonStatus.daemon_active,
+      broken_components: [
+        ...(!health.postgresConnected ? ["POSTGRES_DISCONNECTED"] : []),
+        ...(!health.postgresSchemaReady ? ["POSTGRES_SCHEMA_NOT_READY"] : []),
+        ...(!health.rawObjectStorageConnected ? ["RAW_OBJECT_STORAGE_DISCONNECTED"] : []),
+        ...(health.localFallbackEnabled ? ["LOCAL_FALLBACK_ACTIVE"] : []),
+        ...(!daemonStatus.daemon_active ? ["DAEMON_INACTIVE"] : [])
+      ]
     });
   });
 
   // Build info endpoint (machine-verifiable build identity without secret leakage)
   app.get("/api/build-info", (req, res) => {
+    const gitSha = process.env.GIT_SHA || process.env.VITE_GIT_SHA || "UNKNOWN";
+    const buildTime = process.env.BUILD_TIME || "UNKNOWN";
+    const service = process.env.K_SERVICE || "UNKNOWN";
+    const revision = process.env.K_REVISION || "UNKNOWN";
+
     res.json({
-      git_sha: process.env.GIT_SHA || process.env.VITE_GIT_SHA || "14502210838c01aa76873388c0d9926e5a20836b",
-      build_time: process.env.BUILD_TIME || "2026-09-14T23:30:00.000Z",
-      service: process.env.K_SERVICE || "ais-dev-fwsoxq7rqzqudtausrkgsl",
-      revision: process.env.K_REVISION || "ais-dev-fwsoxq7rqzqudtausrkgsl-00004-9z5",
-      producer_storage_mode: "CLOUD_SQL_POSTGRES",
-      durable_storage_backend: "CLOUD_SQL_POSTGRES"
+      git_sha: gitSha,
+      build_time: buildTime,
+      service: service,
+      revision: revision,
+      producer_storage_mode: "CLOUD_SQL_POSTGRES_GCS",
+      durable_storage_backend: "CLOUD_SQL_POSTGRES_GCS"
     });
   });
 

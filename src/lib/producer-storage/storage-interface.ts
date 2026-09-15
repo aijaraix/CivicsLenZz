@@ -88,6 +88,8 @@ export interface ProducerPersistence {
     leaseDurationSec?: number
   ): Promise<ClaimLeaseResult | null>;
 
+  getJobAttempts(jobUuid?: string): Promise<HermesJobAttempt[]>;
+
   heartbeatLease(leaseUuid: string, extendSeconds?: number): Promise<boolean>;
   completeJob(jobUuid: string, attemptUuid: string, recordsExtracted?: number): Promise<void>;
   failJob(

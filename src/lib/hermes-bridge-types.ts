@@ -170,4 +170,8 @@ export interface BridgeTelemetry {
   direct_supabase_access: false;
   publication_authority: false;
   verification_authority: false;
+  BRIDGE_POSTGRES_AUTHORITATIVE?: boolean;
+  BRIDGE_LOCAL_JSON_AUTHORITY?: boolean;
+  bridge_postgres_authoritative?: boolean;
+  bridge_local_json_authority?: boolean;
 }
