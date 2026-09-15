@@ -24,7 +24,9 @@ try {
     if (command instanceof HeadBucketCommand) return {};
     if (command instanceof PutObjectCommand) {
       writes++;
-      object = { ...command.input, Body: Buffer.from(command.input.Body) };
+      const body = command.input.Body;
+      assert.ok(Buffer.isBuffer(body), 'R2 uploads must contain exact Buffer bytes');
+      object = { ...command.input, Body: Buffer.from(body) };
       return {};
     }
     if (command instanceof GetObjectCommand) return {
