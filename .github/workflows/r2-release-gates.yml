@@ -55,7 +55,9 @@ jobs:
           cmp src/lib/canonical-ingest-v1/canary.ts canonical-upstream/services/hermes-ingest/src/canary.ts
           cmp src/lib/canonical-ingest-v1/types.ts canonical-upstream/services/hermes-ingest/src/types.ts
           node --experimental-strip-types --no-warnings --test canonical-upstream/services/hermes-ingest/tests/*.test.ts
+          mv canonical-upstream "$RUNNER_TEMP/canonical-upstream"
       - run: npx tsx test/canonical-ingest-v1.test.ts
+      - run: npx tsx test/canary-attempt-reservation.test.ts
       - run: npm run test:r2
         id: r2
       - run: npx tsx test/durability-probe.test.ts

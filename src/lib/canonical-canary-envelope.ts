@@ -19,16 +19,26 @@ export function buildRetainedCanaryEnvelope(prior: any, snapshot: any, evidence:
   const envelope = {
     contract_version: prior.contract_version,
     producer: { producer_id: prior.producer.producer_id, producer_version: prior.producer.producer_version, execution_id: correlation },
-    job: { job_id: prior.job.job_id, research_work_identity: prior.job.research_work_identity },
+    job: { job_id: `canary_job_${correlation}`, research_work_identity: prior.job.research_work_identity },
     extraction_status: 'extracted_unreviewed', capability: prior.capability, cohort: prior.cohort,
     sources: prior.sources,
     retrievals: [{ source_key: prior.retrievals[0].source_key, source_url: snapshot.target_url, retrieved_at: snapshot.retrieved_at, content_hash: hash, mime_type: snapshot.content_type, byte_length: bytes.length, method: evidence.extraction_method, parser_version: snapshot.parser_version }],
     evidence: [{ evidence_key: evidence.evidence_uuid, source_url: evidence.source_url, retrieved_at: evidence.retrieved_at, mime_type: snapshot.content_type, byte_length: bytes.length, sha256: hash, content_base64: bytes.toString('base64'), method: evidence.extraction_method, parser_version: evidence.parser_version,
       // V1's opaque locator preserves snapshot/artifact and extraction provenance without schema extension.
-      locator: JSON.stringify({ object_locator: snapshot.object_locator, snapshot_uuid: snapshot.snapshot_uuid, source_uuid: snapshot.source_uuid, supporting_locator: evidence.supporting_locator, field_key: evidence.field_key, extracted_value: evidence.extracted_value, provenance_classification: evidence.provenance_classification, http_status: snapshot.http_status, charset: snapshot.charset }) }],
+      locator: JSON.stringify({ object_locator: snapshot.object_locator, snapshot_uuid: snapshot.snapshot_uuid, previous_job_id: prior.job.job_id, previous_execution_id: prior.producer.execution_id, source_uuid: snapshot.source_uuid, supporting_locator: evidence.supporting_locator, field_key: evidence.field_key, extracted_value: evidence.extracted_value, provenance_classification: evidence.provenance_classification, http_status: snapshot.http_status, charset: snapshot.charset }) }],
     entities: { jurisdiction_candidates: [], seat_candidates: [], person_candidates: [], occupancy_candidates: [], election_candidates: [], candidate_campaign_candidates: [] },
     claims: [], relationships: [], dataset_units: [], gis_boundaries: [], warnings: [], gaps: [],
     currentness: { current_as_of: snapshot.retrieved_at }, monitoring_recommendations: []
   };
   return assertCanonicalEnvelope(envelope);
+}
+
+export async function reserveCanaryAttempt(database: { query: (...args: any[]) => Promise<any> }, envelope: ReturnType<typeof assertCanonicalEnvelope>, body: Buffer) {
+  const submission = `sub_${envelope.producer.execution_id}`;
+  const inserted = await database.query(`INSERT INTO bridge_submissions
+    (submission_id,job_id,idempotency_key,delivery_state,attempts,max_attempts,last_attempt_at,result_package,created_at,updated_at)
+    VALUES ($1,$2,$3,'SUBMITTING',1,1,NOW(),$4,NOW(),NOW()) ON CONFLICT DO NOTHING RETURNING submission_id`,
+    [submission, envelope.job.job_id, createHash('sha256').update(body).digest('hex'), JSON.stringify(envelope)]);
+  if (inserted.rowCount !== 1) throw new Error('Attempt already reserved; no resend permitted');
+  return submission;
 }

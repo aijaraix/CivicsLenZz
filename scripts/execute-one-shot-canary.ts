@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { pool } from '../src/db/index.ts';
 import { R2RawObjectStore } from '../src/lib/producer-storage/r2-raw-object-store.ts';
 import { hermesBridgeClient } from '../src/lib/hermes-bridge-client.ts';
-import { buildRetainedCanaryEnvelope } from '../src/lib/canonical-canary-envelope.ts';
+import { buildRetainedCanaryEnvelope, reserveCanaryAttempt } from '../src/lib/canonical-canary-envelope.ts';
 
 // Fixed retained production evidence; this script performs no research or evidence creation.
 const OLD_CORRELATION = '552d2f69-5abf-4a03-8481-79af5cef7b83';
@@ -35,13 +35,7 @@ async function main() {
   if (!process.env.CIVICSLENZZ_GIT_SHA || !process.env.K_REVISION) throw new Error('Deployed build identity required');
   if (Date.now() >= expiry) throw new Error('Authorization expired before dispatch');
   const headers = hermesBridgeClient.buildCanonicalHeaders(body, String(Math.floor(Date.now() / 1000)));
-  const submission = `sub_${correlation}`;
-  // Create-only durable dispatch claim: concurrent/repeated invocations never reset an attempt.
-  const inserted = await pool.query(`INSERT INTO bridge_submissions
-    (submission_id,job_id,idempotency_key,delivery_state,attempts,max_attempts,last_attempt_at,result_package,created_at,updated_at)
-    VALUES ($1,$2,$3,'SUBMITTING',1,1,NOW(),$4,NOW(),NOW()) ON CONFLICT DO NOTHING RETURNING submission_id`,
-    [submission, envelope.job.job_id, crypto.createHash('sha256').update(body).digest('hex'), JSON.stringify(envelope)]);
-  if (inserted.rowCount !== 1) throw new Error('Attempt already reserved; no resend permitted');
+  const submission = await reserveCanaryAttempt(pool, envelope, body);
   let state = 'SUBMITTED', status = 0, acknowledgement: any;
   try {
     const response = await fetch(ENDPOINT, { method: 'POST', headers, body, redirect: 'error', signal: AbortSignal.timeout(30000) });

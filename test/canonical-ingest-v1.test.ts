@@ -15,7 +15,7 @@ const result = buildRetainedCanaryEnvelope(prior,snapshot,evidence,bytes,correla
 assert.equal(validateResearchIngestEnvelope(result).ok,true);
 assert.equal(result.producer.producer_id,prior.producer.producer_id);
 assert.equal(result.producer.execution_id,correlation);
-assert.deepEqual(result.job,{job_id:'fixture-job',research_work_identity:'isolated_fixture_work'});
+assert.deepEqual(result.job,{job_id:`canary_job_${correlation}`,research_work_identity:'isolated_fixture_work'});
 assert.equal(result.extraction_status,'extracted_unreviewed');
 assert.equal(result.evidence[0].sha256,hash);
 assert.equal(result.evidence[0].byte_length,bytes.length);
