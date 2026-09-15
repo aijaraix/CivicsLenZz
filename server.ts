@@ -33,18 +33,22 @@ async function startServer() {
   app.get("/api/hermes/status", async (req, res) => {
     const daemonStatus = await hermesWorkerDaemon.getDaemonStatus();
     const health = await persistence.checkHealth();
-    res.json({
+    const ready = health.postgresConnected && health.postgresSchemaReady
+      && health.rawObjectStorageConnected && !health.localFallbackEnabled && daemonStatus.daemon_active;
+    res.status(ready ? 200 : 503).json({
       ...daemonStatus,
       PRODUCER_STORAGE_MODE: health.storageMode,
       POSTGRES_CONFIGURED: health.postgresConfigured,
       POSTGRES_CONNECTED: health.postgresConnected,
       POSTGRES_SCHEMA_READY: health.postgresSchemaReady,
+      RAW_OBJECT_STORAGE_BACKEND: health.localFallbackEnabled ? 'LOCAL_TEST' : 'R2',
+      R2_CONNECTED: health.rawObjectStorageConnected && !health.localFallbackEnabled,
       RAW_OBJECT_STORAGE_CONFIGURED: health.rawObjectStorageConfigured,
       RAW_OBJECT_STORAGE_CONNECTED: health.rawObjectStorageConnected,
       LOCAL_FALLBACK_ENABLED: health.localFallbackEnabled,
       DAEMON_ACTIVE: daemonStatus.daemon_active,
       producer_storage_mode: health.storageMode,
-      durable_storage: "CLOUD_SQL_POSTGRES_GCS"
+      durable_storage: health.storageMode
     });
   });
 
@@ -101,7 +105,7 @@ async function startServer() {
     res.json({
       reality_badge: "REAL_SERVER_SIDE",
       execution_mode: "Node Express Daemon (Background Process)",
-      storage_engine: "PostgreSQL + GCS",
+      storage_engine: "PostgreSQL + R2",
       sources,
       summary
     });
@@ -249,9 +253,11 @@ async function startServer() {
       app: "CivicLenZ",
       time: new Date().toISOString(),
       producer_storage_mode: health.storageMode,
-      durable_storage: "CLOUD_SQL_POSTGRES_GCS",
+      durable_storage: health.storageMode,
       postgres_connected: health.postgresConnected,
       postgres_schema_ready: health.postgresSchemaReady,
+      RAW_OBJECT_STORAGE_BACKEND: health.localFallbackEnabled ? 'LOCAL_TEST' : 'R2',
+      R2_CONNECTED: health.rawObjectStorageConnected && !health.localFallbackEnabled,
       raw_object_storage_connected: health.rawObjectStorageConnected,
       local_fallback_enabled: health.localFallbackEnabled,
       daemon_active: daemonStatus.daemon_active,
@@ -277,8 +283,8 @@ async function startServer() {
       build_time: buildTime,
       service: service,
       revision: revision,
-      producer_storage_mode: "CLOUD_SQL_POSTGRES_GCS",
-      durable_storage_backend: "CLOUD_SQL_POSTGRES_GCS"
+      producer_storage_mode: process.env.NODE_ENV === "test" || process.env.PRODUCER_STORAGE_MODE === "LOCAL_TEST" ? "LOCAL_TEST" : "CLOUD_SQL_POSTGRES_R2",
+      durable_storage_backend: process.env.NODE_ENV === "test" || process.env.PRODUCER_STORAGE_MODE === "LOCAL_TEST" ? "LOCAL_TEST" : "CLOUD_SQL_POSTGRES_R2"
     });
   });
 

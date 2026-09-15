@@ -2,7 +2,7 @@
  * CIVICSLENZZ POSTGRES PRODUCER STORE
  * 
  * Authoritative production implementation of ProducerPersistence backed by
- * Cloud SQL PostgreSQL and GCS.
+ * Cloud SQL PostgreSQL and R2.
  */
 
 import crypto from 'crypto';
@@ -58,7 +58,8 @@ import {
 } from '../hermes-backend-store';
 import { ResultSubmissionRecord } from '../hermes-bridge-client';
 import { ResearchIngestPackage } from '../hermes-bridge-types';
-import { GcsRawObjectStore, RawObjectStore } from './raw-object-store';
+import type { RawObjectStore } from './raw-object-store';
+import { R2RawObjectStore } from './r2-raw-object-store';
 
 export class PostgresProducerStore implements ProducerPersistence {
   private rawObjectStore: RawObjectStore;
@@ -66,7 +67,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   private daemonActive: boolean = false;
 
   constructor(rawObjectStore?: RawObjectStore) {
-    this.rawObjectStore = rawObjectStore || new GcsRawObjectStore();
+    this.rawObjectStore = rawObjectStore || new R2RawObjectStore();
   }
 
   public async initialize(): Promise<void> {
@@ -77,7 +78,7 @@ export class PostgresProducerStore implements ProducerPersistence {
     }
     if (!health.rawObjectStorageConnected) {
       this.daemonActive = false;
-      throw new Error(`[PostgresProducerStore] Fail-closed initialization check failed: Raw object storage unready (${health.error || 'GCS inaccessible'})`);
+      throw new Error(`[PostgresProducerStore] Fail-closed initialization check failed: Raw object storage unready (${health.error || 'R2 inaccessible'})`);
     }
     this.isInitialized = true;
     this.daemonActive = true;
@@ -136,7 +137,7 @@ export class PostgresProducerStore implements ProducerPersistence {
     }
 
     return {
-      storageMode: 'CLOUD_SQL_POSTGRES_GCS',
+      storageMode: this.isLocalStoragePermitted() ? 'LOCAL_TEST' : 'CLOUD_SQL_POSTGRES_R2',
       postgresConfigured,
       postgresConnected,
       postgresSchemaReady,
@@ -836,7 +837,7 @@ export class PostgresProducerStore implements ProducerPersistence {
         if (stored.byteLength !== byteLength) {
           throw new Error(`[POSTGRES-STORE] Raw object storage byte length mismatch: expected ${byteLength}, got ${stored.byteLength}`);
         }
-        if (stored.sha256 && stored.sha256 !== payloadSha256) {
+        if (stored.sha256 !== payloadSha256) {
           throw new Error(`[POSTGRES-STORE] Raw object storage SHA256 mismatch: expected ${payloadSha256}, got ${stored.sha256}`);
         }
         rawBytesPath = stored.locator;

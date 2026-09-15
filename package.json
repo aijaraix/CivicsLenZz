@@ -10,7 +10,8 @@
     "clean": "rm -rf dist server.js",
     "production:truth-audit": "tsx scripts/producer-internal-truth-audit.ts",
     "test": "tsx test/durable-persistence.test.ts && tsx test/fresh-evidence-provenance.test.ts && tsx test/election-semantics-contract.test.ts && tsx test/hermes-bridge-contract.test.ts && tsx test/master-harvester-capability.test.ts && tsx test/zero-hardcoded-truth-and-no-fabricated-ids.test.ts",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test:r2": "tsx test/r2-raw-object-store.test.ts"
   },
   "dependencies": {
     "@google-cloud/storage": "^8.1.0",
@@ -37,7 +38,8 @@
     "react-router-dom": "^7.18.2",
     "react-simple-maps": "^3.0.0",
     "topojson-client": "^3.1.0",
-    "vite": "^6.2.3"
+    "vite": "^6.2.3",
+    "@aws-sdk/client-s3": "^3.600.0"
   },
   "devDependencies": {
     "@types/d3-geo": "^3.1.1",
