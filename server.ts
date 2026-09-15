@@ -2,7 +2,6 @@ import express from "express";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
-import { hermesBackendStore } from "./src/lib/hermes-backend-store";
 import { hermesWorkerDaemon } from "./src/lib/hermes-worker-daemon";
 import { getProducerPersistence } from "./src/lib/producer-storage/index";
 import { masterFloridaLedger } from "./src/lib/florida-master-ledger";
@@ -154,9 +153,9 @@ async function startServer() {
   });
 
   // 6. Trigger Real Research Job
-  app.post("/api/hermes/trigger-seat", (req, res) => {
+  app.post("/api/hermes/trigger-seat", async (req, res) => {
     const { seat_uuid, person_uuid, agent_id, job_type } = req.body;
-    const newJob = hermesBackendStore.createJob({
+    const newJob = await persistence.createJob({
       agent_id: agent_id || "H1",
       job_type: job_type || "RESEARCH_CONTRACT_COMPLETENESS_RUN",
       seat_uuid,
@@ -232,13 +231,14 @@ async function startServer() {
   });
 
   // Health check endpoint
-  app.get("/api/health", (req, res) => {
+  app.get("/api/health", async (req, res) => {
+    const health = await persistence.checkHealth();
     res.json({
       status: "ok",
       app: "CivicLenZ",
       time: new Date().toISOString(),
-      producer_storage_mode: hermesBackendStore.getStorageMode(),
-      durable_storage: "CLOUD_SQL_POSTGRES"
+      producer_storage_mode: health.storageMode,
+      durable_storage: "CLOUD_SQL_POSTGRES_GCS"
     });
   });
 
@@ -355,7 +355,7 @@ async function startServer() {
   }
 
   // Build the complete Seat Hierarchy for resolved boundaries
-  function buildSeatHierarchy(resolved: {
+  async function buildSeatHierarchy(resolved: {
     stateName: string;
     stateFips: string;
     countyName: string;
@@ -369,7 +369,7 @@ async function startServer() {
       return [];
     }
 
-    const coverageRecords = hermesBackendStore.getSeatCoverageRecords();
+    const coverageRecords = await persistence.getSeatCoverageRecords();
     const findOccupant = (seatId: string) => {
       const record = coverageRecords.find(r => r.seat_uuid === seatId);
       if (record && record.current_official_name) {
@@ -657,7 +657,7 @@ async function startServer() {
       }
     };
 
-    const seats = buildSeatHierarchy(resolvedBoundary);
+    const seats = await buildSeatHierarchy(resolvedBoundary);
 
     res.json({
       status: "SUCCESS",
@@ -701,7 +701,7 @@ async function startServer() {
       censusSource: "US Census Bureau Geocoder / Unresolved"
     };
 
-    const seats = buildSeatHierarchy(boundary);
+    const seats = await buildSeatHierarchy(boundary);
     const officials = seats
       .filter(s => s.current_occupant)
       .map(s => ({

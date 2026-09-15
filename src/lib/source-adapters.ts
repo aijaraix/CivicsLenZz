@@ -15,12 +15,13 @@ import fs from 'fs';
 import path from 'path';
 import * as cheerio from 'cheerio';
 import {
-  hermesBackendStore,
   RawSourceSnapshot,
   RawEvidenceObject,
-  detectAccessChallenge
+  detectAccessChallenge,
+  hermesBackendStore
 } from './hermes-backend-store';
 import type { AccessChallengeInspection } from './hermes-backend-store';
+import { getProducerPersistence } from './producer-storage/index';
 
 export type { AccessChallengeInspection };
 export { detectAccessChallenge };
@@ -151,7 +152,7 @@ export class SourceAdapterBase {
     }
   }
 
-  public storeSnapshotAndEvidence(
+  public async storeSnapshotAndEvidence(
     url: string,
     httpStatus: number,
     contentType: string,
@@ -160,12 +161,14 @@ export class SourceAdapterBase {
     seatUuid?: string,
     personUuid?: string,
     charset?: string
-  ): { snapshotUuid: string; evidenceObjects: RawEvidenceObject[] } {
+  ): Promise<{ snapshotUuid: string; evidenceObjects: RawEvidenceObject[] }> {
     const rawBuffer = Buffer.isBuffer(rawBytesOrPayload) ? rawBytesOrPayload : Buffer.from(rawBytesOrPayload, 'utf-8');
     const retrievalSha256 = crypto.createHash('sha256').update(rawBuffer).digest('hex');
 
-    // 1. Store Raw Snapshot with exact bytes (Requirement 11 & 12)
-    const snapshot = hermesBackendStore.storeRawSnapshot({
+    const persistence = getProducerPersistence();
+
+    // 1. Store Raw Snapshot with exact bytes (Requirement 1 & 2)
+    const snapshot = await persistence.saveRawSnapshot({
       source_uuid: this.source_id,
       target_url: url,
       http_status: httpStatus,
@@ -176,13 +179,13 @@ export class SourceAdapterBase {
       parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC'
     });
 
-    // 2. Generate Evidence Objects strictly marked EXTRACTED_UNREVIEWED (Requirement 11)
-    const evidenceObjects: RawEvidenceObject[] = extractedItems.map(item => {
+    // 2. Generate Evidence Objects strictly marked EXTRACTED_UNREVIEWED (Requirement 1)
+    const evidenceInputs = extractedItems.map(item => {
       const claimFingerprint = crypto.createHash('sha256')
         .update(`${url}_${item.target_entity}_${item.field_key}_${item.extracted_value}`)
         .digest('hex');
 
-      return hermesBackendStore.createEvidenceObject({
+      return {
         source_uuid: this.source_id,
         source_url: url,
         document_title: `${this.source_name} - ${item.field_key}`,
@@ -194,15 +197,41 @@ export class SourceAdapterBase {
         parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',
         extraction_method: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',
         supporting_locator: item.evidence_locator || url,
-        verification_state: 'EXTRACTED_UNREVIEWED',
+        verification_state: 'EXTRACTED_UNREVIEWED' as const,
         seat_uuid: seatUuid,
         person_uuid: personUuid,
         field_key: item.field_key,
         extracted_value: item.extracted_value
-      });
+      };
     });
 
-    return { snapshotUuid: snapshot.snapshot_uuid, evidenceObjects };
+    const evidenceObjects = await persistence.saveEvidenceObjects(evidenceInputs);
+
+    // Sync to hermesBackendStore for local filesystem / test runner compatibility
+    let snapshotUuid = snapshot.snapshot_uuid;
+    try {
+      const memSnap = hermesBackendStore.storeRawSnapshot({
+        source_uuid: this.source_id,
+        target_url: url,
+        http_status: httpStatus,
+        content_type: contentType,
+        charset: charset || 'utf-8',
+        byte_length: rawBuffer.length,
+        raw_bytes: rawBuffer,
+        parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC'
+      });
+      snapshotUuid = memSnap.snapshot_uuid;
+      for (const ev of evidenceObjects) {
+        hermesBackendStore.recordEvidence({
+          ...ev,
+          raw_snapshot_uuid: memSnap.snapshot_uuid
+        });
+      }
+    } catch {
+      // ignore
+    }
+
+    return { snapshotUuid, evidenceObjects };
   }
 }
 
@@ -223,7 +252,8 @@ export class FloridaDOSDivisionOfElectionsAdapter extends SourceAdapterBase {
       // Store failed raw snapshot for audit/Academy traceability with exact raw bytes
       let snapshotUuid: string | undefined;
       if (res.rawBytes && res.rawBytes.length > 0) {
-        const snap = hermesBackendStore.storeRawSnapshot({
+        const persistence = getProducerPersistence();
+        const snap = await persistence.saveRawSnapshot({
           source_uuid: this.source_id,
           target_url: targetUrl,
           http_status: res.status,
@@ -306,7 +336,7 @@ export class FloridaDOSDivisionOfElectionsAdapter extends SourceAdapterBase {
       };
     }
 
-    const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
+    const { snapshotUuid, evidenceObjects } = await this.storeSnapshotAndEvidence(
       targetUrl,
       res.status,
       res.contentType,
@@ -440,7 +470,7 @@ export class FloridaSenateAdapter extends SourceAdapterBase {
       };
     }
 
-    const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
+    const { snapshotUuid, evidenceObjects } = await this.storeSnapshotAndEvidence(
       targetUrl,
       res.status,
       res.contentType,
@@ -538,7 +568,7 @@ export class FloridaHouseAdapter extends SourceAdapterBase {
       };
     }
 
-    const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
+    const { snapshotUuid, evidenceObjects } = await this.storeSnapshotAndEvidence(
       targetUrl,
       res.status,
       res.contentType,
@@ -633,7 +663,7 @@ export class MiamiDadeCountyElectionsAdapter extends SourceAdapterBase {
       };
     }
 
-    const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
+    const { snapshotUuid, evidenceObjects } = await this.storeSnapshotAndEvidence(
       targetUrl,
       res.status,
       res.contentType || 'text/html',
@@ -752,7 +782,7 @@ export class FloridaGovernorExecutiveOrdersAdapter extends SourceAdapterBase {
       };
     }
 
-    const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
+    const { snapshotUuid, evidenceObjects } = await this.storeSnapshotAndEvidence(
       targetUrl,
       res.status,
       res.contentType || 'text/html',
@@ -800,8 +830,11 @@ export class CompletenessAuditAdapter extends SourceAdapterBase {
     }
 
     const targetUrl = `${this.base_url}/seats/${seatUuid}`;
-    const seats = hermesBackendStore.getSeatCoverageRecords();
-    const evidenceList = hermesBackendStore.getRawEvidenceObjects();
+    const persistence = getProducerPersistence();
+    const [seats, evidenceList] = await Promise.all([
+      persistence.getSeatCoverageRecords(),
+      persistence.getAllEvidenceObjects()
+    ]);
 
     const targetSeat = seats.find(s => s.seat_uuid === seatUuid);
     const seatEvidence = evidenceList.filter(e => e.seat_uuid === seatUuid);
@@ -829,7 +862,7 @@ export class CompletenessAuditAdapter extends SourceAdapterBase {
     ];
 
     const rawPayloadBuffer = Buffer.from(payload, 'utf-8');
-    const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
+    const { snapshotUuid, evidenceObjects } = await this.storeSnapshotAndEvidence(
       targetUrl,
       200,
       'application/json',
@@ -912,7 +945,7 @@ export class GapResearchFillAdapter extends SourceAdapterBase {
           const extractedItems = [
             { target_entity: seatUuid, field_key: 'DISTRICT_BOUNDARY_GIS', extracted_value: `VERIFIED_PHYSICAL_GIS_LAYER_${sha256.slice(0, 8)}`, evidence_locator: firstGis }
           ];
-          const { snapshotUuid, evidenceObjects } = this.storeSnapshotAndEvidence(
+          const { snapshotUuid, evidenceObjects } = await this.storeSnapshotAndEvidence(
             targetUrl,
             200,
             'application/geo+json',

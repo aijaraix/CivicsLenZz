@@ -110,12 +110,12 @@ export interface ProducerPersistence {
   getCheckpoints(jobUuid: string): Promise<HermesCheckpoint[]>;
 
   // Raw Snapshots & Exact Bytes
-  saveRawSnapshot(snapshot: RawSourceSnapshot): Promise<void>;
+  saveRawSnapshot(snapshot: any): Promise<RawSourceSnapshot>;
   getRawSnapshot(snapshotUuid: string): Promise<RawSourceSnapshot | null>;
   getAllRawSnapshots(): Promise<RawSourceSnapshot[]>;
 
   // Evidence Objects
-  saveEvidenceObjects(evidenceList: RawEvidenceObject[]): Promise<void>;
+  saveEvidenceObjects(evidenceList: any[]): Promise<RawEvidenceObject[]>;
   getAllEvidenceObjects(): Promise<RawEvidenceObject[]>;
   getEvidenceForSeat(seatUuid: string): Promise<RawEvidenceObject[]>;
 

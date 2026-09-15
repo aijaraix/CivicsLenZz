@@ -1163,6 +1163,17 @@ class HermesBackendStore {
     return evidence;
   }
 
+  public recordEvidence(ev: RawEvidenceObject): RawEvidenceObject {
+    const existingIdx = this.db.raw_evidence_objects.findIndex(e => e.evidence_uuid === ev.evidence_uuid);
+    if (existingIdx >= 0) {
+      this.db.raw_evidence_objects[existingIdx] = ev;
+    } else {
+      this.db.raw_evidence_objects.push(ev);
+    }
+    this.saveDatabase();
+    return ev;
+  }
+
   public updateSeatCoverage(seatRecord: SeatCoverageStatusRecord) {
     const idx = this.db.seat_coverage_status.findIndex(s => s.seat_uuid === seatRecord.seat_uuid);
     if (idx >= 0) {

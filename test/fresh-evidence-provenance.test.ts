@@ -19,6 +19,7 @@ import assert from 'assert';
 
 const isolatedTestDir = fs.mkdtempSync(path.join(os.tmpdir(), 'civicslenzz-provenance-test-'));
 process.env.CIVICSLENZZ_DATA_DIR = isolatedTestDir;
+process.env.NODE_ENV = 'test';
 
 import { hermesBackendStore } from '../src/lib/hermes-backend-store';
 import { FloridaDOSDivisionOfElectionsAdapter, FloridaSenateAdapter } from '../src/lib/source-adapters';
@@ -62,7 +63,7 @@ async function runAllProvenanceTests() {
   console.log("=======================================================\n");
 
   // TEST 1: Real Source-Adapter Evidence Creation Path -> REAL_PROVEN, EXTRACTED_UNREVIEWED, Public & Bridge Eligible
-  await runTest("1. Real SourceAdapterBase execution path produces REAL_PROVEN snapshot & evidence, public + bridge eligible", () => {
+  await runTest("1. Real SourceAdapterBase execution path produces REAL_PROVEN snapshot & evidence, public + bridge eligible", async () => {
     const senateAdapter = new FloridaSenateAdapter();
     const realHtml = `<!DOCTYPE html><html><head><title>Florida Senate Roster</title></head><body><h1>Senator District 34</h1><div class="roster-item">Shevrin Jones</div></body></html>`;
     const realBytes = Buffer.from(realHtml, 'utf8');
@@ -78,7 +79,7 @@ async function runAllProvenanceTests() {
     ];
 
     // Execute real adapter storeSnapshotAndEvidence method
-    const { snapshotUuid, evidenceObjects } = senateAdapter.storeSnapshotAndEvidence(
+    const { snapshotUuid, evidenceObjects } = await senateAdapter.storeSnapshotAndEvidence(
       'https://flsenate.gov/Senators/s34',
       200,
       'text/html; charset=utf-8',

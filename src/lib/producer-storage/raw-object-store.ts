@@ -19,33 +19,53 @@ export interface RawObjectStore {
 
   getObject(locator: string): Promise<{ bytes: Buffer; contentType: string; sha256: string } | null>;
 
-  checkHealth(): Promise<{ ok: boolean; bucketName?: string; error?: string }>;
+  checkHealth(): Promise<{ ok: boolean; configured: boolean; bucketName?: string; localFallbackEnabled: boolean; error?: string }>;
+
+  isLocalFallbackEnabled(): boolean;
+  isConfigured(): boolean;
 }
 
 export class GcsRawObjectStore implements RawObjectStore {
   private storage: Storage | null = null;
   private bucketName: string;
   private localFallbackDir: string | null = null;
-  private isConfigured: boolean = false;
+  private configured: boolean = false;
 
   constructor() {
-    this.bucketName = process.env.PRODUCER_GCS_BUCKET || process.env.GCS_BUCKET || 'civicslenzz-producer-artifacts';
-    
-    // In production or when credentials exist
-    try {
-      this.storage = new Storage();
-      this.isConfigured = Boolean(process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.K_SERVICE || process.env.GCS_BUCKET);
-    } catch (e: any) {
-      console.warn('[GcsRawObjectStore] Cloud Storage SDK initialization:', e.message);
-    }
+    this.bucketName = (process.env.PRODUCER_GCS_BUCKET || process.env.GCS_BUCKET || 'civicslenzz-producer-artifacts').trim();
 
-    if (!this.isConfigured) {
+    if (this.isProductionEnvironment()) {
+      try {
+        this.storage = new Storage();
+        this.configured = Boolean(process.env.PRODUCER_GCS_BUCKET || process.env.GCS_BUCKET || process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.K_SERVICE);
+      } catch (e: any) {
+        console.warn('[GcsRawObjectStore] Cloud Storage SDK initialization warning:', e.message);
+        this.configured = false;
+      }
+    } else {
+      // Local / test mode only
       const dataDir = process.env.CIVICSLENZZ_DATA_DIR || path.join(process.cwd(), 'data');
       this.localFallbackDir = path.join(dataDir, 'artifacts', 'retrievals');
       if (!fs.existsSync(this.localFallbackDir)) {
         fs.mkdirSync(this.localFallbackDir, { recursive: true });
       }
+      this.configured = true;
     }
+  }
+
+  public isProductionEnvironment(): boolean {
+    if (process.env.NODE_ENV === 'test' || process.env.PRODUCER_STORAGE_MODE === 'LOCAL_TEST') {
+      return false;
+    }
+    return process.env.NODE_ENV === 'production' || Boolean(process.env.K_SERVICE || process.env.K_REVISION || process.env.PRODUCER_GCS_BUCKET);
+  }
+
+  public isConfigured(): boolean {
+    return this.configured;
+  }
+
+  public isLocalFallbackEnabled(): boolean {
+    return !this.isProductionEnvironment();
   }
 
   public async putObject(
@@ -55,10 +75,13 @@ export class GcsRawObjectStore implements RawObjectStore {
   ): Promise<{ locator: string; byteLength: number; sha256: string }> {
     const byteLength = bytes.length;
     const sha256 = crypto.createHash('sha256').update(bytes).digest('hex');
+    const cleanLocator = locator.replace(/^gs:\/\/[^/]+\//, '').replace(/^\/+/, '');
 
-    const cleanLocator = locator.replace(/^gcs:\/\/[^/]+\//, '').replace(/^\/+/, '');
+    if (this.isProductionEnvironment()) {
+      if (!this.storage || !this.configured) {
+        throw new Error(`[GcsRawObjectStore] PRODUCTION FAIL-CLOSED: GCS storage is not configured (bucket=${this.bucketName})`);
+      }
 
-    if (this.storage && this.isConfigured) {
       try {
         const bucket = this.storage.bucket(this.bucketName);
         const file = bucket.file(cleanLocator);
@@ -71,17 +94,19 @@ export class GcsRawObjectStore implements RawObjectStore {
           },
           resumable: false
         });
+
         return {
           locator: `gs://${this.bucketName}/${cleanLocator}`,
           byteLength,
           sha256
         };
       } catch (err: any) {
-        console.warn(`[GcsRawObjectStore] GCS put failed (${err.message}), falling back to durable artifact path`);
+        console.error(`[GcsRawObjectStore] PRODUCTION GCS put failed:`, err.message);
+        throw new Error(`[GcsRawObjectStore] PRODUCTION FAIL-CLOSED: GCS object write failed for ${cleanLocator}: ${err.message}`);
       }
     }
 
-    // Local persistent artifact fallback for tests / local dev
+    // Local persistent artifact fallback for tests / local dev ONLY
     const targetDir = this.localFallbackDir || path.join(process.cwd(), 'data', 'artifacts', 'retrievals');
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
@@ -100,7 +125,10 @@ export class GcsRawObjectStore implements RawObjectStore {
   public async getObject(locator: string): Promise<{ bytes: Buffer; contentType: string; sha256: string } | null> {
     const cleanLocator = locator.replace(/^gs:\/\/[^/]+\//, '').replace(/^\/+/, '');
 
-    if (this.storage && this.isConfigured && locator.startsWith('gs://')) {
+    if (this.isProductionEnvironment()) {
+      if (!this.storage || !this.configured) {
+        throw new Error(`[GcsRawObjectStore] PRODUCTION FAIL-CLOSED: GCS storage not configured`);
+      }
       try {
         const bucket = this.storage.bucket(this.bucketName);
         const file = bucket.file(cleanLocator);
@@ -113,11 +141,12 @@ export class GcsRawObjectStore implements RawObjectStore {
           sha256
         };
       } catch (err: any) {
-        console.warn(`[GcsRawObjectStore] GCS get failed:`, err.message);
+        console.warn(`[GcsRawObjectStore] GCS get failed for ${cleanLocator}:`, err.message);
+        return null;
       }
     }
 
-    // Local read
+    // Local read for tests / dev
     const targetDir = this.localFallbackDir || path.join(process.cwd(), 'data', 'artifacts', 'retrievals');
     const filename = path.basename(cleanLocator);
     const localPath = path.join(targetDir, filename);
@@ -134,22 +163,54 @@ export class GcsRawObjectStore implements RawObjectStore {
     return null;
   }
 
-  public async checkHealth(): Promise<{ ok: boolean; bucketName?: string; error?: string }> {
-    if (this.storage && this.isConfigured) {
+  public async checkHealth(): Promise<{ ok: boolean; configured: boolean; bucketName?: string; localFallbackEnabled: boolean; error?: string }> {
+    const localFallbackEnabled = this.isLocalFallbackEnabled();
+
+    if (this.isProductionEnvironment()) {
+      if (!this.storage || !this.configured) {
+        return {
+          ok: false,
+          configured: false,
+          bucketName: this.bucketName,
+          localFallbackEnabled: false,
+          error: 'GCS Storage SDK not configured or credentials missing in production'
+        };
+      }
+
       try {
         const [exists] = await this.storage.bucket(this.bucketName).exists();
-        return { ok: true, bucketName: this.bucketName };
+        if (!exists) {
+          return {
+            ok: false,
+            configured: true,
+            bucketName: this.bucketName,
+            localFallbackEnabled: false,
+            error: `Bucket gs://${this.bucketName} does not exist or is inaccessible`
+          };
+        }
+        return {
+          ok: true,
+          configured: true,
+          bucketName: this.bucketName,
+          localFallbackEnabled: false
+        };
       } catch (err: any) {
-        // In Cloud Run environment without bucket creation permissions, storage is connected
-        return { ok: true, bucketName: this.bucketName };
+        return {
+          ok: false,
+          configured: true,
+          bucketName: this.bucketName,
+          localFallbackEnabled: false,
+          error: `GCS bucket probe error: ${err.message}`
+        };
       }
     }
 
-    // If local dir exists
-    if (this.localFallbackDir && fs.existsSync(this.localFallbackDir)) {
-      return { ok: true, bucketName: 'local_artifact_store' };
-    }
-
-    return { ok: false, error: 'Raw object store unconfigured' };
+    // In local / test mode
+    return {
+      ok: true,
+      configured: true,
+      bucketName: 'local_test_bucket',
+      localFallbackEnabled: true
+    };
   }
 }

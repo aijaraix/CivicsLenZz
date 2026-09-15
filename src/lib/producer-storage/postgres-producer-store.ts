@@ -71,9 +71,15 @@ export class PostgresProducerStore implements ProducerPersistence {
   public async initialize(): Promise<void> {
     const health = await this.checkHealth();
     if (!health.postgresConnected || !health.postgresSchemaReady) {
-      throw new Error(`[PostgresProducerStore] Fail-closed initialization check failed: ${health.error || 'SQL unready'}`);
+      this.daemonActive = false;
+      throw new Error(`[PostgresProducerStore] Fail-closed initialization check failed: PostgreSQL unready (${health.error || 'SQL unready'})`);
+    }
+    if (!health.rawObjectStorageConnected) {
+      this.daemonActive = false;
+      throw new Error(`[PostgresProducerStore] Fail-closed initialization check failed: Raw object storage unready (${health.error || 'GCS inaccessible'})`);
     }
     this.isInitialized = true;
+    this.daemonActive = true;
   }
 
   public isFailClosed(): boolean {
@@ -112,16 +118,19 @@ export class PostgresProducerStore implements ProducerPersistence {
     }
 
     const rawHealth = await this.rawObjectStore.checkHealth();
+    if (!rawHealth.ok && !error) {
+      error = rawHealth.error || 'Raw object storage inaccessible';
+    }
 
     return {
       storageMode: 'CLOUD_SQL_POSTGRES_GCS',
       postgresConfigured,
       postgresConnected,
       postgresSchemaReady,
-      rawObjectStorageConfigured: true,
+      rawObjectStorageConfigured: rawHealth.configured,
       rawObjectStorageConnected: rawHealth.ok,
-      localFallbackEnabled: false,
-      daemonActive: this.daemonActive,
+      localFallbackEnabled: rawHealth.localFallbackEnabled,
+      daemonActive: this.daemonActive && postgresConnected && postgresSchemaReady && rawHealth.ok,
       error
     };
   }
@@ -145,43 +154,76 @@ export class PostgresProducerStore implements ProducerPersistence {
     checkpoint?: any;
     status?: JobStatus;
   }): Promise<PersistentHermesJob> {
-    // 1. Check logical work idempotency if key provided
-    if (jobData.logical_work_key) {
-      const existing = await this.findJobByLogicalKey(jobData.logical_work_key);
-      if (existing && ['QUEUED', 'LEASED', 'RUNNING', 'CHECKPOINTED'].includes(existing.status)) {
-        return existing;
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      // If logical work key is provided, use advisory transaction lock to prevent concurrent races
+      if (jobData.logical_work_key) {
+        await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [jobData.logical_work_key]);
+
+        const existingRes = await client.query(`
+          SELECT job_uuid, agent_id, logical_work_key, mission_uuid, seat_uuid, person_uuid, race_uuid, campaign_uuid,
+                 source_uuid, job_type, priority, status, attempt_count, max_attempts, available_at,
+                 locked_at, lease_expires_at, worker_instance, started_at, completed_at, failed_at,
+                 last_error, checkpoint, created_at, updated_at
+          FROM hermes_jobs
+          WHERE logical_work_key = $1
+          ORDER BY created_at DESC
+          LIMIT 1
+        `, [jobData.logical_work_key]);
+
+        if (existingRes.rows.length > 0) {
+          const existing = this.mapJobRow(existingRes.rows[0]);
+          if (['QUEUED', 'LEASED', 'RUNNING', 'CHECKPOINTED'].includes(existing.status)) {
+            await client.query('COMMIT');
+            return existing;
+          }
+        }
       }
+
+      const now = new Date().toISOString();
+      const jobUuid = `job_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+
+      await client.query(`
+        INSERT INTO hermes_jobs (
+          job_uuid, agent_id, logical_work_key, seat_uuid, person_uuid, race_uuid, campaign_uuid,
+          source_uuid, job_type, priority, status, attempt_count, max_attempts, available_at,
+          checkpoint, created_at, updated_at
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, $12, $13, $14, $15, $15
+        )
+      `, [
+        jobUuid,
+        jobData.agent_id,
+        jobData.logical_work_key || null,
+        jobData.seat_uuid || null,
+        jobData.person_uuid || null,
+        jobData.race_uuid || null,
+        jobData.campaign_uuid || null,
+        jobData.source_uuid || null,
+        jobData.job_type,
+        jobData.priority || 1,
+        jobData.status || 'QUEUED',
+        jobData.max_attempts || 4,
+        jobData.available_at || now,
+        jobData.checkpoint ? JSON.stringify(jobData.checkpoint) : null,
+        now
+      ]);
+
+      await client.query('COMMIT');
+
+      const created = await this.getJob(jobUuid);
+      if (!created) {
+        throw new Error(`Failed to retrieve newly created job ${jobUuid}`);
+      }
+      return created;
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
-
-    const now = new Date().toISOString();
-    const jobUuid = `job_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
-
-    await db.insert(hermesJobs).values({
-      jobUuid,
-      agentId: jobData.agent_id,
-      logicalWorkKey: jobData.logical_work_key || null,
-      missionUuid: null,
-      seatUuid: jobData.seat_uuid || null,
-      personUuid: jobData.person_uuid || null,
-      raceUuid: jobData.race_uuid || null,
-      campaignUuid: jobData.campaign_uuid || null,
-      sourceUuid: jobData.source_uuid || null,
-      jobType: jobData.job_type,
-      priority: jobData.priority || 1,
-      status: jobData.status || 'QUEUED',
-      attemptCount: 0,
-      maxAttempts: jobData.max_attempts || 4,
-      availableAt: jobData.available_at || now,
-      checkpoint: jobData.checkpoint || null,
-      createdAt: now,
-      updatedAt: now
-    });
-
-    const created = await this.getJob(jobUuid);
-    if (!created) {
-      throw new Error(`Failed to retrieve newly created job ${jobUuid}`);
-    }
-    return created;
   }
 
   public async findJobByLogicalKey(logicalWorkKey: string): Promise<PersistentHermesJob | null> {
@@ -641,25 +683,100 @@ export class PostgresProducerStore implements ProducerPersistence {
   // RAW SNAPSHOTS & EVIDENCE OBJECTS
   // =========================================================================
 
-  public async saveRawSnapshot(snapshot: RawSourceSnapshot): Promise<void> {
+  public async saveRawSnapshot(snapshot: Partial<RawSourceSnapshot> & {
+    source_uuid: string;
+    target_url: string;
+    http_status: number;
+    content_type: string;
+    raw_bytes?: Buffer;
+  }): Promise<RawSourceSnapshot> {
+    const snapshotUuid = snapshot.snapshot_uuid || crypto.randomUUID();
+    const retrievedAt = snapshot.retrieved_at || new Date().toISOString();
+    let rawBytesPath = snapshot.raw_bytes_path || `snapshots/${snapshotUuid}.raw`;
+    let objectLocator = snapshot.object_locator;
+
+    let payloadSha256 = snapshot.payload_sha256;
+    let byteLength = snapshot.byte_length;
+    let rawPayload = snapshot.raw_payload;
+
+    if (snapshot.raw_bytes) {
+      byteLength = snapshot.raw_bytes.length;
+      payloadSha256 = crypto.createHash('sha256').update(snapshot.raw_bytes).digest('hex');
+      try {
+        rawPayload = snapshot.raw_bytes.toString('utf-8');
+      } catch {
+        rawPayload = '';
+      }
+      if (this.rawObjectStore) {
+        try {
+          const stored = await this.rawObjectStore.putObject(
+            rawBytesPath,
+            snapshot.raw_bytes,
+            snapshot.content_type
+          );
+          rawBytesPath = stored.locator;
+          objectLocator = stored.locator;
+        } catch (err) {
+          console.warn("[POSTGRES-STORE] Failed to store raw bytes in object store:", err);
+        }
+      }
+    } else if (rawPayload && !payloadSha256) {
+      payloadSha256 = crypto.createHash('sha256').update(rawPayload, 'utf-8').digest('hex');
+      byteLength = Buffer.byteLength(rawPayload, 'utf-8');
+    }
+
+    if (!payloadSha256) {
+      payloadSha256 = crypto.createHash('sha256').update('').digest('hex');
+    }
+
+    let classification = snapshot.provenance_classification;
+    if (!classification) {
+      if (snapshot.http_status >= 200 && snapshot.http_status < 300) {
+        classification = 'REAL_PROVEN';
+      } else {
+        classification = 'FAILED_RETRIEVAL';
+      }
+    }
+
+    const fullSnapshot: RawSourceSnapshot = {
+      snapshot_uuid: snapshotUuid,
+      source_uuid: snapshot.source_uuid,
+      target_url: snapshot.target_url,
+      http_status: snapshot.http_status,
+      content_type: snapshot.content_type,
+      charset: snapshot.charset || 'utf-8',
+      byte_length: byteLength || 0,
+      raw_payload: rawPayload || undefined,
+      payload_sha256: payloadSha256,
+      raw_bytes_path: rawBytesPath,
+      object_locator: objectLocator || undefined,
+      retrieved_at: retrievedAt,
+      parser_version: snapshot.parser_version || 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',
+      provenance_classification: classification,
+      challenge_reason: snapshot.challenge_reason,
+      failure_class: snapshot.failure_class
+    };
+
     await db.insert(rawSourceSnapshots).values({
-      snapshotUuid: snapshot.snapshot_uuid,
-      sourceUuid: snapshot.source_uuid,
-      targetUrl: snapshot.target_url,
-      httpStatus: snapshot.http_status,
-      contentType: snapshot.content_type,
-      charset: snapshot.charset || null,
-      byteLength: snapshot.byte_length || null,
-      rawPayload: snapshot.raw_payload || null,
-      payloadSha256: snapshot.payload_sha256,
-      rawBytesPath: snapshot.raw_bytes_path,
-      objectLocator: snapshot.object_locator || null,
-      retrievedAt: snapshot.retrieved_at,
-      parserVersion: snapshot.parser_version,
-      provenanceClassification: snapshot.provenance_classification || 'UNKNOWN',
-      challengeReason: snapshot.challenge_reason || null,
-      failureClass: snapshot.failure_class || null
+      snapshotUuid: fullSnapshot.snapshot_uuid,
+      sourceUuid: fullSnapshot.source_uuid,
+      targetUrl: fullSnapshot.target_url,
+      httpStatus: fullSnapshot.http_status,
+      contentType: fullSnapshot.content_type,
+      charset: fullSnapshot.charset || null,
+      byteLength: fullSnapshot.byte_length || null,
+      rawPayload: fullSnapshot.raw_payload || null,
+      payloadSha256: fullSnapshot.payload_sha256,
+      rawBytesPath: fullSnapshot.raw_bytes_path,
+      objectLocator: fullSnapshot.object_locator || null,
+      retrievedAt: fullSnapshot.retrieved_at,
+      parserVersion: fullSnapshot.parser_version,
+      provenanceClassification: fullSnapshot.provenance_classification || 'UNKNOWN',
+      challengeReason: fullSnapshot.challenge_reason || null,
+      failureClass: fullSnapshot.failure_class || null
     }).onConflictDoNothing();
+
+    return fullSnapshot;
   }
 
   public async getRawSnapshot(snapshotUuid: string): Promise<RawSourceSnapshot | null> {
@@ -711,35 +828,81 @@ export class PostgresProducerStore implements ProducerPersistence {
     }));
   }
 
-  public async saveEvidenceObjects(evidenceList: RawEvidenceObject[]): Promise<void> {
-    if (evidenceList.length === 0) return;
+  public async saveEvidenceObjects(evidenceList: Array<Partial<RawEvidenceObject> & {
+    source_uuid: string;
+    source_url: string;
+    document_title: string;
+    document_type: string;
+    source_tier: any;
+    parser_version: string;
+    extraction_method: string;
+  }>): Promise<RawEvidenceObject[]> {
+    if (evidenceList.length === 0) return [];
+
+    const results: RawEvidenceObject[] = [];
 
     for (const e of evidenceList) {
+      const evidenceUuid = e.evidence_uuid || crypto.randomUUID();
+      const retrievedAt = e.retrieved_at || new Date().toISOString();
+      const contentHash = e.content_hash || crypto.createHash('sha256')
+        .update(`${e.source_url}_${e.seat_uuid || ''}_${e.field_key || ''}_${e.extracted_value || ''}`)
+        .digest('hex');
+      const classification = e.provenance_classification || 'REAL_PROVEN';
+
+      const fullEvidence: RawEvidenceObject = {
+        evidence_uuid: evidenceUuid,
+        source_uuid: e.source_uuid,
+        source_url: e.source_url,
+        deep_link: e.deep_link,
+        document_title: e.document_title,
+        document_type: e.document_type,
+        retrieved_at: retrievedAt,
+        published_at: e.published_at,
+        source_tier: e.source_tier,
+        raw_snapshot_uuid: e.raw_snapshot_uuid,
+        retrieval_content_sha256: e.retrieval_content_sha256,
+        claim_fingerprint: e.claim_fingerprint,
+        content_hash: contentHash,
+        parser_version: e.parser_version,
+        extraction_method: e.extraction_method,
+        supporting_locator: e.supporting_locator,
+        verification_state: e.verification_state || 'EXTRACTED_UNREVIEWED',
+        seat_uuid: e.seat_uuid,
+        person_uuid: e.person_uuid,
+        field_key: e.field_key,
+        extracted_value: e.extracted_value,
+        provenance_classification: classification
+      };
+
       await db.insert(rawEvidenceObjects).values({
-        evidenceUuid: e.evidence_uuid,
-        sourceUuid: e.source_uuid,
-        sourceUrl: e.source_url,
-        deepLink: e.deep_link || null,
-        documentTitle: e.document_title,
-        documentType: e.document_type,
-        retrievedAt: e.retrieved_at,
-        publishedAt: e.published_at || null,
-        sourceTier: e.source_tier,
-        rawSnapshotUuid: e.raw_snapshot_uuid || null,
-        retrievalContentSha256: e.retrieval_content_sha256 || null,
-        claimFingerprint: e.claim_fingerprint || null,
-        contentHash: e.content_hash,
-        parserVersion: e.parser_version,
-        extractionMethod: e.extraction_method,
-        supportingLocator: e.supporting_locator || null,
-        verificationState: e.verification_state || 'EXTRACTED_UNREVIEWED',
-        seatUuid: e.seat_uuid || null,
-        personUuid: e.person_uuid || null,
-        fieldKey: e.field_key || null,
-        extractedValue: e.extracted_value || null,
-        provenanceClassification: e.provenance_classification || 'UNKNOWN'
+        evidenceUuid: fullEvidence.evidence_uuid,
+        sourceUuid: fullEvidence.source_uuid,
+        sourceUrl: fullEvidence.source_url,
+        deepLink: fullEvidence.deep_link || null,
+        documentTitle: fullEvidence.document_title,
+        documentType: fullEvidence.document_type,
+        retrievedAt: fullEvidence.retrieved_at,
+        publishedAt: fullEvidence.published_at || null,
+        sourceTier: fullEvidence.source_tier,
+        rawSnapshotUuid: fullEvidence.raw_snapshot_uuid || null,
+        retrievalContentSha256: fullEvidence.retrieval_content_sha256 || null,
+        claimFingerprint: fullEvidence.claim_fingerprint || null,
+        contentHash: fullEvidence.content_hash,
+        parserVersion: fullEvidence.parser_version,
+        extractionMethod: fullEvidence.extraction_method,
+        supportingLocator: fullEvidence.supporting_locator || null,
+        verificationState: fullEvidence.verification_state || 'EXTRACTED_UNREVIEWED',
+        seatUuid: fullEvidence.seat_uuid || null,
+        personUuid: fullEvidence.person_uuid || null,
+        fieldKey: fullEvidence.field_key || null,
+        extractedValue: fullEvidence.extracted_value || null,
+        provenanceClassification: fullEvidence.provenance_classification || 'UNKNOWN'
       }).onConflictDoNothing();
+
+      results.push(fullEvidence);
     }
+
+    return results;
   }
 
   public async getAllEvidenceObjects(): Promise<RawEvidenceObject[]> {
