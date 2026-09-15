@@ -273,7 +273,7 @@ async function startServer() {
 
   // Build info endpoint (machine-verifiable build identity without secret leakage)
   app.get("/api/build-info", (req, res) => {
-    const gitSha = process.env.GIT_SHA || process.env.VITE_GIT_SHA || "UNKNOWN";
+    const gitSha = process.env.CIVICSLENZZ_GIT_SHA || process.env.GIT_SHA || process.env.VITE_GIT_SHA || "UNKNOWN";
     const buildTime = process.env.BUILD_TIME || "UNKNOWN";
     const service = process.env.K_SERVICE || "UNKNOWN";
     const revision = process.env.K_REVISION || "UNKNOWN";
