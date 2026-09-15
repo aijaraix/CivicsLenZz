@@ -466,6 +466,13 @@ class HermesBackendStore {
   }
 
   private saveDatabase(dataToSave?: HermesPersistentSchema) {
+    // Production operations must NEVER update local JSON database (Requirement D)
+    const isProduction = process.env.NODE_ENV === 'production' || 
+      (Boolean(process.env.SQL_HOST) && process.env.PRODUCER_STORAGE_MODE !== 'LOCAL_TEST');
+    if (isProduction) {
+      return;
+    }
+
     const target = dataToSave || this.db;
     target.last_updated_at = new Date().toISOString();
     

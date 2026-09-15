@@ -5,7 +5,7 @@ import path from 'node:path';
 import { PostgresProducerStore } from '../src/lib/producer-storage/postgres-producer-store';
 import { GcsRawObjectStore } from '../src/lib/producer-storage/raw-object-store';
 import { FloridaDOSDivisionOfElectionsAdapter } from '../src/lib/source-adapters';
-import { hermesBridgeClient } from '../src/lib/hermes-bridge-client';
+import { HermesBridgeClient, hermesBridgeClient } from '../src/lib/hermes-bridge-client';
 import { detectAccessChallenge } from '../src/lib/hermes-backend-store';
 import { getProducerPersistence } from '../src/lib/producer-storage/index';
 
@@ -150,10 +150,15 @@ async function runTests() {
     assert.ok(res.snapshotUuid, "Durable snapshot UUID returned");
 
     // Verify local backend store file in data/ was not populated by this run
-    const localDbPath = path.join(process.cwd(), 'data', 'civicslenzz-backend-db.json');
+    const localDbPath = path.join(process.cwd(), 'data', 'hermes_persistent_db.json');
     if (fs.existsSync(localDbPath)) {
       const dbContent = fs.readFileSync(localDbPath, 'utf-8');
-      assert.ok(!dbContent.includes(res.snapshotUuid), "Local DB file must NOT contain production snapshot UUID");
+      assert.ok(!dbContent.includes(res.snapshotUuid), "data/hermes_persistent_db.json must NOT contain production snapshot UUID");
+    }
+    const legacyRetrievalDir = path.join(process.cwd(), 'data', 'artifacts', 'retrievals');
+    if (fs.existsSync(legacyRetrievalDir)) {
+      const files = fs.readdirSync(legacyRetrievalDir);
+      assert.ok(!files.some(f => f.includes(res.snapshotUuid)), "data/artifacts/retrievals/ must NOT contain production snapshot files");
     }
 
     process.env.NODE_ENV = 'test';
@@ -234,19 +239,20 @@ async function runTests() {
     const store = new PostgresProducerStore();
     const workKey = "LOGICAL_WORK_FL_SENATE_SD35_" + Date.now();
 
-    const job1 = await store.createJob({
-      agent_id: "fl_dos_elections",
-      target_url: "https://dos.elections.myflorida.com/sd35",
-      job_type: "FL_DOS_CANDIDATES",
-      logical_work_key: workKey
-    });
-
-    const job2 = await store.createJob({
-      agent_id: "fl_dos_elections",
-      target_url: "https://dos.elections.myflorida.com/sd35",
-      job_type: "FL_DOS_CANDIDATES",
-      logical_work_key: workKey
-    });
+    const [job1, job2] = await Promise.all([
+      store.createJob({
+        agent_id: "fl_dos_elections",
+        target_url: "https://dos.elections.myflorida.com/sd35",
+        job_type: "FL_DOS_CANDIDATES",
+        logical_work_key: workKey
+      }),
+      store.createJob({
+        agent_id: "fl_dos_elections",
+        target_url: "https://dos.elections.myflorida.com/sd35",
+        job_type: "FL_DOS_CANDIDATES",
+        logical_work_key: workKey
+      })
+    ]);
 
     assert.ok(job1.job_uuid, "Job 1 created");
     assert.ok(job2.job_uuid, "Job 2 created or returned");
@@ -321,6 +327,105 @@ async function runTests() {
     assert.strictEqual(readback?.sha256, expectedSha, "Readback SHA256 match");
   });
 
+  // Test 14: Evidence objects default provenance to UNKNOWN when omitted
+  await test("14. saveEvidenceObjects defaults provenance to UNKNOWN when omitted", async () => {
+    const store = new PostgresProducerStore();
+    const evidence = await store.saveEvidenceObjects([{
+      source_uuid: "fl_dos_elections",
+      source_url: "https://dos.elections.myflorida.com/test",
+      document_title: "Test Title",
+      document_type: "PRIMARY_GOVERNMENT_PORTAL",
+      source_tier: "TIER_A",
+      parser_version: "DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC",
+      extraction_method: "DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC"
+    }]);
+
+    assert.strictEqual(evidence.length, 1);
+    assert.strictEqual(evidence[0].provenance_classification, 'UNKNOWN', "Caller omission must default to UNKNOWN");
+  });
+
+  // Test 15: Bridge failure / pre-network durability
+  await test("15. Bridge fails closed if Postgres persistence fails before network call", async () => {
+    delete process.env.PRODUCER_STORAGE_MODE;
+    process.env.NODE_ENV = 'production';
+    process.env.K_SERVICE = 'civicslenz-prod';
+
+    const testClient = new HermesBridgeClient();
+    (testClient as any).canonicalIngestUrl = "https://mock.civiclenz.canonical.intake.internal/v1/harvester/results";
+    const failingStore = {
+      upsertBridgeSubmission: async () => {
+        throw new Error("PostgreSQL connection refused / network error");
+      },
+      getBridgeSubmission: async () => null,
+      getAllBridgeSubmissions: async () => []
+    };
+    (testClient as any).postgresStore = failingStore;
+
+    const testJobId = "fail-test-job-" + Date.now();
+    testClient.registerCompletedResult({
+      contract_version: "CIVICLENZ_RESEARCH_INGEST_CONTRACT_V1",
+      job_id: testJobId,
+      research_work_identity: {
+        work_key: "LOGICAL_WORK_SD35_2026",
+        jurisdiction_key: "FL",
+        research_domain: "ELECTIONS",
+        cycle_year: 2026,
+        seat_key: "SENATE_DISTRICT_35"
+      },
+      content_hash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      retrievals: [],
+      sources: []
+    } as any);
+
+    await assert.rejects(
+      async () => {
+        await testClient.submitResultPackage(testJobId);
+      },
+      /PostgreSQL connection refused|Durable bridge submission commit failed/,
+      "submitResultPackage must fail before network call if Postgres commit fails"
+    );
+
+    process.env.NODE_ENV = 'test';
+    process.env.PRODUCER_STORAGE_MODE = 'LOCAL_TEST';
+    delete process.env.K_SERVICE;
+  });
+
+  // Test 16: Missing SQL config in production throws / fails closed
+  await test("16. Missing SQL config in production throws / fails closed", async () => {
+    delete process.env.PRODUCER_STORAGE_MODE;
+    process.env.NODE_ENV = 'production';
+    process.env.K_SERVICE = 'civicslenz-prod';
+    const prevSqlHost = process.env.SQL_HOST;
+    delete process.env.SQL_HOST;
+
+    const store = new PostgresProducerStore();
+    await assert.rejects(
+      async () => {
+        await store.createJob({
+          agent_id: "fl_dos",
+          target_url: "https://dos.elections.myflorida.com",
+          job_type: "FL_DOS_CANDIDATES",
+          logical_work_key: "PROD_MISSING_SQL_" + Date.now()
+        });
+      },
+      /missing SQL configuration|Production fail-closed/,
+      "createJob must throw in production if SQL_HOST is missing"
+    );
+
+    await assert.rejects(
+      async () => {
+        await store.getAllJobs();
+      },
+      /missing SQL configuration|Production fail-closed/,
+      "getAllJobs must throw in production if SQL_HOST is missing"
+    );
+
+    if (prevSqlHost) process.env.SQL_HOST = prevSqlHost;
+    process.env.NODE_ENV = 'test';
+    process.env.PRODUCER_STORAGE_MODE = 'LOCAL_TEST';
+    delete process.env.K_SERVICE;
+  });
+
   // Restore environment
   process.env.NODE_ENV = prevEnv;
   if (prevBucket) process.env.PRODUCER_GCS_BUCKET = prevBucket;
@@ -331,6 +436,7 @@ async function runTests() {
   if (failed > 0) {
     process.exit(1);
   }
+  process.exit(0);
 }
 
 runTests().catch(err => {

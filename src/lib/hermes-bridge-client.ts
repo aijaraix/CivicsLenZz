@@ -97,26 +97,27 @@ export class HermesBridgeClient {
   }
 
   public isProductionEnvironment(): boolean {
-    if (process.env.NODE_ENV === 'test' || process.env.PRODUCER_STORAGE_MODE === 'LOCAL_TEST') {
+    if (process.env.PRODUCER_STORAGE_MODE === 'LOCAL_TEST') {
       return false;
     }
-    return process.env.NODE_ENV === 'production' || Boolean(process.env.K_SERVICE || process.env.K_REVISION);
+    if (process.env.NODE_ENV === 'test' && !process.env.BRIDGE_FORCE_PRODUCTION && process.env.PRODUCER_STORAGE_MODE !== 'CLOUD_SQL_POSTGRES_GCS') {
+      return false;
+    }
+    return true;
   }
 
   public async initStore(): Promise<void> {
     if (this.isProductionEnvironment()) {
-      try {
-        const persistence = getProducerPersistence();
-        const subs = await persistence.getAllBridgeSubmissions();
-        for (const item of subs) {
-          if (item.job_id) {
-            this.submissions.set(item.job_id, item);
-          }
+      // In production: Bridge initialization MUST require PostgreSQL.
+      // If PostgreSQL load fails: fail closed; do NOT load bridge-submissions.json.
+      const persistence = getProducerPersistence();
+      const subs = await persistence.getAllBridgeSubmissions();
+      for (const item of subs) {
+        if (item.job_id) {
+          this.submissions.set(item.job_id, item);
         }
-        return;
-      } catch (err) {
-        console.error("[HermesBridgeClient] Failed to load bridge submissions from Postgres:", err);
       }
+      return;
     }
     this.loadSubmissionsFromJson();
   }
@@ -126,6 +127,9 @@ export class HermesBridgeClient {
   }
 
   private loadSubmissionsFromJson() {
+    if (this.isProductionEnvironment()) {
+      return; // bridge-submissions.json is TEST/DEV ONLY
+    }
     try {
       if (fs.existsSync(this.storagePath)) {
         const raw = fs.readFileSync(this.storagePath, 'utf-8');
@@ -143,27 +147,52 @@ export class HermesBridgeClient {
     }
   }
 
-  private saveSubmissions() {
-    const persistence = getProducerPersistence();
-    const array = Array.from(this.submissions.values());
-    for (const item of array) {
-      const pkg = this.resultPackages.get(item.job_id);
-      persistence.upsertBridgeSubmission(item, pkg).catch(e => {
-        console.warn('[HermesBridgeClient] Postgres bridge submission upsert deferred:', e.message);
-      });
+  public async persistSubmissionDurable(record: ResultSubmissionRecord, pkg?: ResearchIngestPackage): Promise<void> {
+    const persistence = (this as any).postgresStore || getProducerPersistence();
+    if (this.isProductionEnvironment()) {
+      // Must be successfully committed to PostgreSQL in production
+      await persistence.upsertBridgeSubmission(record, pkg);
+      return;
     }
 
-    if (!this.isProductionEnvironment()) {
+    if (process.env.SQL_HOST) {
       try {
-        const dataDir = path.join(process.cwd(), 'data');
-        if (!fs.existsSync(dataDir)) {
-          fs.mkdirSync(dataDir, { recursive: true });
-        }
-        fs.writeFileSync(this.storagePath, JSON.stringify(array, null, 2), 'utf-8');
-      } catch (err) {
-        console.error("[HermesBridgeClient] Could not save submissions to local file", err);
+        await persistence.upsertBridgeSubmission(record, pkg);
+      } catch {
+        // Non-fatal in dev/test mode
       }
     }
+    this.saveSubmissionsToJson();
+  }
+
+  private saveSubmissionsToJson(): void {
+    if (this.isProductionEnvironment()) {
+      return; // bridge-submissions.json is TEST/DEV ONLY
+    }
+    try {
+      const dataDir = path.join(process.cwd(), 'data');
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      const array = Array.from(this.submissions.values());
+      fs.writeFileSync(this.storagePath, JSON.stringify(array, null, 2), 'utf-8');
+    } catch (err) {
+      console.error("[HermesBridgeClient] Could not save submissions to local file", err);
+    }
+  }
+
+  private saveSubmissions() {
+    if (this.isProductionEnvironment()) {
+      const persistence = getProducerPersistence();
+      for (const item of this.submissions.values()) {
+        const pkg = this.resultPackages.get(item.job_id);
+        persistence.upsertBridgeSubmission(item, pkg).catch(e => {
+          console.warn('[HermesBridgeClient] Postgres bridge submission upsert deferred:', e.message);
+        });
+      }
+      return;
+    }
+    this.saveSubmissionsToJson();
   }
 
   /**
@@ -472,7 +501,7 @@ export class HermesBridgeClient {
       record.delivery_state = 'RESULT_READY';
       record.last_error = 'Canonical ingest endpoint not configured (CIVICLENZ_CANONICAL_INGEST_URL is unset). Package safely retained.';
       record.updated_at = new Date().toISOString();
-      this.saveSubmissions();
+      await this.persistSubmissionDurable(record, pkg);
       return record;
     }
 
@@ -485,7 +514,9 @@ export class HermesBridgeClient {
     record.attempts += 1;
     record.last_attempt_at = new Date().toISOString();
     record.updated_at = new Date().toISOString();
-    this.saveSubmissions();
+
+    // MUST commit to PostgreSQL BEFORE ANY outbound network call (pre-network durability)
+    await this.persistSubmissionDurable(record, pkg);
 
     const targetEndpoint = this.canonicalIngestUrl.includes('/v1/harvester/results')
       ? this.canonicalIngestUrl
@@ -521,7 +552,8 @@ export class HermesBridgeClient {
         const delayMs = isNaN(retryAfterSeconds) ? 30000 : retryAfterSeconds * 1000;
         record.next_retry_at = new Date(Date.now() + delayMs).toISOString();
         record.last_error = `HTTP 429 Too Many Requests. Retrying in ${Math.round(delayMs / 1000)}s`;
-        this.saveSubmissions();
+        record.updated_at = new Date().toISOString();
+        await this.persistSubmissionDurable(record, pkg);
         return record;
       }
 
@@ -537,7 +569,8 @@ export class HermesBridgeClient {
         const backoffMs = Math.min(60000, Math.pow(2, record.attempts) * 1000 + jitter);
         record.next_retry_at = new Date(Date.now() + backoffMs).toISOString();
         record.last_error = `HTTP ${response.status} from Canonical Gateway. Retrying in ${Math.round(backoffMs / 1000)}s`;
-        this.saveSubmissions();
+        record.updated_at = new Date().toISOString();
+        await this.persistSubmissionDurable(record, pkg);
         return record;
       }
 
@@ -606,7 +639,7 @@ export class HermesBridgeClient {
       }
 
       record.updated_at = new Date().toISOString();
-      this.saveSubmissions();
+      await this.persistSubmissionDurable(record, pkg);
       return record;
 
     } catch (err: any) {
@@ -616,7 +649,7 @@ export class HermesBridgeClient {
       record.next_retry_at = new Date(Date.now() + backoffMs).toISOString();
       record.last_error = `Network or fetch error: ${err.message || String(err)}`;
       record.updated_at = new Date().toISOString();
-      this.saveSubmissions();
+      await this.persistSubmissionDurable(record, pkg);
       return record;
     }
   }
@@ -642,8 +675,10 @@ export class HermesBridgeClient {
       verification_authority: false,
       BRIDGE_POSTGRES_AUTHORITATIVE: isProd,
       BRIDGE_LOCAL_JSON_AUTHORITY: !isProd,
+      BRIDGE_PRE_NETWORK_DURABILITY: isProd,
       bridge_postgres_authoritative: isProd,
-      bridge_local_json_authority: !isProd
+      bridge_local_json_authority: !isProd,
+      bridge_pre_network_durability: isProd
     };
   }
 

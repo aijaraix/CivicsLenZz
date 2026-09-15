@@ -91,6 +91,18 @@ export class PostgresProducerStore implements ProducerPersistence {
     this.daemonActive = active;
   }
 
+  public isLocalStoragePermitted(): boolean {
+    return process.env.NODE_ENV === 'test' || process.env.PRODUCER_STORAGE_MODE === 'LOCAL_TEST';
+  }
+
+  public ensurePostgresConfigured(methodName: string): void {
+    if (!process.env.SQL_HOST) {
+      if (!this.isLocalStoragePermitted()) {
+        throw new Error(`[PostgresProducerStore] Production fail-closed: missing SQL configuration for ${methodName}. Local storage forbidden in production.`);
+      }
+    }
+  }
+
   public async checkHealth(): Promise<StorageHealthInfo> {
     const postgresConfigured = Boolean(process.env.SQL_HOST && process.env.SQL_DB_NAME && process.env.SQL_USER);
     let postgresConnected = false;
@@ -156,6 +168,7 @@ export class PostgresProducerStore implements ProducerPersistence {
     checkpoint?: any;
     status?: JobStatus;
   }): Promise<PersistentHermesJob> {
+    this.ensurePostgresConfigured('createJob');
     if (jobData.logical_work_key) {
       const existing = await this.findJobByLogicalKey(jobData.logical_work_key);
       if (existing && ['QUEUED', 'LEASED', 'RUNNING', 'CHECKPOINTED'].includes(existing.status)) {
@@ -242,6 +255,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async findJobByLogicalKey(logicalWorkKey: string): Promise<PersistentHermesJob | null> {
+    this.ensurePostgresConfigured('findJobByLogicalKey');
     if (!process.env.SQL_HOST) {
       const all = hermesBackendStore.getJobs();
       return all.find(j => j.logical_work_key === logicalWorkKey) || null;
@@ -256,6 +270,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getJob(jobUuid: string): Promise<PersistentHermesJob | null> {
+    this.ensurePostgresConfigured('getJob');
     if (!process.env.SQL_HOST) {
       const all = hermesBackendStore.getJobs();
       return all.find(j => j.job_uuid === jobUuid) || null;
@@ -266,6 +281,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getAllJobs(): Promise<PersistentHermesJob[]> {
+    this.ensurePostgresConfigured('getAllJobs');
     if (!process.env.SQL_HOST) {
       return hermesBackendStore.getJobs();
     }
@@ -274,6 +290,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getQueuedJobsCount(): Promise<number> {
+    this.ensurePostgresConfigured('getQueuedJobsCount');
     if (!process.env.SQL_HOST) {
       return hermesBackendStore.getJobs().filter(j => j.status === 'QUEUED').length;
     }
@@ -292,6 +309,7 @@ export class PostgresProducerStore implements ProducerPersistence {
     workerInstance: string,
     leaseDurationSec: number = 60
   ): Promise<ClaimLeaseResult | null> {
+    this.ensurePostgresConfigured('claimAtomicLease');
     const now = new Date();
     const nowIso = now.toISOString();
     const expiresAt = new Date(now.getTime() + leaseDurationSec * 1000).toISOString();
@@ -444,6 +462,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async heartbeatLease(leaseUuid: string, extendSeconds: number = 60): Promise<boolean> {
+    this.ensurePostgresConfigured('heartbeatLease');
     const now = new Date();
     const nowIso = now.toISOString();
     const expiresAt = new Date(now.getTime() + extendSeconds * 1000).toISOString();
@@ -483,6 +502,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async completeJob(jobUuid: string, attemptUuid: string, recordsExtracted: number = 0): Promise<void> {
+    this.ensurePostgresConfigured('completeJob');
     if (!process.env.SQL_HOST) {
       hermesBackendStore.completeJob(jobUuid, 'local-worker', { recordsExtracted });
       return;
@@ -529,6 +549,7 @@ export class PostgresProducerStore implements ProducerPersistence {
     retryable: boolean = true,
     httpStatus?: number
   ): Promise<void> {
+    this.ensurePostgresConfigured('failJob');
     if (!process.env.SQL_HOST) {
       hermesBackendStore.failJob(jobUuid, 'local-worker', errorMessage, !retryable);
       return;
@@ -606,6 +627,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getJobAttempts(jobUuid?: string): Promise<HermesJobAttempt[]> {
+    this.ensurePostgresConfigured('getJobAttempts');
     if (!process.env.SQL_HOST) {
       return hermesBackendStore.getJobAttempts(jobUuid);
     }
@@ -637,12 +659,16 @@ export class PostgresProducerStore implements ProducerPersistence {
       } finally {
         client.release();
       }
-    } catch {
-      return hermesBackendStore.getJobAttempts(jobUuid);
+    } catch (err) {
+      if (this.isLocalStoragePermitted() && !process.env.SQL_HOST) {
+        return hermesBackendStore.getJobAttempts(jobUuid);
+      }
+      throw err;
     }
   }
 
   public async expireLeasesWatchdog(): Promise<number> {
+    this.ensurePostgresConfigured('expireLeasesWatchdog');
     const nowIso = new Date().toISOString();
     const client = await pool.connect();
     try {
@@ -719,6 +745,7 @@ export class PostgresProducerStore implements ProducerPersistence {
     last_processed_id?: string;
     state_data: Record<string, any>;
   }): Promise<HermesCheckpoint> {
+    this.ensurePostgresConfigured('saveCheckpoint');
     const checkpointUuid = `chk_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
     const nowIso = new Date().toISOString();
 
@@ -755,6 +782,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getCheckpoints(jobUuid: string): Promise<HermesCheckpoint[]> {
+    this.ensurePostgresConfigured('getCheckpoints');
     const rows = await db.select().from(hermesCheckpoints)
       .where(eq(hermesCheckpoints.jobUuid, jobUuid))
       .orderBy(desc(hermesCheckpoints.savedAt));
@@ -781,6 +809,7 @@ export class PostgresProducerStore implements ProducerPersistence {
     content_type: string;
     raw_bytes?: Buffer;
   }): Promise<RawSourceSnapshot> {
+    this.ensurePostgresConfigured('saveRawSnapshot');
     const snapshotUuid = snapshot.snapshot_uuid || crypto.randomUUID();
     const retrievedAt = snapshot.retrieved_at || new Date().toISOString();
     let rawBytesPath = snapshot.raw_bytes_path || `snapshots/${snapshotUuid}.raw`;
@@ -869,11 +898,15 @@ export class PostgresProducerStore implements ProducerPersistence {
       failureClass: fullSnapshot.failure_class || null
     }).onConflictDoNothing();
 
-    hermesBackendStore.registerSnapshot(fullSnapshot);
+    // Local snapshot mirroring is permitted ONLY in explicit LOCAL_TEST mode
+    if (process.env.PRODUCER_STORAGE_MODE === 'LOCAL_TEST') {
+      hermesBackendStore.registerSnapshot(fullSnapshot);
+    }
     return fullSnapshot;
   }
 
   public async getRawSnapshot(snapshotUuid: string): Promise<RawSourceSnapshot | null> {
+    this.ensurePostgresConfigured('getRawSnapshot');
     const rows = await db.select().from(rawSourceSnapshots)
       .where(eq(rawSourceSnapshots.snapshotUuid, snapshotUuid))
       .limit(1);
@@ -901,6 +934,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getAllRawSnapshots(): Promise<RawSourceSnapshot[]> {
+    this.ensurePostgresConfigured('getAllRawSnapshots');
     const rows = await db.select().from(rawSourceSnapshots).orderBy(desc(rawSourceSnapshots.retrievedAt));
     return rows.map(r => ({
       snapshot_uuid: r.snapshotUuid,
@@ -931,6 +965,7 @@ export class PostgresProducerStore implements ProducerPersistence {
     parser_version: string;
     extraction_method: string;
   }>): Promise<RawEvidenceObject[]> {
+    this.ensurePostgresConfigured('saveEvidenceObjects');
     if (evidenceList.length === 0) return [];
 
     const results: RawEvidenceObject[] = [];
@@ -941,7 +976,8 @@ export class PostgresProducerStore implements ProducerPersistence {
       const contentHash = e.content_hash || crypto.createHash('sha256')
         .update(`${e.source_url}_${e.seat_uuid || ''}_${e.field_key || ''}_${e.extracted_value || ''}`)
         .digest('hex');
-      const classification = e.provenance_classification || 'REAL_PROVEN';
+      // Fail-closed provenance: caller omission MUST default to UNKNOWN, never promoted to REAL_PROVEN
+      const classification = e.provenance_classification || 'UNKNOWN';
 
       const fullEvidence: RawEvidenceObject = {
         evidence_uuid: evidenceUuid,
@@ -1000,6 +1036,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getAllEvidenceObjects(): Promise<RawEvidenceObject[]> {
+    this.ensurePostgresConfigured('getAllEvidenceObjects');
     const rows = await db.select().from(rawEvidenceObjects).orderBy(desc(rawEvidenceObjects.retrievedAt));
     return rows.map(r => ({
       evidence_uuid: r.evidenceUuid,
@@ -1028,6 +1065,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getEvidenceForSeat(seatUuid: string): Promise<RawEvidenceObject[]> {
+    this.ensurePostgresConfigured('getEvidenceForSeat');
     const rows = await db.select().from(rawEvidenceObjects)
       .where(eq(rawEvidenceObjects.seatUuid, seatUuid))
       .orderBy(desc(rawEvidenceObjects.retrievedAt));
@@ -1063,6 +1101,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   // =========================================================================
 
   public async getSourceRegistry(): Promise<SourceRegistryEntry[]> {
+    this.ensurePostgresConfigured('getSourceRegistry');
     const rows = await db.select().from(hermesSourceRegistry);
     return rows.map(r => ({
       source_uuid: r.sourceUuid,
@@ -1084,6 +1123,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async updateSourceStatus(sourceId: string, status: string, error?: string): Promise<void> {
+    this.ensurePostgresConfigured('updateSourceStatus');
     const nowIso = new Date().toISOString();
     await db.update(hermesSourceRegistry).set({
       status,
@@ -1099,6 +1139,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   // =========================================================================
 
   public async getSeatCoverageRecords(): Promise<SeatCoverageStatusRecord[]> {
+    this.ensurePostgresConfigured('getSeatCoverageRecords');
     const rows = await db.select().from(seatCoverageStatuses);
     return rows.map(r => ({
       seat_uuid: r.seatUuid,
@@ -1125,6 +1166,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async updateSeatCoverageRecord(seatUuid: string, updates: Partial<SeatCoverageStatusRecord>): Promise<void> {
+    this.ensurePostgresConfigured('updateSeatCoverageRecord');
     const nowIso = new Date().toISOString();
     await db.update(seatCoverageStatuses).set({
       completenessPercentage: updates.completeness_percentage,
@@ -1135,6 +1177,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getPersonCoverageRecords(): Promise<PersonCoverageStatusRecord[]> {
+    this.ensurePostgresConfigured('getPersonCoverageRecords');
     const rows = await db.select().from(personCoverageStatuses);
     return rows.map(r => ({
       person_uuid: r.personUuid,
@@ -1156,6 +1199,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   // =========================================================================
 
   public async getDeadLetterJobs(): Promise<DeadLetterJobRecord[]> {
+    this.ensurePostgresConfigured('getDeadLetterJobs');
     const rows = await db.select().from(deadLetterJobs).orderBy(desc(deadLetterJobs.movedAt));
     return rows.map(r => ({
       dead_letter_uuid: r.deadLetterUuid,
@@ -1171,6 +1215,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async recordMonitoringEvent(event: Omit<MonitoringEventRecord, 'event_uuid'>): Promise<MonitoringEventRecord> {
+    this.ensurePostgresConfigured('recordMonitoringEvent');
     const eventUuid = `mon_ev_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
     await db.insert(monitoringEvents).values({
       eventUuid,
@@ -1192,6 +1237,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getMonitoringEvents(): Promise<MonitoringEventRecord[]> {
+    this.ensurePostgresConfigured('getMonitoringEvents');
     const rows = await db.select().from(monitoringEvents).orderBy(desc(monitoringEvents.timestamp));
     return rows.map(r => ({
       event_uuid: r.eventUuid,
@@ -1211,6 +1257,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getDurableGaps(): Promise<DurableGapRecord[]> {
+    this.ensurePostgresConfigured('getDurableGaps');
     const rows = await db.select().from(durableGaps);
     return rows.map(r => ({
       gap_id: r.gapId,
@@ -1228,6 +1275,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async createDurableGap(gap: Omit<DurableGapRecord, 'gap_id' | 'created_at'>): Promise<DurableGapRecord> {
+    this.ensurePostgresConfigured('createDurableGap');
     const gapId = `gap_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
     const nowIso = new Date().toISOString();
 
@@ -1249,6 +1297,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async updateDurableGap(gapId: string, updates: Partial<DurableGapRecord>): Promise<DurableGapRecord | null> {
+    this.ensurePostgresConfigured('updateDurableGap');
     await db.update(durableGaps).set({
       status: updates.status,
       resolvedAt: updates.resolved_at
@@ -1273,6 +1322,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async recordAcademyObservation(obs: Omit<DurableAcademyObservationRecord, 'observation_id' | 'created_at'>): Promise<DurableAcademyObservationRecord> {
+    this.ensurePostgresConfigured('recordAcademyObservation');
     const observationId = `obs_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
     const nowIso = new Date().toISOString();
 
@@ -1291,6 +1341,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getAcademyObservations(): Promise<DurableAcademyObservationRecord[]> {
+    this.ensurePostgresConfigured('getAcademyObservations');
     const rows = await db.select().from(academyObservations).orderBy(desc(academyObservations.createdAt));
     return rows.map(r => ({
       observation_id: r.observationId,
@@ -1305,6 +1356,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async recordAcademyCase(caseRecord: Omit<DurableAcademyCaseRecord, 'case_id' | 'created_at'>): Promise<DurableAcademyCaseRecord> {
+    this.ensurePostgresConfigured('recordAcademyCase');
     const caseId = `case_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
     const nowIso = new Date().toISOString();
 
@@ -1325,6 +1377,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getAcademyCases(): Promise<DurableAcademyCaseRecord[]> {
+    this.ensurePostgresConfigured('getAcademyCases');
     const rows = await db.select().from(academyCases).orderBy(desc(academyCases.createdAt));
     return rows.map(r => ({
       case_id: r.caseId,
@@ -1341,6 +1394,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async updateAcademyCase(caseId: string, updates: Partial<DurableAcademyCaseRecord>): Promise<DurableAcademyCaseRecord | null> {
+    this.ensurePostgresConfigured('updateAcademyCase');
     await db.update(academyCases).set({
       state: updates.state,
       testResult: updates.test_result,
@@ -1367,6 +1421,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async recordAutonomousProof(proof: Omit<DurableAutonomousProofRecord, 'proof_uuid' | 'proven_at'>): Promise<DurableAutonomousProofRecord> {
+    this.ensurePostgresConfigured('recordAutonomousProof');
     const proofUuid = `proof_auto_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
     const nowIso = new Date().toISOString();
 
@@ -1386,6 +1441,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getAutonomousProofRecords(): Promise<DurableAutonomousProofRecord[]> {
+    this.ensurePostgresConfigured('getAutonomousProofRecords');
     const rows = await db.select().from(autonomousProofRecords).orderBy(desc(autonomousProofRecords.provenAt));
     return rows.map(r => ({
       proof_uuid: r.proofUuid,
@@ -1401,6 +1457,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async recordMonitoringProof(proof: Omit<DurableMonitoringProofRecord, 'proof_uuid' | 'proven_at'>): Promise<DurableMonitoringProofRecord> {
+    this.ensurePostgresConfigured('recordMonitoringProof');
     const proofUuid = `proof_mon_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
     const nowIso = new Date().toISOString();
 
@@ -1419,6 +1476,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getMonitoringProofRecords(): Promise<DurableMonitoringProofRecord[]> {
+    this.ensurePostgresConfigured('getMonitoringProofRecords');
     const rows = await db.select().from(monitoringProofRecords).orderBy(desc(monitoringProofRecords.provenAt));
     return rows.map(r => ({
       proof_uuid: r.proofUuid,
@@ -1437,6 +1495,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   // =========================================================================
 
   public async getBridgeSubmission(jobId: string): Promise<ResultSubmissionRecord | null> {
+    this.ensurePostgresConfigured('getBridgeSubmission');
     const rows = await db.select().from(bridgeSubmissions)
       .where(eq(bridgeSubmissions.jobId, jobId))
       .limit(1);
@@ -1460,6 +1519,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async getAllBridgeSubmissions(): Promise<ResultSubmissionRecord[]> {
+    this.ensurePostgresConfigured('getAllBridgeSubmissions');
     const rows = await db.select().from(bridgeSubmissions).orderBy(desc(bridgeSubmissions.createdAt));
     return rows.map(r => ({
       submission_id: r.submissionId,
@@ -1478,6 +1538,7 @@ export class PostgresProducerStore implements ProducerPersistence {
   }
 
   public async upsertBridgeSubmission(submission: ResultSubmissionRecord, resultPackage?: ResearchIngestPackage): Promise<void> {
+    this.ensurePostgresConfigured('upsertBridgeSubmission');
     const nowIso = new Date().toISOString();
     await db.insert(bridgeSubmissions).values({
       submissionId: submission.submission_id || submission.job_id,
@@ -1594,32 +1655,32 @@ export class PostgresProducerStore implements ProducerPersistence {
     };
   }
 
-  private mapJobRow(r: typeof hermesJobs.$inferSelect): PersistentHermesJob {
+  private mapJobRow(r: any): PersistentHermesJob {
     return {
-      job_uuid: r.jobUuid,
-      agent_id: r.agentId,
-      mission_uuid: r.missionUuid || undefined,
-      seat_uuid: r.seatUuid || undefined,
-      person_uuid: r.personUuid || undefined,
-      race_uuid: r.raceUuid || undefined,
-      campaign_uuid: r.campaignUuid || undefined,
-      source_uuid: r.sourceUuid || undefined,
-      job_type: r.jobType,
+      job_uuid: r.jobUuid || r.job_uuid,
+      agent_id: r.agentId || r.agent_id,
+      mission_uuid: r.missionUuid || r.mission_uuid || undefined,
+      seat_uuid: r.seatUuid || r.seat_uuid || undefined,
+      person_uuid: r.personUuid || r.person_uuid || undefined,
+      race_uuid: r.raceUuid || r.race_uuid || undefined,
+      campaign_uuid: r.campaignUuid || r.campaign_uuid || undefined,
+      source_uuid: r.sourceUuid || r.source_uuid || undefined,
+      job_type: r.jobType || r.job_type,
       priority: r.priority,
-      status: r.status as JobStatus,
-      attempt_count: r.attemptCount,
-      max_attempts: r.maxAttempts,
-      available_at: r.availableAt,
-      locked_at: r.lockedAt || undefined,
-      lease_expires_at: r.leaseExpiresAt || undefined,
-      worker_instance: r.workerInstance || undefined,
-      started_at: r.startedAt || undefined,
-      completed_at: r.completedAt || undefined,
-      failed_at: r.failedAt || undefined,
-      last_error: r.lastError || undefined,
+      status: (r.status) as JobStatus,
+      attempt_count: r.attemptCount ?? r.attempt_count ?? 0,
+      max_attempts: r.maxAttempts ?? r.max_attempts ?? 4,
+      available_at: r.availableAt || r.available_at,
+      locked_at: r.lockedAt || r.locked_at || undefined,
+      lease_expires_at: r.leaseExpiresAt || r.lease_expires_at || undefined,
+      worker_instance: r.workerInstance || r.worker_instance || undefined,
+      started_at: r.startedAt || r.started_at || undefined,
+      completed_at: r.completedAt || r.completed_at || undefined,
+      failed_at: r.failedAt || r.failed_at || undefined,
+      last_error: r.lastError || r.last_error || undefined,
       checkpoint: r.checkpoint || undefined,
-      created_at: r.createdAt,
-      updated_at: r.updatedAt
+      created_at: r.createdAt || r.created_at,
+      updated_at: r.updatedAt || r.updated_at
     };
   }
 }

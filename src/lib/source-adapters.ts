@@ -202,7 +202,8 @@ export class SourceAdapterBase {
         seat_uuid: seatUuid,
         person_uuid: personUuid,
         field_key: item.field_key,
-        extracted_value: item.extracted_value
+        extracted_value: item.extracted_value,
+        provenance_classification: 'REAL_PROVEN' as const
       };
     });
 

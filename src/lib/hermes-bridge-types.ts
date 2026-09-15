@@ -172,6 +172,8 @@ export interface BridgeTelemetry {
   verification_authority: false;
   BRIDGE_POSTGRES_AUTHORITATIVE?: boolean;
   BRIDGE_LOCAL_JSON_AUTHORITY?: boolean;
+  BRIDGE_PRE_NETWORK_DURABILITY?: boolean;
   bridge_postgres_authoritative?: boolean;
   bridge_local_json_authority?: boolean;
+  bridge_pre_network_durability?: boolean;
 }
