@@ -11,6 +11,25 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: producer_test
+          POSTGRES_USER: producer_test
+          POSTGRES_PASSWORD: isolated-ci-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U producer_test -d producer_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NODE_ENV: test
+      SQL_HOST: 127.0.0.1
+      SQL_DB_NAME: producer_test
+      SQL_USER: producer_test
+      SQL_PASSWORD: isolated-ci-only
+      SQL_ADMIN_USER: producer_test
+      SQL_ADMIN_PASSWORD: isolated-ci-only
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,10 +53,16 @@ jobs:
           git commit -m "build: lock R2 SDK dependencies"
           git -c http.extraheader="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)" push origin HEAD:refs/heads/codex/r2-raw-storage-cutover
       - run: npm ci --legacy-peer-deps --no-audit --no-fund
+      - name: Initialize isolated CI PostgreSQL schema
+        run: npx drizzle-kit push --config=src/db/drizzle.config.ts
       - run: npm run test:r2
+        id: r2
       - run: npm test
-      - run: npm run production:truth-audit
-      - run: npm run lint
-      - run: npm run build
+      - if: ${{ !cancelled() && steps.r2.outcome == 'success' }}
+        run: npm run production:truth-audit
+      - if: ${{ !cancelled() && steps.r2.outcome == 'success' }}
+        run: npm run lint
+      - if: ${{ !cancelled() && steps.r2.outcome == 'success' }}
+        run: npm run build
       - name: Require unchanged source after checks
         run: git diff --exit-code -- package.json package-lock.json src server.ts test
