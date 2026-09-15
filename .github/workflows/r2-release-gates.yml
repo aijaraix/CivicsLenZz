@@ -1,0 +1,59 @@
+name: R2 release gates
+on:
+  push:
+    branches: [codex/r2-raw-storage-cutover]
+permissions:
+  contents: read
+concurrency:
+  group: r2-release-gates
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: producer_test
+          POSTGRES_USER: producer_test
+          POSTGRES_PASSWORD: isolated-ci-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U producer_test -d producer_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      NODE_ENV: test
+      SQL_HOST: 127.0.0.1
+      SQL_DB_NAME: producer_test
+      SQL_USER: producer_test
+      SQL_PASSWORD: isolated-ci-only
+      SQL_ADMIN_USER: producer_test
+      SQL_ADMIN_PASSWORD: isolated-ci-only
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
+      - name: Initialize isolated CI PostgreSQL schema
+        run: npx drizzle-kit push --config=src/db/drizzle.config.ts
+      - name: Preserve checkout data baseline before mutation by tests
+        run: cp -a data "$RUNNER_TEMP/producer-audit-baseline"
+      - run: npm run test:r2
+        id: r2
+      - run: npm test
+      - if: ${{ !cancelled() && steps.r2.outcome == 'success' }}
+        env:
+          CIVICLENZ_HARVESTER_SHARED_SECRET: isolated-ci-audit-signing-fixture-only
+          CIVICSLENZZ_DATA_DIR: ${{ runner.temp }}/producer-audit-baseline
+        run: npm run production:truth-audit
+      - if: ${{ !cancelled() && steps.r2.outcome == 'success' }}
+        run: npm run lint
+      - if: ${{ !cancelled() && steps.r2.outcome == 'success' }}
+        run: npm run build
+      - name: Require unchanged source after checks
+        run: git diff --exit-code -- package.json package-lock.json src server.ts test
