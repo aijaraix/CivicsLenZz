@@ -43,7 +43,11 @@ async function main(){
   const bytes=Buffer.from('<html>real florida dos bytes</html>');
   const hash=crypto.createHash('sha256').update(bytes).digest('hex');
   const job:any={...created,source_uuid:'fl_dos_elections',checkpoint:created.checkpoint};
-  const parsed:any={success:true,source_id:'fl_dos_elections',source_url:'https://dos.elections.myflorida.com/candidates/CanList.asp',http_status:200,records_extracted:3,extracted_items:[],raw_snapshot_uuid:'snapshot-1',evidence_objects:[{
+  const parsed:any={success:true,source_id:'fl_dos_elections',source_url:'https://dos.elections.myflorida.com/candidates/CanList.asp',http_status:200,records_extracted:1,extracted_items:[{
+    target_entity:'Example Candidate',field_key:'CANDIDATE_FILING_RECORD',
+    extracted_value:JSON.stringify({candidate_name:'Example Candidate',party_affiliation:'NPA',filing_status:'Qualified',office_sought:'Governor'}),
+    evidence_locator:'#row-1'
+  }],raw_snapshot_uuid:'snapshot-1',evidence_objects:[{
     evidence_uuid:'evidence-1',source_uuid:'fl_dos_elections',source_url:'https://dos.elections.myflorida.com/candidates/CanList.asp',retrieved_at:'2026-09-16T00:05:00Z',source_tier:'TIER_A',raw_snapshot_uuid:'snapshot-1',retrieval_content_sha256:hash,content_hash:hash,parser_version:'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',extraction_method:'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',supporting_locator:'#row-1',verification_state:'EXTRACTED_UNREVIEWED',provenance_classification:'REAL_PROVEN'
   }]};
   const resultPersistence:any={getRawSnapshot:async()=>({snapshot_uuid:'snapshot-1',source_uuid:'fl_dos_elections',target_url:parsed.source_url,http_status:200,content_type:'text/html',byte_length:bytes.length,payload_sha256:hash,raw_bytes_path:'r2://bucket/snapshot-1.raw',object_locator:'r2://bucket/snapshot-1.raw',retrieved_at:'2026-09-16T00:05:00Z',parser_version:'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',provenance_classification:'REAL_PROVEN'})};
@@ -51,8 +55,15 @@ async function main(){
   const envelope=await buildCanonicalResultEnvelope(job,parsed,{persistence:resultPersistence,rawStore});
   assert.ok(envelope);assert.equal(envelope!.job.job_id,'canonical-job-0001');assert.equal(envelope!.job.research_work_identity,work);
   assert.equal(envelope!.capability,CONTROLLED_CAPABILITY);assert.equal(envelope!.evidence[0].sha256,hash);
-  assert.equal(envelope!.entities.person_candidates.length,0);assert.equal(envelope!.claims.length,0);
-  assert.ok(envelope!.gaps.includes('CANONICAL_ENTITY_MAPPING_REQUIRED'));
+  assert.equal(envelope!.entities.person_candidates.length,0);
+  assert.equal(envelope!.entities.candidate_campaign_candidates.length,1);
+  assert.equal(envelope!.entities.candidate_campaign_candidates[0].attributes.candidate_name,'Example Candidate');
+  assert.equal(envelope!.entities.candidate_campaign_candidates[0].identity_resolution_required,true);
+  assert.deepEqual(envelope!.entities.candidate_campaign_candidates[0].evidence_keys,['evidence-1']);
+  assert.equal(envelope!.claims.length,1);
+  assert.equal(envelope!.claims[0].field_key,'candidate_filing_record');
+  assert.deepEqual(envelope!.claims[0].evidence_keys,['evidence-1']);
+  assert.ok(envelope!.gaps.includes('CANONICAL_IDENTITY_RESOLUTION_REQUIRED'));
 
   let staged:any=null;
   const stagingBridge:any={...bridge(),registerCanonicalEnvelopeDurable:async(e:any,max:number)=>{staged={e,max};return {delivery_state:'RESULT_READY'};}};
@@ -64,6 +75,13 @@ async function main(){
 
   const autonomous={...job,checkpoint:{}};
   assert.equal(await buildCanonicalResultEnvelope(autonomous,parsed,{persistence:resultPersistence,rawStore}),null);
+
+  const storeSourceText = await import('node:fs/promises').then(fs=>fs.readFile(new URL('../src/lib/producer-storage/postgres-producer-store.ts',import.meta.url),'utf8'));
+  assert.ok(storeSourceText.includes('logical_work_key: r.logicalWorkKey || r.logical_work_key || undefined'));
+  const { PostgresProducerStore } = await import('../src/lib/producer-storage/postgres-producer-store');
+  const mapperStore:any = new PostgresProducerStore({} as any);
+  const mapped = mapperStore.mapJobRow({job_uuid:'mapped-job',agent_id:'H1',logical_work_key:`canonical:${work}`,job_type:'INGEST_CANDIDATE_FILINGS',priority:1,status:'QUEUED',attempt_count:0,max_attempts:1,available_at:'2026-09-16T00:00:00Z',created_at:'2026-09-16T00:00:00Z',updated_at:'2026-09-16T00:00:00Z'});
+  assert.equal(mapped.logical_work_key,`canonical:${work}`);
 
   // Leasing filter contract: controlled mode must not select producer-autonomous logical work.
   const storeSource = await import('../src/lib/hermes-backend-store');
