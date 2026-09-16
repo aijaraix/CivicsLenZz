@@ -5,6 +5,7 @@ import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import { hermesWorkerDaemon } from "./src/lib/hermes-worker-daemon";
 import { getProducerPersistence, getRawObjectStore } from "./src/lib/producer-storage/index";
+import { captureJsonRawBody, getAuthenticationBody } from "./src/lib/request-auth-body";
 import { masterFloridaLedger } from "./src/lib/florida-master-ledger";
 import { cohortReadinessEngine } from "./src/lib/cohort-readiness-engine";
 import {
@@ -16,7 +17,7 @@ import {
 
 async function startServer() {
   const app = express();
-  app.use(express.json());
+  app.use(express.json({ verify: captureJsonRawBody }));
   const PORT = 3000;
 
   const persistence = getProducerPersistence();
@@ -897,7 +898,7 @@ async function startServer() {
     }
     try {
       const { hermesBridgeClient } = await import("./src/lib/hermes-bridge-client");
-      const rawBody = req.body ? (typeof req.body === 'string' ? req.body : JSON.stringify(req.body)) : undefined;
+      const rawBody = getAuthenticationBody(req);
       const auth = hermesBridgeClient.verifyInboundRequest(
         req.headers as Record<string, string | string[] | undefined>,
         rawBody
