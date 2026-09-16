@@ -69,9 +69,10 @@ async function main(){
   const storeSource = await import('../src/lib/hermes-backend-store');
   const localStore:any = storeSource.hermesBackendStore;
   const unique = Date.now().toString(36);
-  const autonomousJob = localStore.createJob({agent_id:'H1',job_type:'INGEST_CANDIDATE_FILINGS',logical_work_key:`autonomous:${unique}`,priority:99});
-  const canonicalJob = localStore.createJob({agent_id:'H1',job_type:'INGEST_CANDIDATE_FILINGS',logical_work_key:`canonical:${unique}`,priority:1});
-  const leased = localStore.claimAvailableJob('H1',`worker-${unique}`,'canonical:');
+  const testAgent = `TEST_CANONICAL_${unique}`;
+  const autonomousJob = localStore.createJob({agent_id:testAgent,job_type:'INGEST_CANDIDATE_FILINGS',logical_work_key:`autonomous:${unique}`,priority:99});
+  const canonicalJob = localStore.createJob({agent_id:testAgent,job_type:'INGEST_CANDIDATE_FILINGS',logical_work_key:`canonical:${unique}`,priority:1});
+  const leased = localStore.claimAvailableJob(testAgent,`worker-${unique}`,'canonical:');
   assert.equal(leased?.job.job_uuid,canonicalJob.job_uuid);
   assert.notEqual(leased?.job.job_uuid,autonomousJob.job_uuid);
 
