@@ -286,6 +286,8 @@ async function startServer() {
       build_time: buildTime,
       service: service,
       revision: revision,
+      auth_request_body_mode: "RAW_JSON_BYTES_V1",
+      auth_runtime_contract: "CIVICSLENZZ_HMAC_RAW_BODY_V1",
       producer_storage_mode: process.env.NODE_ENV === "test" || process.env.PRODUCER_STORAGE_MODE === "LOCAL_TEST" ? "LOCAL_TEST" : "CLOUD_SQL_POSTGRES_R2",
       durable_storage_backend: process.env.NODE_ENV === "test" || process.env.PRODUCER_STORAGE_MODE === "LOCAL_TEST" ? "LOCAL_TEST" : "CLOUD_SQL_POSTGRES_R2"
     });
