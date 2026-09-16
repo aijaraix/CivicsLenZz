@@ -1,0 +1,45 @@
+name: Apply producer runtime auth marker
+
+on:
+  push:
+    branches:
+      - chatgpt/runtime-auth-marker
+
+permissions:
+  contents: write
+
+jobs:
+  apply-test-clean:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt/runtime-auth-marker
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Apply marker patch
+        run: git apply --check .github/runtime-auth-marker.patch && git apply .github/runtime-auth-marker.patch
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+      - name: Typecheck
+        run: npm run lint
+      - name: Production build
+        run: npm run build
+      - name: Verify exact marker and clean staging artifacts
+        run: |
+          test "$(git hash-object server.ts)" = "13799aff58ac78dfaadd3b2a2e604c9e9936a9b0"
+          grep -q 'auth_request_body_mode: "RAW_JSON_BYTES_V1"' server.ts
+          grep -q 'auth_runtime_contract: "CIVICSLENZZ_HMAC_RAW_BODY_V1"' server.ts
+          git diff --check
+          rm .github/runtime-auth-marker.patch .github/workflows/apply-runtime-auth-marker.yml
+      - name: Commit clean verified marker
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add server.ts
+          git add -u .github
+          git commit -m "Expose raw-body HMAC runtime marker [skip ci]"
+          git push origin HEAD:chatgpt/runtime-auth-marker
