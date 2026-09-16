@@ -308,7 +308,8 @@ export class PostgresProducerStore implements ProducerPersistence {
   public async claimAtomicLease(
     agentId: string,
     workerInstance: string,
-    leaseDurationSec: number = 60
+    leaseDurationSec: number = 60,
+    logicalWorkPrefix?: string
   ): Promise<ClaimLeaseResult | null> {
     this.ensurePostgresConfigured('claimAtomicLease');
     const now = new Date();
@@ -316,7 +317,7 @@ export class PostgresProducerStore implements ProducerPersistence {
     const expiresAt = new Date(now.getTime() + leaseDurationSec * 1000).toISOString();
 
     if (!process.env.SQL_HOST) {
-      const res = hermesBackendStore.claimAvailableJob(agentId, workerInstance);
+      const res = hermesBackendStore.claimAvailableJob(agentId, workerInstance, logicalWorkPrefix);
       if (!res) return null;
       return {
         job: res.job,
@@ -377,10 +378,11 @@ export class PostgresProducerStore implements ProducerPersistence {
         AND available_at <= $1
         AND attempt_count < max_attempts
         AND (agent_id = $2 OR agent_id = '*' OR $2 = '*')
+        AND ($3::text IS NULL OR logical_work_key LIKE ($3 || '%'))
         ORDER BY priority DESC, created_at ASC
         LIMIT 1
         FOR UPDATE SKIP LOCKED
-      `, [nowIso, agentId]);
+      `, [nowIso, agentId, logicalWorkPrefix || null]);
 
       if (selectRes.rows.length === 0) {
         await client.query('COMMIT');

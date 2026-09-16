@@ -248,7 +248,9 @@ export class HermesBridgeClient {
     maxClockSkewMs = 300000 // 5 minute skew window
   ): { authenticated: boolean; reason?: string; producerId?: string } {
     if (!this.sharedSecret) {
-      return { authenticated: true, producerId: this.producerId };
+      return this.isProductionEnvironment()
+        ? { authenticated: false, reason: 'machine_authentication_not_configured' }
+        : { authenticated: true, producerId: this.producerId };
     }
 
     const getHeader = (name: string): string | undefined => {
@@ -307,7 +309,9 @@ export class HermesBridgeClient {
   public authenticateInboundRequest(authHeader: string | undefined, xHarvesterSecretHeader?: string | undefined): { authenticated: boolean; reason?: string } {
     // If no secret configured in environment, allow advance mode but note it
     if (!this.sharedSecret) {
-      return { authenticated: true };
+      return this.isProductionEnvironment()
+        ? { authenticated: false, reason: 'machine_authentication_not_configured' }
+        : { authenticated: true };
     }
 
     let token = '';
@@ -442,6 +446,39 @@ export class HermesBridgeClient {
   }
 
   /**
+   * Register a current canonical V1 envelope with durable PostgreSQL state
+   * before any network transmission. Used only by HERMES-assigned production work.
+   */
+  public async registerCanonicalEnvelopeDurable(pkg: any, maxAttempts: number = 1): Promise<ResultSubmissionRecord> {
+    const canonical = assertCanonicalEnvelope(pkg);
+    await this.initStore();
+    const jobId = canonical.job.job_id;
+    const resultHash = crypto.createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
+    const idempotencyKey = crypto.createHash('sha256')
+      .update(`${jobId}:${canonical.job.research_work_identity}:${resultHash}:${canonical.contract_version}`)
+      .digest('hex');
+    const persistence = getProducerPersistence();
+    const durable = await persistence.getBridgeSubmission(jobId);
+    if (durable) {
+      this.submissions.set(jobId, durable);
+      this.resultPackages.set(jobId, canonical as any);
+      return durable;
+    }
+    const now = new Date().toISOString();
+    const record: ResultSubmissionRecord = {
+      submission_id: `sub_${idempotencyKey.substring(0, 16)}`, job_id: jobId, idempotency_key: idempotencyKey,
+      delivery_state: 'RESULT_READY', attempts: 0, max_attempts: Math.max(1, Math.min(1, maxAttempts)),
+      next_retry_at: null, last_attempt_at: null, last_error: null, acknowledgment: null, created_at: now, updated_at: now
+    };
+    this.submissions.set(jobId, record);
+    this.resultPackages.set(jobId, canonical as any);
+    this.telemetry.results_ready += 1;
+    await this.persistSubmissionDurable(record, canonical as any);
+    if (this.canonicalIngestUrl) return this.submitResultPackage(jobId);
+    return record;
+  }
+
+  /**
    * Register a completed result package
    */
   public registerCompletedResult(pkg: ResearchIngestPackage): ResultSubmissionRecord {
@@ -508,6 +545,12 @@ export class HermesBridgeClient {
 
     // If already in a terminal state, don't resend
     if (['ACCEPTED_FOR_VALIDATION', 'DUPLICATE', 'REJECTED'].includes(record.delivery_state)) {
+      return record;
+    }
+    if (record.attempts >= record.max_attempts) {
+      record.last_error = record.last_error || 'Bounded canonical submission attempt budget exhausted';
+      record.updated_at = new Date().toISOString();
+      await this.persistSubmissionDurable(record, pkg);
       return record;
     }
 

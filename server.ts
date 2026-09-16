@@ -980,21 +980,20 @@ async function startServer() {
   // 3h. Inbound HERMES Job Interface (POST, GET :id, POST :id/cancel, GET :id/result, GET list)
   app.post("/api/harvester/jobs", async (req, res) => {
     try {
-      const { harvesterJobManager } = await import("./src/lib/harvester-job-manager");
-      
-      const result = harvesterJobManager.submitHermesJob(req.body);
+      const { submitDurableHermesJob } = await import("./src/lib/durable-canonical-production");
+      const result = await submitDurableHermesJob(req.body);
 
       if (!result.valid) {
         return res.status(400).json({
           status: "ERROR",
-          error_code: result.validation?.code || "INVALID_ENVELOPE",
-          error: result.validation?.error || "Invalid job parameters",
-          details: result.validation?.details
+          error_code: result.error_code || "INVALID_ENVELOPE",
+          error: result.error || "Invalid or out-of-cohort HERMES job"
         });
       }
 
       res.status(result.is_new ? 201 : 200).json({
         status: "SUCCESS",
+        storage: "AUTHORITATIVE_PRODUCER_PERSISTENCE",
         is_new_job: result.is_new,
         job: result.job
       });

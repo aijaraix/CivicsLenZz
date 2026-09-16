@@ -815,7 +815,7 @@ class HermesBackendStore {
     return newJob;
   }
 
-  public claimAvailableJob(agentId: string, workerInstance: string): { job: PersistentHermesJob; lease: HermesWorkerLease } | null {
+  public claimAvailableJob(agentId: string, workerInstance: string, logicalWorkPrefix?: string): { job: PersistentHermesJob; lease: HermesWorkerLease } | null {
     const nowMs = Date.now();
     const nowIso = new Date(nowMs).toISOString();
 
@@ -840,6 +840,7 @@ class HermesBackendStore {
       const availMs = new Date(j.available_at).getTime();
       if (availMs > nowMs) return false;
       if (j.agent_id !== agentId && j.agent_id !== '*') return false;
+      if (logicalWorkPrefix && !(j.logical_work_key || '').startsWith(logicalWorkPrefix)) return false;
       return true;
     });
 
