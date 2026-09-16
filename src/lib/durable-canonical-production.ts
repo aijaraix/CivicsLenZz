@@ -128,6 +128,45 @@ export async function buildCanonicalResultEnvelope(
     if (evidence.raw_snapshot_uuid !== snapshot.snapshot_uuid || evidence.retrieval_content_sha256 !== digest || evidence.provenance_classification !== 'REAL_PROVEN' || evidence.verification_state !== 'EXTRACTED_UNREVIEWED' || evidence.source_uuid !== snapshot.source_uuid) throw new Error('CANONICAL_RESULT_EVIDENCE_LINEAGE_MISMATCH');
   }
   const firstEvidence = parsed.evidence_objects[0];
+
+  const candidateCampaignCandidates: any[] = [];
+  const producerClaims: any[] = [];
+  for (let index = 0; index < parsed.extracted_items.length; index += 1) {
+    const item = parsed.extracted_items[index];
+    const evidence = parsed.evidence_objects[index];
+    if (!evidence || item.field_key !== 'CANDIDATE_FILING_RECORD') continue;
+    let filing: any;
+    try { filing = JSON.parse(item.extracted_value); } catch { continue; }
+    if (!filing || typeof filing !== 'object' || typeof filing.candidate_name !== 'string' || filing.candidate_name.trim().length === 0) continue;
+    const candidateKey = `producer:candidate_filing:${createHash('sha256').update(`${evidence.evidence_uuid}:${item.extracted_value}`).digest('hex')}`;
+    candidateCampaignCandidates.push({
+      candidate_key: candidateKey,
+      attributes: {
+        candidate_name: filing.candidate_name,
+        party_affiliation: filing.party_affiliation ?? '',
+        filing_status: filing.filing_status ?? '',
+        office_sought: filing.office_sought ?? '',
+        source_key: CONTROLLED_SOURCE,
+        extraction_status: 'extracted_unreviewed',
+      },
+      evidence_keys: [evidence.evidence_uuid],
+      identity_resolution_required: true,
+    });
+    producerClaims.push({
+      claim_key: `producer:filing_claim:${createHash('sha256').update(`${candidateKey}:${evidence.evidence_uuid}`).digest('hex')}`,
+      subject_candidate_key: candidateKey,
+      field_key: 'candidate_filing_record',
+      value: {
+        candidate_name: filing.candidate_name,
+        party_affiliation: filing.party_affiliation ?? '',
+        filing_status: filing.filing_status ?? '',
+        office_sought: filing.office_sought ?? '',
+      },
+      evidence_keys: [evidence.evidence_uuid],
+      observed_at: snapshot.retrieved_at,
+    });
+  }
+
   const locator = JSON.stringify({
     object_locator: snapshot.object_locator,
     snapshot_uuid: snapshot.snapshot_uuid,
@@ -184,10 +223,10 @@ export async function buildCanonicalResultEnvelope(
     }],
     entities: {
       jurisdiction_candidates: [], seat_candidates: [], person_candidates: [], occupancy_candidates: [],
-      election_candidates: [], candidate_campaign_candidates: [],
+      election_candidates: [], candidate_campaign_candidates: candidateCampaignCandidates,
     },
-    claims: [], relationships: [], dataset_units: [], gis_boundaries: [], warnings: [],
-    gaps: ['CANONICAL_ENTITY_MAPPING_REQUIRED'],
+    claims: producerClaims, relationships: [], dataset_units: [], gis_boundaries: [], warnings: [],
+    gaps: candidateCampaignCandidates.length > 0 ? ['CANONICAL_IDENTITY_RESOLUTION_REQUIRED'] : ['CANONICAL_ENTITY_MAPPING_REQUIRED'],
     currentness: { current_as_of: snapshot.retrieved_at },
     monitoring_recommendations: [],
   };
