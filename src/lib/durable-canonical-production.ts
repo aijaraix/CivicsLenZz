@@ -64,7 +64,9 @@ export async function submitDurableHermesJob(rawEnvelope: any, deps: InboundDeps
   const workKey = envelope.research_work_identity.work_key as string;
   const logicalWorkKey = `canonical:${workKey}`;
   const existing = await persistence.findJobByLogicalKey(logicalWorkKey);
-  if (existing) return { valid: true, is_new: false, job: existing };
+  if (existing && existing.status !== 'FAILED_PERMANENT' && existing.status !== 'DEAD_LETTER') {
+    return { valid: true, is_new: false, job: existing };
+  }
   const checkpoint = {
     canonical_assignment: {
       contract_version: 'HERMES_RESEARCH_JOB_V1',
@@ -167,14 +169,25 @@ export async function buildCanonicalResultEnvelope(
     });
   }
 
-  const locator = JSON.stringify({
-    object_locator: snapshot.object_locator,
-    snapshot_uuid: snapshot.snapshot_uuid,
-    producer_job_uuid: job.job_uuid,
-    source_uuid: snapshot.source_uuid,
-    supporting_locator: firstEvidence.supporting_locator ?? null,
-    provenance_classification: firstEvidence.provenance_classification,
-  });
+  const envelopeEvidence = parsed.evidence_objects.map((evidence) => ({
+    evidence_key: evidence.evidence_uuid,
+    source_url: snapshot.target_url,
+    retrieved_at: snapshot.retrieved_at,
+    mime_type: snapshot.content_type,
+    byte_length: stored.bytes.length,
+    sha256: digest,
+    content_base64: stored.bytes.toString('base64'),
+    method: evidence.extraction_method,
+    parser_version: evidence.parser_version,
+    locator: JSON.stringify({
+      object_locator: snapshot.object_locator,
+      snapshot_uuid: snapshot.snapshot_uuid,
+      producer_job_uuid: job.job_uuid,
+      source_uuid: snapshot.source_uuid,
+      supporting_locator: evidence.supporting_locator ?? null,
+      provenance_classification: evidence.provenance_classification,
+    }),
+  }));
   const envelope: ResearchIngestEnvelope = {
     contract_version: 'CIVICLENZ_RESEARCH_INGEST_CONTRACT_V1',
     producer: {
@@ -209,18 +222,7 @@ export async function buildCanonicalResultEnvelope(
       method: firstEvidence.extraction_method,
       parser_version: snapshot.parser_version,
     }],
-    evidence: [{
-      evidence_key: firstEvidence.evidence_uuid,
-      source_url: snapshot.target_url,
-      retrieved_at: snapshot.retrieved_at,
-      mime_type: snapshot.content_type,
-      byte_length: stored.bytes.length,
-      sha256: digest,
-      content_base64: stored.bytes.toString('base64'),
-      method: firstEvidence.extraction_method,
-      parser_version: firstEvidence.parser_version,
-      locator,
-    }],
+    evidence: envelopeEvidence,
     entities: {
       jurisdiction_candidates: [], seat_candidates: [], person_candidates: [], occupancy_candidates: [],
       election_candidates: [], candidate_campaign_candidates: candidateCampaignCandidates,

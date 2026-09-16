@@ -37,18 +37,32 @@ async function main(){
   const dup=await submitDurableHermesJob(rawEnvelope,{persistence:existingPersistence,bridge:bridge() as any});
   assert.equal(dup.valid,true);assert.equal(dup.is_new,false);assert.equal(dup.job?.job_uuid,'producer-job-1');
 
+  let replacementCreated=false;
+  const terminalPersistence:any={
+    findJobByLogicalKey:async()=>({...created,status:'FAILED_PERMANENT'}),
+    createJob:async(input:any)=>{replacementCreated=true;return {...created,...input,job_uuid:'producer-job-replacement',status:'QUEUED'};},
+  };
+  const replacement=await submitDurableHermesJob(rawEnvelope,{persistence:terminalPersistence,bridge:bridge() as any});
+  assert.equal(replacement.valid,true);assert.equal(replacement.is_new,true);assert.equal(replacement.job?.job_uuid,'producer-job-replacement');assert.equal(replacementCreated,true);
+
   const bad=await submitDurableHermesJob({...rawEnvelope,research_scope:'FULL_PARALLEL_DOSSIER'},{persistence,bridge:bridge() as any});
   assert.equal(bad.valid,false);assert.equal(bad.error_code,'RESEARCH_SCOPE_REJECTED');
 
   const bytes=Buffer.from('<html>real florida dos bytes</html>');
   const hash=crypto.createHash('sha256').update(bytes).digest('hex');
   const job:any={...created,source_uuid:'fl_dos_elections',checkpoint:created.checkpoint};
-  const parsed:any={success:true,source_id:'fl_dos_elections',source_url:'https://dos.elections.myflorida.com/candidates/CanList.asp',http_status:200,records_extracted:1,extracted_items:[{
+  const parsed:any={success:true,source_id:'fl_dos_elections',source_url:'https://dos.elections.myflorida.com/candidates/CanList.asp',http_status:200,records_extracted:2,extracted_items:[{
     target_entity:'Example Candidate',field_key:'CANDIDATE_FILING_RECORD',
     extracted_value:JSON.stringify({candidate_name:'Example Candidate',party_affiliation:'NPA',filing_status:'Qualified',office_sought:'Governor'}),
     evidence_locator:'#row-1'
+  },{
+    target_entity:'Second Candidate',field_key:'CANDIDATE_FILING_RECORD',
+    extracted_value:JSON.stringify({candidate_name:'Second Candidate',party_affiliation:'DEM',filing_status:'Filed',office_sought:'Governor'}),
+    evidence_locator:'#row-2'
   }],raw_snapshot_uuid:'snapshot-1',evidence_objects:[{
     evidence_uuid:'evidence-1',source_uuid:'fl_dos_elections',source_url:'https://dos.elections.myflorida.com/candidates/CanList.asp',retrieved_at:'2026-09-16T00:05:00Z',source_tier:'TIER_A',raw_snapshot_uuid:'snapshot-1',retrieval_content_sha256:hash,content_hash:hash,parser_version:'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',extraction_method:'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',supporting_locator:'#row-1',verification_state:'EXTRACTED_UNREVIEWED',provenance_classification:'REAL_PROVEN'
+  },{
+    evidence_uuid:'evidence-2',source_uuid:'fl_dos_elections',source_url:'https://dos.elections.myflorida.com/candidates/CanList.asp',retrieved_at:'2026-09-16T00:05:00Z',source_tier:'TIER_A',raw_snapshot_uuid:'snapshot-1',retrieval_content_sha256:hash,content_hash:hash,parser_version:'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',extraction_method:'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',supporting_locator:'#row-2',verification_state:'EXTRACTED_UNREVIEWED',provenance_classification:'REAL_PROVEN'
   }]};
   const resultPersistence:any={getRawSnapshot:async()=>({snapshot_uuid:'snapshot-1',source_uuid:'fl_dos_elections',target_url:parsed.source_url,http_status:200,content_type:'text/html',byte_length:bytes.length,payload_sha256:hash,raw_bytes_path:'r2://bucket/snapshot-1.raw',object_locator:'r2://bucket/snapshot-1.raw',retrieved_at:'2026-09-16T00:05:00Z',parser_version:'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',provenance_classification:'REAL_PROVEN'})};
   const rawStore:any={getObject:async()=>({bytes,contentType:'text/html',sha256:hash})};
@@ -56,12 +70,17 @@ async function main(){
   assert.ok(envelope);assert.equal(envelope!.job.job_id,'canonical-job-0001');assert.equal(envelope!.job.research_work_identity,work);
   assert.equal(envelope!.capability,CONTROLLED_CAPABILITY);assert.equal(envelope!.evidence[0].sha256,hash);
   assert.equal(envelope!.entities.person_candidates.length,0);
-  assert.equal(envelope!.entities.candidate_campaign_candidates.length,1);
+  assert.equal(envelope!.evidence.length,2);
+  assert.deepEqual(envelope!.evidence.map((e:any)=>e.evidence_key),['evidence-1','evidence-2']);
+  assert.equal(envelope!.entities.candidate_campaign_candidates.length,2);
   assert.equal(envelope!.entities.candidate_campaign_candidates[0].attributes.candidate_name,'Example Candidate');
   assert.equal(envelope!.entities.candidate_campaign_candidates[0].identity_resolution_required,true);
   assert.deepEqual(envelope!.entities.candidate_campaign_candidates[0].evidence_keys,['evidence-1']);
-  assert.equal(envelope!.claims.length,1);
+  assert.equal(envelope!.claims.length,2);
   assert.equal(envelope!.claims[0].field_key,'candidate_filing_record');
+  const knownEvidence=new Set(envelope!.evidence.map((e:any)=>e.evidence_key));
+  for (const c of envelope!.entities.candidate_campaign_candidates as any[]) for (const k of c.evidence_keys as string[]) assert.ok(knownEvidence.has(k));
+  for (const c of envelope!.claims as any[]) for (const k of c.evidence_keys as string[]) assert.ok(knownEvidence.has(k));
   assert.deepEqual(envelope!.claims[0].evidence_keys,['evidence-1']);
   assert.ok(envelope!.gaps.includes('CANONICAL_IDENTITY_RESOLUTION_REQUIRED'));
 
