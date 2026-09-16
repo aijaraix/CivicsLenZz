@@ -14,7 +14,8 @@ import fs from 'fs';
 import path from 'path';
 import { getProducerPersistence } from './producer-storage/index';
 import { PersistentHermesJob } from './hermes-backend-store';
-import { sourceAdapters } from './source-adapters';
+import { sourceAdapters, type AdapterParseResult } from './source-adapters';
+import { stageCanonicalResultForCompletedJob } from './durable-canonical-production';
 import { harvesterCapabilityMatrixEngine } from './harvester-capability-matrix';
 import { harvesterAcademy } from './harvester-academy';
 
@@ -24,6 +25,10 @@ export class HermesWorkerDaemonEngine {
   private watchdogHandle: NodeJS.Timeout | null = null;
   private activeJobsProcessing = new Set<string>();
   private startupError: string | null = null;
+
+  private canonicalAssignmentsOnly(): boolean {
+    return process.env.CIVICSLENZZ_CANONICAL_ASSIGNMENTS_ONLY === 'true';
+  }
 
   public async startDaemon() {
     if (this.isRunning) return;
@@ -54,8 +59,11 @@ export class HermesWorkerDaemonEngine {
     this.isRunning = true;
     this.startupError = null;
 
-    // 2. Initial Backlog Scheduling Scan on Server Startup
-    await this.scheduleInitialFloridaBacklogJobs();
+    // 2. Initial Backlog Scheduling Scan on Server Startup. During controlled
+    // canonical production, only HERMES-assigned durable jobs may enter execution.
+    if (!this.canonicalAssignmentsOnly()) {
+      await this.scheduleInitialFloridaBacklogJobs();
+    }
 
     // 3. Main Daemon Loop (Every 5 seconds)
     this.timerHandle = setInterval(() => {
@@ -86,9 +94,11 @@ export class HermesWorkerDaemonEngine {
   public async executeOneCycle() {
     if (!this.isRunning) return;
     await this.executeDaemonCycle();
-    await this.executeMonitoringCycle();
-    await this.executeGapDetectionCycle();
-    await this.executeAcademyCycle();
+    if (!this.canonicalAssignmentsOnly()) {
+      await this.executeMonitoringCycle();
+      await this.executeGapDetectionCycle();
+      await this.executeAcademyCycle();
+    }
   }
 
   private async scheduleInitialFloridaBacklogJobs() {
@@ -122,7 +132,9 @@ export class HermesWorkerDaemonEngine {
       const workerInstance = `${agentId}-worker-${Date.now().toString(36).slice(-4)}`;
       
       // Atomic Lease acquisition with FOR UPDATE SKIP LOCKED
-      const claimed = await persistence.claimAtomicLease(agentId, workerInstance);
+      const claimed = await persistence.claimAtomicLease(
+        agentId, workerInstance, 60, this.canonicalAssignmentsOnly() ? 'canonical:' : undefined
+      );
 
       if (claimed) {
         const { job, lease, attempt } = claimed;
@@ -165,9 +177,11 @@ export class HermesWorkerDaemonEngine {
     let artifactId = '';
     let retrievalId = '';
     let contentSha256 = '';
+    let completedParseResult: AdapterParseResult | null = null;
 
     if (job.job_type === 'INGEST_CANDIDATE_FILINGS') {
       const parseResult = await sourceAdapters.fl_dos_elections.fetchCandidateFilings();
+      completedParseResult = parseResult;
       if (!parseResult.success) {
         throw new Error(`ADAPTER_EXECUTION_FAILED: [${parseResult.source_id}] ${parseResult.error_message || 'Candidate filings retrieval failed'}`);
       }
@@ -187,6 +201,7 @@ export class HermesWorkerDaemonEngine {
       }
     } else if (job.job_type === 'INGEST_LEGISLATIVE_ROSTER') {
       const parseResult = await sourceAdapters.fl_senate.fetchSenatorRoster(job.seat_uuid, job.person_uuid);
+      completedParseResult = parseResult;
       if (!parseResult.success) {
         throw new Error(`ADAPTER_EXECUTION_FAILED: [${parseResult.source_id}] ${parseResult.error_message || 'Legislative roster retrieval failed'}`);
       }
@@ -206,6 +221,7 @@ export class HermesWorkerDaemonEngine {
       }
     } else if (job.job_type === 'INGEST_COUNTY_ELECTION_DATA') {
       const parseResult = await sourceAdapters.miami_dade_elections.fetchCountyElections(job.seat_uuid, job.person_uuid);
+      completedParseResult = parseResult;
       if (!parseResult.success) {
         throw new Error(`ADAPTER_EXECUTION_FAILED: [${parseResult.source_id}] ${parseResult.error_message || 'County election data retrieval failed'}`);
       }
@@ -225,6 +241,7 @@ export class HermesWorkerDaemonEngine {
       }
     } else if (job.job_type === 'INGEST_EXECUTIVE_ORDERS') {
       const parseResult = await sourceAdapters.fl_governor.fetchExecutiveOrders(job.seat_uuid, job.person_uuid);
+      completedParseResult = parseResult;
       if (!parseResult.success) {
         throw new Error(`ADAPTER_EXECUTION_FAILED: [${parseResult.source_id}] ${parseResult.error_message || 'Executive orders retrieval failed'}`);
       }
@@ -244,6 +261,7 @@ export class HermesWorkerDaemonEngine {
       }
     } else if (job.job_type === 'COMPLETENESS_AUDIT_SCAN' || job.job_type === 'RESEARCH_CONTRACT_COMPLETENESS_RUN') {
       const parseResult = await sourceAdapters.completeness_auditor.executeAudit(job.seat_uuid, job.person_uuid);
+      completedParseResult = parseResult;
       if (!parseResult.success) {
         throw new Error(`ADAPTER_EXECUTION_FAILED: [${parseResult.source_id}] ${parseResult.error_message || 'Completeness audit failed'}`);
       }
@@ -259,6 +277,7 @@ export class HermesWorkerDaemonEngine {
       const missingScope = targetGap?.missing_scope || 'CANDIDATE_QUALIFICATION_STATUS';
 
       const parseResult = await sourceAdapters.gap_researcher.fillGap(job.seat_uuid || 'fl_senate_dist_34', missingScope, job.person_uuid);
+      completedParseResult = parseResult;
       if (!parseResult.success) {
         throw new Error(`ADAPTER_EXECUTION_FAILED: [${parseResult.source_id}] ${parseResult.error_message || 'Gap research fill failed'}`);
       }
@@ -277,6 +296,12 @@ export class HermesWorkerDaemonEngine {
       }
     } else {
       throw new Error(`UNSUPPORTED_JOB_TYPE: Job type "${job.job_type}" with agent "${job.agent_id}" is not supported by any registered worker or adapter.`);
+    }
+
+    // Canonical-assigned producer work must durably stage its exact result package
+    // before the research job is completed. Producer-autonomous work remains local.
+    if (completedParseResult) {
+      await stageCanonicalResultForCompletedJob(job, completedParseResult);
     }
 
     // Complete Job and Release Lease with EXACT attempt identity
@@ -505,6 +530,7 @@ export class HermesWorkerDaemonEngine {
       execution_environment: 'Node Express Backend Server',
       persistence_target: 'Cloud SQL PostgreSQL + GCS',
       active_processing_jobs_count: this.activeJobsProcessing.size,
+      canonical_assignments_only: this.canonicalAssignmentsOnly(),
       summary
     };
   }

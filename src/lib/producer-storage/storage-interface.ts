@@ -85,7 +85,8 @@ export interface ProducerPersistence {
   claimAtomicLease(
     agentId: string,
     workerInstance: string,
-    leaseDurationSec?: number
+    leaseDurationSec?: number,
+    logicalWorkPrefix?: string
   ): Promise<ClaimLeaseResult | null>;
 
   getJobAttempts(jobUuid?: string): Promise<HermesJobAttempt[]>;
