@@ -1662,6 +1662,7 @@ export class PostgresProducerStore implements ProducerPersistence {
     return {
       job_uuid: r.jobUuid || r.job_uuid,
       agent_id: r.agentId || r.agent_id,
+      logical_work_key: r.logicalWorkKey || r.logical_work_key || undefined,
       mission_uuid: r.missionUuid || r.mission_uuid || undefined,
       seat_uuid: r.seatUuid || r.seat_uuid || undefined,
       person_uuid: r.personUuid || r.person_uuid || undefined,
