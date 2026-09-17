@@ -109,7 +109,15 @@ export class HermesBridgeClient {
   }
 
   public async initStore(): Promise<void> {
-    if (!this.storeInitPromise) this.storeInitPromise = this.loadStore();
+    if (!this.storeInitPromise) {
+      const guardedAttempt = this.loadStore().catch(err => {
+        // Persistence can finish initializing after this singleton is constructed.
+        // Do not permanently poison every later daemon cycle with the first failure.
+        if (this.storeInitPromise === guardedAttempt) this.storeInitPromise = null;
+        throw err;
+      });
+      this.storeInitPromise = guardedAttempt;
+    }
     return this.storeInitPromise;
   }
 
