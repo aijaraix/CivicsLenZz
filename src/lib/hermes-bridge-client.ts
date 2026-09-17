@@ -500,6 +500,20 @@ export class HermesBridgeClient {
     let retried = 0;
     for (const record of this.submissions.values()) {
       if (retried >= Math.max(0, Math.min(1, limit))) break;
+      const authorizationOnlyRejection = record.delivery_state === 'REJECTED'
+        && record.acknowledgment?.code === 'REJECTED_POLICY'
+        && /canary authorization unavailable or consumed/i.test(
+          record.last_error || record.acknowledgment?.message || ''
+        );
+      // An expired one-use return grant is not a terminal defect in the
+      // already-durable result. Preserve every prior attempt and reopen only
+      // this exact authorization-only rejection for a bounded retry window.
+      if (authorizationOnlyRejection && record.attempts < 9) {
+        record.delivery_state = 'RETRYABLE';
+        record.max_attempts = Math.min(9, Math.max(record.max_attempts, record.attempts + 3));
+        record.next_retry_at = null;
+        await this.persistSubmissionDurable(record, this.resultPackages.get(record.job_id));
+      }
       if (!['RESULT_READY', 'RETRYABLE'].includes(record.delivery_state)) continue;
       if (record.next_retry_at && Date.parse(record.next_retry_at) > now) continue;
       const pkg = this.resultPackages.get(record.job_id);
@@ -515,6 +529,15 @@ export class HermesBridgeClient {
       if (record.delivery_state === 'RETRYABLE'
           && record.max_attempts === 3 && record.attempts === 3) {
         record.max_attempts = 6;
+        record.next_retry_at = null;
+        await this.persistSubmissionDurable(record, pkg);
+      }
+      // PR #12's first migration window may have been exhausted before the
+      // bridge could hydrate and before an operator could renew the exact
+      // one-use authorization. Extend once without resetting attempts.
+      if (record.delivery_state === 'RETRYABLE'
+          && record.max_attempts === 6 && record.attempts === 6) {
+        record.max_attempts = 9;
         record.next_retry_at = null;
         await this.persistSubmissionDurable(record, pkg);
       }
@@ -747,6 +770,25 @@ export class HermesBridgeClient {
 
   public getSubmissionRecord(jobId: string): ResultSubmissionRecord | null {
     return this.submissions.get(jobId) || null;
+  }
+
+  public async getDurableRecoveryStatus() {
+    await this.initStore();
+    const states: Record<string, number> = {};
+    const submissions = Array.from(this.submissions.values()).map(record => {
+      states[record.delivery_state] = (states[record.delivery_state] || 0) + 1;
+      return {
+        job_id: record.job_id,
+        delivery_state: record.delivery_state,
+        attempts: record.attempts,
+        max_attempts: record.max_attempts,
+        next_retry_at: record.next_retry_at,
+        last_attempt_at: record.last_attempt_at,
+        acknowledgment_code: record.acknowledgment?.code || null,
+        result_package_loaded: this.resultPackages.has(record.job_id),
+      };
+    });
+    return { submission_count: submissions.length, states, submissions };
   }
 
   public getResultPackage(jobId: string): ResearchIngestPackage | null {
