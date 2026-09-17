@@ -156,7 +156,7 @@ export async function buildCanonicalResultEnvelope(
       identity_resolution_required: true,
     });
     producerClaims.push({
-      claim_key: `producer:filing_claim:${createHash('sha256').update(`${candidateKey}:${evidence.evidence_uuid}`).digest('hex')}`;
+      claim_key: `producer:filing_claim:${createHash('sha256').update(`${candidateKey}:${evidence.evidence_uuid}`).digest('hex')}`,
       subject_candidate_key: candidateKey,
       field_key: 'candidate_filing_record',
       value: {
