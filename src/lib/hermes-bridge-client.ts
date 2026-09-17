@@ -500,6 +500,16 @@ export class HermesBridgeClient {
         record.max_attempts = 3;
         await this.persistSubmissionDurable(record, pkg);
       }
+      // One migration-safe recovery window for records that exhausted the
+      // original three attempts while their exact bounded authorization was
+      // expired during deployment. The ceiling can move from 3 to 6 only
+      // once; later restarts cannot increase it again.
+      if (record.delivery_state === 'RETRYABLE'
+          && record.max_attempts === 3 && record.attempts === 3) {
+        record.max_attempts = 6;
+        record.next_retry_at = null;
+        await this.persistSubmissionDurable(record, pkg);
+      }
       if (record.attempts >= record.max_attempts) continue;
       await this.submitResultPackage(record.job_id);
       retried += 1;

@@ -344,6 +344,8 @@ async function runAllBridgeContractTests() {
     assert.ok(bridgeSource.includes("Math.min(3, maxAttempts)"), "Canonical return retry ceiling must remain three");
     assert.ok(bridgeSource.includes("['RESULT_READY', 'RETRYABLE']"), "Only retryable delivery states may resume");
     assert.ok(bridgeSource.includes("Math.min(1, limit)"), "Each daemon cycle may retry at most one return");
+    assert.ok(bridgeSource.includes("record.max_attempts === 3 && record.attempts === 3"), "Expired-authorization recovery must be one-way and bounded");
+    assert.ok(bridgeSource.includes("record.max_attempts = 6"), "Recovery ceiling must remain six attempts");
     assert.ok(daemonSource.includes("retryDueCanonicalSubmissions(1)"), "Daemon must resume one durable return before new work");
     assert.ok(storeSource.includes("getBridgeResultPackage"), "Restart recovery must restore the durable result package");
   });
