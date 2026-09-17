@@ -348,6 +348,9 @@ async function runAllBridgeContractTests() {
     assert.ok(bridgeSource.includes("record.max_attempts = 6"), "Recovery ceiling must remain six attempts");
     assert.ok(bridgeSource.includes("record.max_attempts === 6 && record.attempts === 6"), "Hydrated legacy returns may receive one final bounded recovery window");
     assert.ok(bridgeSource.includes("record.max_attempts = 9"), "Final recovery ceiling must remain nine attempts without resetting attempts");
+    assert.ok(bridgeSource.includes("record.max_attempts === 9 && record.attempts === 9"), "Paused-intake exhaustion may receive one final migration window");
+    assert.ok(bridgeSource.includes("record.max_attempts = 12"), "The final migration ceiling must remain twelve attempts without resetting history");
+    assert.ok(bridgeSource.includes("record.acknowledgment?.code === 'RETRY_LATER'"), "Only retry-later exhaustion may receive the final window");
     assert.ok(bridgeSource.includes("authorizationOnlyRejection"), "Only exact authorization-only terminal rejections may be reopened");
     assert.ok(bridgeSource.includes("getDurableRecoveryStatus"), "Live status must expose durable bridge retry state without result contents");
     assert.ok(daemonSource.includes("retryDueCanonicalSubmissions(1)"), "Daemon must resume one durable return before new work");
