@@ -347,6 +347,8 @@ async function runAllBridgeContractTests() {
     assert.ok(bridgeSource.includes("record.max_attempts === 3 && record.attempts === 3"), "Expired-authorization recovery must be one-way and bounded");
     assert.ok(bridgeSource.includes("record.max_attempts = 6"), "Recovery ceiling must remain six attempts");
     assert.ok(daemonSource.includes("retryDueCanonicalSubmissions(1)"), "Daemon must resume one durable return before new work");
+    assert.ok(daemonSource.includes("await hermesBridgeClient.initStore()"), "Daemon startup must hydrate durable bridge state only after PostgreSQL is ready");
+    assert.ok(daemonSource.includes("bridge_persistence_hydrated"), "Live daemon status must expose non-secret bridge hydration proof");
     assert.ok(storeSource.includes("getBridgeResultPackage"), "Restart recovery must restore the durable result package");
   });
 
