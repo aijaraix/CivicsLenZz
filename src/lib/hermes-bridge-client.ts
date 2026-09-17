@@ -58,6 +58,7 @@ export class HermesBridgeClient {
   private storagePath: string;
   private submissions: Map<string, ResultSubmissionRecord> = new Map(); // job_id -> record
   private resultPackages: Map<string, ResearchIngestPackage> = new Map(); // job_id -> package
+  private storeInitPromise: Promise<void> | null = null;
 
   // Telemetry metrics
   private telemetry: BridgeTelemetry = {
@@ -108,6 +109,11 @@ export class HermesBridgeClient {
   }
 
   public async initStore(): Promise<void> {
+    if (!this.storeInitPromise) this.storeInitPromise = this.loadStore();
+    return this.storeInitPromise;
+  }
+
+  private async loadStore(): Promise<void> {
     if (this.isProductionEnvironment()) {
       // In production: Bridge initialization MUST require PostgreSQL.
       // If PostgreSQL load fails: fail closed; do NOT load bridge-submissions.json.
@@ -116,6 +122,8 @@ export class HermesBridgeClient {
       for (const item of subs) {
         if (item.job_id) {
           this.submissions.set(item.job_id, item);
+          const pkg = await persistence.getBridgeResultPackage(item.job_id);
+          if (pkg) this.resultPackages.set(item.job_id, pkg);
         }
       }
       return;
@@ -449,7 +457,7 @@ export class HermesBridgeClient {
    * Register a current canonical V1 envelope with durable PostgreSQL state
    * before any network transmission. Used only by HERMES-assigned production work.
    */
-  public async registerCanonicalEnvelopeDurable(pkg: any, maxAttempts: number = 1): Promise<ResultSubmissionRecord> {
+  public async registerCanonicalEnvelopeDurable(pkg: any, maxAttempts: number = 3): Promise<ResultSubmissionRecord> {
     const canonical = assertCanonicalEnvelope(pkg);
     await this.initStore();
     const jobId = canonical.job.job_id;
@@ -467,7 +475,7 @@ export class HermesBridgeClient {
     const now = new Date().toISOString();
     const record: ResultSubmissionRecord = {
       submission_id: `sub_${idempotencyKey.substring(0, 16)}`, job_id: jobId, idempotency_key: idempotencyKey,
-      delivery_state: 'RESULT_READY', attempts: 0, max_attempts: Math.max(1, Math.min(1, maxAttempts)),
+      delivery_state: 'RESULT_READY', attempts: 0, max_attempts: Math.max(1, Math.min(3, maxAttempts)),
       next_retry_at: null, last_attempt_at: null, last_error: null, acknowledgment: null, created_at: now, updated_at: now
     };
     this.submissions.set(jobId, record);
@@ -476,6 +484,27 @@ export class HermesBridgeClient {
     await this.persistSubmissionDurable(record, canonical as any);
     if (this.canonicalIngestUrl) return this.submitResultPackage(jobId);
     return record;
+  }
+
+  public async retryDueCanonicalSubmissions(limit: number = 1): Promise<number> {
+    await this.initStore();
+    const now = Date.now();
+    let retried = 0;
+    for (const record of this.submissions.values()) {
+      if (retried >= Math.max(0, Math.min(1, limit))) break;
+      if (!['RESULT_READY', 'RETRYABLE'].includes(record.delivery_state)) continue;
+      if (record.next_retry_at && Date.parse(record.next_retry_at) > now) continue;
+      const pkg = this.resultPackages.get(record.job_id);
+      if (!pkg || (pkg as any)?.job?.job_id !== record.job_id) continue;
+      if (record.max_attempts === 1 && record.attempts === 1) {
+        record.max_attempts = 3;
+        await this.persistSubmissionDurable(record, pkg);
+      }
+      if (record.attempts >= record.max_attempts) continue;
+      await this.submitResultPackage(record.job_id);
+      retried += 1;
+    }
+    return retried;
   }
 
   /**

@@ -244,6 +244,6 @@ export async function stageCanonicalResultForCompletedJob(
   const envelope = await buildCanonicalResultEnvelope(job, parsed, deps);
   if (!envelope) return { state: 'NOT_CANONICAL_ASSIGNED' };
   const bridge = deps.bridge ?? hermesBridgeClient;
-  const submission = await bridge.registerCanonicalEnvelopeDurable(envelope, 1);
+  const submission = await bridge.registerCanonicalEnvelopeDurable(envelope, 3);
   return { state: submission.delivery_state || 'RESULT_DURABLY_STAGED', envelope, submission };
 }

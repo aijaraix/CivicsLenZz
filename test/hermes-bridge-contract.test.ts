@@ -25,6 +25,8 @@ import { HarvesterJobManager } from '../src/lib/harvester-job-manager';
 import { CIVICSLENZZ_PRODUCER_MANIFEST } from '../src/lib/producer-manifest';
 import assert from 'assert';
 import * as nodeCrypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 let passed = 0;
 let failed = 0;
@@ -333,6 +335,17 @@ async function runAllBridgeContractTests() {
     });
     assert.throws(() => bridgeClient.formatCanonicalEnvelope(rawJob.job), /Canonical V1 schema rejection/);
 
+  });
+
+  await runTest("19. Durable Canonical Return Retry Remains Bounded", () => {
+    const bridgeSource = fs.readFileSync(path.join(process.cwd(), "src/lib/hermes-bridge-client.ts"), "utf8");
+    const daemonSource = fs.readFileSync(path.join(process.cwd(), "src/lib/hermes-worker-daemon.ts"), "utf8");
+    const storeSource = fs.readFileSync(path.join(process.cwd(), "src/lib/producer-storage/postgres-producer-store.ts"), "utf8");
+    assert.ok(bridgeSource.includes("Math.min(3, maxAttempts)"), "Canonical return retry ceiling must remain three");
+    assert.ok(bridgeSource.includes("['RESULT_READY', 'RETRYABLE']"), "Only retryable delivery states may resume");
+    assert.ok(bridgeSource.includes("Math.min(1, limit)"), "Each daemon cycle may retry at most one return");
+    assert.ok(daemonSource.includes("retryDueCanonicalSubmissions(1)"), "Daemon must resume one durable return before new work");
+    assert.ok(storeSource.includes("getBridgeResultPackage"), "Restart recovery must restore the durable result package");
   });
 
   console.log("\n=======================================================");
