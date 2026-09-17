@@ -16,6 +16,7 @@ import { getProducerPersistence } from './producer-storage/index';
 import { PersistentHermesJob } from './hermes-backend-store';
 import { sourceAdapters, type AdapterParseResult } from './source-adapters';
 import { stageCanonicalResultForCompletedJob } from './durable-canonical-production';
+import { hermesBridgeClient } from './hermes-bridge-client';
 import { harvesterCapabilityMatrixEngine } from './harvester-capability-matrix';
 import { harvesterAcademy } from './harvester-academy';
 
@@ -93,6 +94,7 @@ export class HermesWorkerDaemonEngine {
 
   public async executeOneCycle() {
     if (!this.isRunning) return;
+    await hermesBridgeClient.retryDueCanonicalSubmissions(1);
     await this.executeDaemonCycle();
     if (!this.canonicalAssignmentsOnly()) {
       await this.executeMonitoringCycle();

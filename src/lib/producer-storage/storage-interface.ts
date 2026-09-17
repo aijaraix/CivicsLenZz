@@ -157,6 +157,7 @@ export interface ProducerPersistence {
   // Bridge Submissions
   getBridgeSubmission(jobId: string): Promise<ResultSubmissionRecord | null>;
   getAllBridgeSubmissions(): Promise<ResultSubmissionRecord[]>;
+  getBridgeResultPackage(jobId: string): Promise<ResearchIngestPackage | null>;
   upsertBridgeSubmission(submission: ResultSubmissionRecord, resultPackage?: ResearchIngestPackage): Promise<void>;
 
   // Reconciliation & Summaries

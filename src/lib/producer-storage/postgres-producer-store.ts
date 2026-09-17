@@ -1540,6 +1540,13 @@ export class PostgresProducerStore implements ProducerPersistence {
     }));
   }
 
+  public async getBridgeResultPackage(jobId: string): Promise<ResearchIngestPackage | null> {
+    this.ensurePostgresConfigured('getBridgeResultPackage');
+    const rows = await db.select({ resultPackage: bridgeSubmissions.resultPackage })
+      .from(bridgeSubmissions).where(eq(bridgeSubmissions.jobId, jobId)).limit(1);
+    return (rows[0]?.resultPackage as ResearchIngestPackage | null) || null;
+  }
+
   public async upsertBridgeSubmission(submission: ResultSubmissionRecord, resultPackage?: ResearchIngestPackage): Promise<void> {
     this.ensurePostgresConfigured('upsertBridgeSubmission');
     const nowIso = new Date().toISOString();
