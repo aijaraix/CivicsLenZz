@@ -240,6 +240,86 @@ export class SourceAdapterBase {
   }
 }
 
+function normalizeFloridaDOSText(value: string): string {
+  return value.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+export function resolveFloridaDOSSelectedElectionId(html: string): string | null {
+  const $ = cheerio.load(html);
+  const selected = $('select[name="elecid"] option[selected]').first();
+  const value = selected.attr('value');
+  if (value && /-GEN$/i.test(value)) return value;
+  return null;
+}
+
+export function parseFloridaDOSCandidateListing(
+  html: string,
+  listingUrl: string,
+  fallbackOffice = 'SENATE'
+): Array<{ target_entity: string; field_key: string; extracted_value: string; evidence_locator?: string }> {
+  const $ = cheerio.load(html);
+  const extractedItems: Array<{
+    target_entity: string;
+    field_key: string;
+    extracted_value: string;
+    evidence_locator?: string;
+  }> = [];
+
+  $('table.results').each((_, table) => {
+    const headers = $(table).find('tr').first().find('th').map((__, cell) => normalizeFloridaDOSText($(cell).text())).get();
+    if (!headers.includes('Candidate') || !headers.includes('Status')) return;
+
+    let officeHeading = '';
+    let prior = $(table).prev();
+    for (let scan = 0; scan < 10 && prior.length; scan += 1, prior = prior.prev()) {
+      const heading = normalizeFloridaDOSText(prior.find('b').first().text() || prior.text());
+      if (heading && !/^(Candidate|Status|Primary|General)$/i.test(heading)) {
+        officeHeading = heading;
+        break;
+      }
+    }
+
+    $(table).find('tr').each((rowIndex, row) => {
+      const candidateLink = $(row).find('a[href*="CanDetail.asp?account="]').first();
+      if (!candidateLink.length) return;
+      const candidateCell = candidateLink.closest('td');
+      if (!candidateCell.length) return;
+
+      const href = candidateLink.attr('href') || '';
+      const accountMatch = href.match(/CanDetail\.asp\?account=(\d+)/i);
+      if (!accountMatch) return;
+      const accountId = accountMatch[1];
+      const nameParts = candidateCell.find(`a[href="${href}"]`).map((__, link) => $(link).text()).get();
+      const candidateName = normalizeFloridaDOSText(nameParts.join(' ')).replace(/\s+,/g, ',');
+      if (!candidateName || /^(General Election|Special Election):?$/i.test(candidateName)) return;
+
+      const candidateCellText = normalizeFloridaDOSText(candidateCell.text());
+      const partyMatch = candidateCellText.match(/\(([A-Z][A-Z0-9]{1,5})\)/);
+      const party = partyMatch ? partyMatch[1] : '';
+      const status = normalizeFloridaDOSText(candidateCell.next('td').text());
+      const districtText = normalizeFloridaDOSText(candidateCell.prev('td').text());
+      const district = /^\d{1,3}$/.test(districtText) ? districtText : '';
+      const office = normalizeFloridaDOSText(officeHeading || fallbackOffice);
+      const officeSought = district ? `${office} District ${district}` : office;
+
+      if (!status || !officeSought) return;
+      extractedItems.push({
+        target_entity: candidateName,
+        field_key: 'CANDIDATE_FILING_RECORD',
+        extracted_value: JSON.stringify({
+          candidate_name: candidateName,
+          party_affiliation: party,
+          filing_status: status,
+          office_sought: officeSought
+        }),
+        evidence_locator: `${listingUrl}#candidate-account-${accountId}-row-${rowIndex}`
+      });
+    });
+  });
+
+  return extractedItems;
+}
+
 // 1. Florida Division of Elections Adapter
 export class FloridaDOSDivisionOfElectionsAdapter extends SourceAdapterBase {
   constructor() {
@@ -247,91 +327,71 @@ export class FloridaDOSDivisionOfElectionsAdapter extends SourceAdapterBase {
   }
 
   public async fetchCandidateFilings(officeCategory = 'SENATE'): Promise<AdapterParseResult> {
-    const targetUrl = `${this.base_url}/candidates/CanList.asp`;
-    const res = await this.fetchWithTimeout(targetUrl, 15000);
+    const landingUrl = `${this.base_url}/candidates/CanList.asp`;
+    const landing = await this.fetchWithTimeout(landingUrl, 15000);
 
-    // If fetch failed or challenge detected, fail closed!
-    if (!res.ok || res.challengeInspection.isChallenge) {
-      const failureReason = res.challengeInspection.reason || `RETRIEVAL_FAILED: HTTP ${res.status}`;
-      
-      // Store failed raw snapshot for audit/Academy traceability with exact raw bytes
-      let snapshotUuid: string | undefined;
-      if (res.rawBytes && res.rawBytes.length > 0) {
-        const persistence = getProducerPersistence();
-        const snap = await persistence.saveRawSnapshot({
-          source_uuid: this.source_id,
-          target_url: targetUrl,
-          http_status: res.status,
-          content_type: res.contentType,
-          charset: res.charset || 'utf-8',
-          byte_length: res.rawBytes.length,
-          raw_bytes: res.rawBytes,
-          parser_version: 'DETERMINISTIC_PARSER_V2_2_ZERO_SYNTHETIC',
-          provenance_classification: res.challengeInspection.isChallenge ? 'FAILED_RETRIEVAL' : 'LEGACY_UNPROVEN',
-          challenge_reason: res.challengeInspection.reason,
-          failure_class: res.challengeInspection.failureClass || 'RETRIEVAL_FAILED'
-        });
-        snapshotUuid = snap.snapshot_uuid;
-      }
-
+    if (!landing.ok || landing.challengeInspection.isChallenge) {
+      const failureReason = landing.challengeInspection.reason || `RETRIEVAL_FAILED: HTTP ${landing.status}`;
       return {
         success: false,
         source_id: this.source_id,
-        source_url: targetUrl,
+        source_url: landingUrl,
+        final_url: landing.finalUrl,
+        http_status: landing.status,
+        byte_length: landing.byteLength,
+        content_sha256: landing.sha256,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: failureReason,
+        failure_class: landing.challengeInspection.failureClass || 'RETRIEVAL_FAILED'
+      };
+    }
+
+    const electionId = resolveFloridaDOSSelectedElectionId(landing.text);
+    if (!electionId) {
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: landingUrl,
+        final_url: landing.finalUrl,
+        http_status: landing.status,
+        byte_length: landing.byteLength,
+        content_sha256: landing.sha256,
+        records_extracted: 0,
+        extracted_items: [],
+        evidence_objects: [],
+        error_message: 'PARSER_INCOMPATIBLE: Florida DOS current general-election selector was not found',
+        failure_class: 'PARSER_INCOMPATIBLE'
+      };
+    }
+
+    const listingUrl = `${landingUrl}?elecid=${encodeURIComponent(electionId)}`;
+    const res = await this.fetchWithTimeout(listingUrl, 15000);
+    if (!res.ok || res.challengeInspection.isChallenge) {
+      const failureReason = res.challengeInspection.reason || `RETRIEVAL_FAILED: HTTP ${res.status}`;
+      return {
+        success: false,
+        source_id: this.source_id,
+        source_url: listingUrl,
         final_url: res.finalUrl,
         http_status: res.status,
         byte_length: res.byteLength,
         content_sha256: res.sha256,
         records_extracted: 0,
         extracted_items: [],
-        raw_snapshot_uuid: snapshotUuid,
         evidence_objects: [],
         error_message: failureReason,
         failure_class: res.challengeInspection.failureClass || 'RETRIEVAL_FAILED'
       };
     }
 
-    // Deterministic parser against exact retrieved HTML bytes
-    const extractedItems: Array<{
-      target_entity: string;
-      field_key: string;
-      extracted_value: string;
-      evidence_locator?: string;
-    }> = [];
-
-    const $ = cheerio.load(res.text);
-
-    // Florida DOS Candidate List displays table rows for candidates
-    $('table tr').each((rowIdx, row) => {
-      const cells = $(row).find('td').map((_, cell) => $(cell).text().trim()).get();
-      if (cells.length >= 3) {
-        const candidateName = cells[0];
-        const party = cells[1];
-        const status = cells[2];
-        const office = cells[3] || officeCategory;
-
-        if (candidateName && candidateName.length > 2 && !candidateName.toLowerCase().includes('candidate name')) {
-          extractedItems.push({
-            target_entity: candidateName,
-            field_key: 'CANDIDATE_FILING_RECORD',
-            extracted_value: JSON.stringify({
-              candidate_name: candidateName,
-              party_affiliation: party,
-              filing_status: status,
-              office_sought: office
-            }),
-            evidence_locator: `${targetUrl}#table_row_${rowIdx}`
-          });
-        }
-      }
-    });
-
-    // If parser found 0 valid candidate records, fail closed truthfully
+    const extractedItems = parseFloridaDOSCandidateListing(res.text, listingUrl, officeCategory);
     if (extractedItems.length === 0) {
       return {
         success: false,
         source_id: this.source_id,
-        source_url: targetUrl,
+        source_url: listingUrl,
         final_url: res.finalUrl,
         http_status: res.status,
         byte_length: res.byteLength,
@@ -339,14 +399,14 @@ export class FloridaDOSDivisionOfElectionsAdapter extends SourceAdapterBase {
         records_extracted: 0,
         extracted_items: [],
         evidence_objects: [],
-        error_message: 'PARSER_INCOMPATIBLE: Zero candidate records extracted from retrieved markup structure',
+        error_message: 'PARSER_INCOMPATIBLE: Zero official candidate-detail rows extracted from current Florida DOS election listing',
         failure_class: 'PARSER_INCOMPATIBLE'
       };
     }
 
     try {
       const { snapshotUuid, evidenceObjects } = await this.storeSnapshotAndEvidence(
-        targetUrl,
+        listingUrl,
         res.status,
         res.contentType,
         res.rawBytes,
@@ -359,7 +419,7 @@ export class FloridaDOSDivisionOfElectionsAdapter extends SourceAdapterBase {
       return {
         success: true,
         source_id: this.source_id,
-        source_url: targetUrl,
+        source_url: listingUrl,
         final_url: res.finalUrl,
         http_status: res.status,
         byte_length: res.byteLength,
@@ -373,7 +433,7 @@ export class FloridaDOSDivisionOfElectionsAdapter extends SourceAdapterBase {
       return {
         success: false,
         source_id: this.source_id,
-        source_url: targetUrl,
+        source_url: listingUrl,
         final_url: res.finalUrl,
         http_status: res.status,
         byte_length: res.byteLength,

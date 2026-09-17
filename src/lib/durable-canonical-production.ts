@@ -11,6 +11,7 @@ export const CONTROLLED_CAPABILITY = 'advance_research_harvest';
 export const CONTROLLED_SCOPE = 'FL_DOS_CANDIDATE_FILINGS';
 export const CONTROLLED_PRODUCER = 'civicslenzz-gemini-harvester';
 export const CONTROLLED_SOURCE = 'fl_dos_elections';
+const CONTROLLED_SOURCE_URL = 'https://dos.elections.myflorida.com/candidates/CanList.asp';
 export const CONTROLLED_JOB_TYPE = 'INGEST_CANDIDATE_FILINGS';
 export const CONTROLLED_AGENT = 'H1';
 
@@ -209,7 +210,7 @@ export async function buildCanonicalResultEnvelope(
     sources: [{
       source_key: CONTROLLED_SOURCE,
       source_name: 'Florida Division of Elections',
-      source_url: snapshot.target_url,
+      source_url: CONTROLLED_SOURCE_URL,
       authority_tier: 'TIER_A',
     }],
     retrievals: [{
