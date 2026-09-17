@@ -531,12 +531,14 @@ export class HermesWorkerDaemonEngine {
     const persistence = getProducerPersistence();
     const health = await persistence.checkHealth();
     const summary = await persistence.getDatabaseSummary();
+    const bridgeRecovery = await hermesBridgeClient.getDurableRecoveryStatus();
 
     return {
       daemon_active: this.isRunning,
       storage_health: health,
       startup_error: this.startupError,
       bridge_persistence_hydrated: this.bridgePersistenceHydrated,
+      bridge_recovery: bridgeRecovery,
       execution_environment: 'Node Express Backend Server',
       persistence_target: 'Cloud SQL PostgreSQL + GCS',
       active_processing_jobs_count: this.activeJobsProcessing.size,
