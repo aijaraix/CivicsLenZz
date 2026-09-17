@@ -350,6 +350,21 @@ async function runAllBridgeContractTests() {
     assert.ok(storeSource.includes("getBridgeResultPackage"), "Restart recovery must restore the durable result package");
   });
 
+  await runTest("20. Store Initialization Recovers After Startup Race", async () => {
+    const recoveringClient = Object.create(HermesBridgeClient.prototype) as HermesBridgeClient;
+    let attempts = 0;
+    (recoveringClient as any).storeInitPromise = null;
+    (recoveringClient as any).loadStore = async () => {
+      attempts += 1;
+      if (attempts === 1) throw new Error("persistence not initialized");
+    };
+
+    await assert.rejects(recoveringClient.initStore(), /persistence not initialized/);
+    await recoveringClient.initStore();
+    await recoveringClient.initStore();
+    assert.strictEqual(attempts, 2, "A failed startup load must retry once and then remain initialized");
+  });
+
   console.log("\n=======================================================");
   console.log(`TEST SUMMARY: ${passed} PASSED | ${failed} FAILED`);
   console.log("=======================================================\n");
