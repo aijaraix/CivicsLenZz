@@ -26,6 +26,7 @@ export class HermesWorkerDaemonEngine {
   private watchdogHandle: NodeJS.Timeout | null = null;
   private activeJobsProcessing = new Set<string>();
   private startupError: string | null = null;
+  private bridgePersistenceHydrated = false;
 
   private canonicalAssignmentsOnly(): boolean {
     return process.env.CIVICSLENZZ_CANONICAL_ASSIGNMENTS_ONLY === 'true';
@@ -50,6 +51,12 @@ export class HermesWorkerDaemonEngine {
         console.error(`[HERMES WORKER DAEMON] FAIL-CLOSED: Daemon refusing to start - ${this.startupError}`);
         return;
       }
+      // The bridge singleton is constructed while the server module loads,
+      // before producer persistence is necessarily ready. Hydrate it again
+      // here, after the authoritative PostgreSQL readiness check, so durable
+      // RESULT_READY/RETRYABLE returns survive a Cloud Run cold start.
+      await hermesBridgeClient.initStore();
+      this.bridgePersistenceHydrated = true;
       (persistence as any).setDaemonActive?.(true);
     } catch (err: any) {
       this.startupError = err.message || 'Storage initialization failed';
@@ -529,6 +536,7 @@ export class HermesWorkerDaemonEngine {
       daemon_active: this.isRunning,
       storage_health: health,
       startup_error: this.startupError,
+      bridge_persistence_hydrated: this.bridgePersistenceHydrated,
       execution_environment: 'Node Express Backend Server',
       persistence_target: 'Cloud SQL PostgreSQL + GCS',
       active_processing_jobs_count: this.activeJobsProcessing.size,
