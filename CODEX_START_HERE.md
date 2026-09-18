@@ -2,6 +2,13 @@
 
 Before making architectural, runtime, worker, research, UI, Cloudflare, Supabase, VPS, OpenClaw, HERMES, producer, evidence, monitoring, security, deployment, validation, or publication changes, read the authoritative control-plane documentation in `docs/control-plane/`.
 
+## Current domain/runtime invariant
+- Canonical public website: `https://civicslenz.com`.
+- Legacy public website: `civiclenz.ai`.
+- Legacy producer/site runtime: `civiclenz.ai.studio` / the old Google AI Studio deployment.
+- CivicsLenZz remains a subordinate producer implementation, never HERMES or canonical truth authority. Historical runtime lineage must remain intact, but active execution must migrate to a persistent independently supervised runtime before the legacy endpoint is retired.
+- Never substitute the public website as a producer endpoint.
+
 ## Required master entry point
 Read first:
 

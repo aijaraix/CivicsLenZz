@@ -15,7 +15,7 @@ export const civicLenzSpecs: SpecSection[] = [
     id: "spec-product",
     title: "1. Product Specification",
     subtitle: "Architecture, Vision, Stack & Compliance",
-    content: `### CivicLenZ (CivicLenZ.ai)
+    content: `### CivicLenZ (CivicsLenZ.com)
 **Vision Statement**: CivicLenZ is the public accountability and intelligence layer for global democracy. It is a nonpartisan, politically neutral, fact-driven, source-first platform that organizes, monitors, and explains the actions of public officials, government spending, voting records, and public promises.
 
 ---
@@ -197,7 +197,7 @@ All tables are initialized with high-level source mapping infrastructure to esta
     content: `### Main Copy Framework for CivicLenZ Landing Page
 
 #### 1. Header Navigation Menu
-- Logo: **CivicLenZ.ai**
+- Logo: **CivicLenZ**
 - Links: \`Explore Directory\`, \`Promise Tracker\`, \`Money flow\`, \`Citizen Tools\`, \`Trust & Methodology\`, \`Pricing\`
 - Button: \`Enter Platform\` (CTA)
 
@@ -214,7 +214,7 @@ All tables are initialized with high-level source mapping infrastructure to esta
 ---
 
 #### 3. Core Trust Assertion Banner
-*"Politically neutral. Source-first. Human audited. CivicLenZ.ai aggregates data exclusively from official government registers, ethics filings, and verified transcripts."*
+*"Politically neutral. Source-first. Human audited. CivicsLenZ.com publishes only information that passes CivicLenZ's canonical evidence and publication gates."*
 
 ---
 
