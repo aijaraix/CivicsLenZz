@@ -918,6 +918,33 @@ async function startServer() {
     }
   });
 
+  // Operator-controlled exact retry for an exhausted durable canonical return.
+  // Protected by the existing /api/harvester HMAC middleware above.
+  app.post("/api/harvester/retry-canonical-submission", async (req, res) => {
+    try {
+      const jobId = typeof req.body?.job_id === 'string' ? req.body.job_id.trim() : '';
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(jobId)) {
+        return res.status(400).json({ status: 'ERROR', error: 'INVALID_JOB_ID' });
+      }
+      const { hermesBridgeClient } = await import("./src/lib/hermes-bridge-client");
+      const result = await hermesBridgeClient.operatorRetryExhaustedCanonicalSubmission(jobId);
+      return res.status(200).json({
+        status: 'OK',
+        job_id: result.job_id,
+        delivery_state: result.delivery_state,
+        attempts: result.attempts,
+        max_attempts: result.max_attempts,
+        acknowledgment_code: result.acknowledgment?.code || null
+      });
+    } catch (err: any) {
+      return res.status(409).json({
+        status: 'ERROR',
+        error: 'CANONICAL_RETRY_NOT_ELIGIBLE',
+        message: err?.message || 'Retry was not eligible'
+      });
+    }
+  });
+
   // 3f. Harvester Health Endpoint
   app.get("/api/harvester/health", async (req, res) => {
     try {
