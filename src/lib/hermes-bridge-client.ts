@@ -617,6 +617,41 @@ export class HermesBridgeClient {
   }
 
   /**
+   * Operator-triggered retry for one exhausted durable canonical submission.
+   *
+   * This is intentionally NOT called by startup/hydration. The caller must first
+   * ensure the exact canonical one-use return authorization is armed, then invoke
+   * the authenticated /api/harvester control endpoint. History is preserved:
+   * attempts are never reset and the budget grows by exactly one.
+   */
+  public async operatorRetryExhaustedCanonicalSubmission(jobId: string): Promise<ResultSubmissionRecord> {
+    await this.initStore();
+    const record = this.submissions.get(jobId);
+    if (!record) throw new Error(`Submission record for job ${jobId} not found`);
+    const pkg = this.resultPackages.get(jobId);
+    if (!pkg || (pkg as any)?.job?.job_id !== jobId) {
+      throw new Error('Exact durable canonical result package is not loaded');
+    }
+    if (record.delivery_state !== 'RETRYABLE'
+        || record.acknowledgment?.code !== 'RETRY_LATER'
+        || record.attempts !== record.max_attempts) {
+      throw new Error('Submission is not an exhausted RETRY_LATER record');
+    }
+    // Explicit operator recovery remains bounded. This permits at most three
+    // authenticated one-at-a-time interventions beyond the current 13-attempt
+    // migration history; each intervention must be separately requested.
+    if (record.max_attempts >= 16) {
+      throw new Error('Operator recovery ceiling reached');
+    }
+    record.max_attempts = record.attempts + 1;
+    record.next_retry_at = null;
+    record.last_error = 'Operator-authorized exact canonical retry armed';
+    record.updated_at = new Date().toISOString();
+    await this.persistSubmissionDurable(record, pkg);
+    return this.submitResultPackage(jobId);
+  }
+
+  /**
    * Submit result package to canonical gateway with retry and acknowledgment processing
    */
   public async submitResultPackage(jobId: string): Promise<ResultSubmissionRecord> {

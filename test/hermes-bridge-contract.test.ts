@@ -341,6 +341,7 @@ async function runAllBridgeContractTests() {
     const bridgeSource = fs.readFileSync(path.join(process.cwd(), "src/lib/hermes-bridge-client.ts"), "utf8");
     const daemonSource = fs.readFileSync(path.join(process.cwd(), "src/lib/hermes-worker-daemon.ts"), "utf8");
     const storeSource = fs.readFileSync(path.join(process.cwd(), "src/lib/producer-storage/postgres-producer-store.ts"), "utf8");
+    const serverSource = fs.readFileSync(path.join(process.cwd(), "server.ts"), "utf8");
     assert.ok(bridgeSource.includes("Math.min(3, maxAttempts)"), "Canonical return retry ceiling must remain three");
     assert.ok(bridgeSource.includes("['RESULT_READY', 'RETRYABLE']"), "Only retryable delivery states may resume");
     assert.ok(bridgeSource.includes("Math.min(1, limit)"), "Each daemon cycle may retry at most one return");
@@ -352,6 +353,10 @@ async function runAllBridgeContractTests() {
     assert.ok(bridgeSource.includes("record.max_attempts = 12"), "The paused-intake migration ceiling must reach twelve without resetting history");
     assert.ok(bridgeSource.includes("record.max_attempts === 12 && record.attempts === 12"), "Hydration-race exhaustion may receive exactly one final submission opportunity");
     assert.ok(bridgeSource.includes("record.max_attempts = 13"), "The exact-grant recovery ceiling must remain thirteen attempts without resetting history");
+    assert.ok(bridgeSource.includes("operatorRetryExhaustedCanonicalSubmission"), "Exhausted returns must have an explicit operator-triggered recovery path");
+    assert.ok(bridgeSource.includes("record.max_attempts = record.attempts + 1"), "Operator recovery must add exactly one attempt without resetting history");
+    assert.ok(bridgeSource.includes("record.max_attempts >= 16"), "Operator recovery must remain bounded");
+    assert.ok(serverSource.includes('/api/harvester/retry-canonical-submission'), "Exact retry must be exposed only under the machine-authenticated harvester route");
     assert.ok(bridgeSource.includes("record.acknowledgment?.code === 'RETRY_LATER'"), "Only retry-later exhaustion may receive bounded recovery");
     assert.ok(bridgeSource.includes("authorizationOnlyRejection"), "Only exact authorization-only terminal rejections may be reopened");
     assert.ok(bridgeSource.includes("getDurableRecoveryStatus"), "Live status must expose durable bridge retry state without result contents");
