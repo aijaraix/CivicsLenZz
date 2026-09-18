@@ -554,6 +554,19 @@ export class HermesBridgeClient {
         record.next_retry_at = null;
         await this.persistSubmissionDurable(record, pkg);
       }
+      // PR #16's three-attempt window can be consumed immediately during
+      // hydration before an operator has time to renew the exact one-use
+      // canonical return grants. Preserve all twelve historical attempts and
+      // provide exactly one final submission opportunity. Operators must arm
+      // the exact job/work-scoped grants before deploying this migration.
+      // The durable 12 -> 13 transition is one-way and cannot grow on restart.
+      if (record.delivery_state === 'RETRYABLE'
+          && record.max_attempts === 12 && record.attempts === 12
+          && record.acknowledgment?.code === 'RETRY_LATER') {
+        record.max_attempts = 13;
+        record.next_retry_at = null;
+        await this.persistSubmissionDurable(record, pkg);
+      }
       if (record.attempts >= record.max_attempts) continue;
       await this.submitResultPackage(record.job_id);
       retried += 1;
